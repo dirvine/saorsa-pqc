@@ -15,10 +15,15 @@
 //! - **ML-DSA-65**: NIST FIPS 204 standardized lattice-based signatures
 //! - **Hybrid Signatures**: Classical Ed25519 + ML-DSA for defense-in-depth
 //!
-//! ### TLS Integration
-//! - **Rustls Provider**: Drop-in PQC support for Rustls TLS library
-//! - **Raw Public Keys**: RFC 7250 support for certificate-less authentication
-//! - **Certificate Extensions**: X.509 extensions for PQC algorithms
+//! ### Symmetric Encryption (Quantum-Resistant)
+//! - **ChaCha20-Poly1305**: AEAD cipher providing quantum-resistant symmetric encryption
+//! - **Password-based Key Derivation**: PBKDF2 for secure key derivation from passwords
+//! - **Authenticated Encryption**: Built-in authentication prevents tampering
+//!
+//! ### Network Protocol Support
+//! - **Raw Public Keys**: Ed25519 key support for P2P authentication
+//! - **Key Derivation**: Utilities for network identity derivation
+//! - **Protocol Agnostic**: Designed for use with any network protocol
 //!
 //! ### Security Features
 //! - **Memory Protection**: Secure memory handling and cleanup
@@ -30,6 +35,7 @@
 //!
 //! ```rust,no_run
 //! use saorsa_pqc::pqc::{MlKem768, MlKemOperations, HybridPublicKeyEncryption};
+//! use saorsa_pqc::symmetric::{SymmetricKey, ChaCha20Poly1305Cipher};
 //!
 //! # fn main() -> Result<(), Box<dyn std::error::Error>> {
 //! // Key encapsulation with ML-KEM
@@ -46,6 +52,13 @@
 //! let encrypted = pke.encrypt(&pub_key, plaintext, associated_data)?;
 //! let decrypted = pke.decrypt(&sec_key, &encrypted, associated_data)?;
 //! assert_eq!(plaintext, &decrypted[..]);
+//!
+//! // Quantum-resistant symmetric encryption
+//! let key = SymmetricKey::generate();
+//! let cipher = ChaCha20Poly1305Cipher::new(&key);
+//! let (ciphertext, nonce) = cipher.encrypt(b"Quantum-safe data", None)?;
+//! let decrypted = cipher.decrypt(&ciphertext, &nonce, None)?;
+//! assert_eq!(b"Quantum-safe data", &decrypted[..]);
 //! # Ok(())
 //! # }
 //! ```
@@ -105,6 +118,9 @@
 // Core PQC modules - the main attraction
 pub mod pqc;
 
+// Symmetric encryption (quantum-resistant)
+pub mod symmetric;
+
 // Re-export the most commonly used types and traits for convenience
 pub use pqc::{
     // Core traits
@@ -130,7 +146,13 @@ pub use pqc::{
     },
 };
 
-// Note: TLS integration is intentionally separate - use saorsa-pqc-tls crate
+// Re-export symmetric encryption for convenience
+pub use symmetric::{
+    ChaCha20Poly1305Cipher, SymmetricKey, EncryptedMessage as SymmetricEncryptedMessage,
+    SymmetricError,
+};
+
+// Note: This is a pure PQC library - protocol integration is left to consuming crates
 
 /// Library version information
 pub const VERSION: &str = env!("CARGO_PKG_VERSION");
