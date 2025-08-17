@@ -85,13 +85,11 @@ pub const NTT_MEMORY: usize = N * 4; // Workspace for NTT
 pub const SAMPLING_MEMORY: usize = N * 4;
 
 /// Performance parameters
-
 /// Maximum number of rejection sampling attempts
 /// After this many rejections, operation fails (prevents infinite loops)
 pub const MAX_REJECTION_ATTEMPTS: usize = 1000;
 
 /// Target performance metrics (in microseconds)
-
 /// Target key generation time in microseconds (2ms)
 pub const TARGET_KEYGEN_TIME_US: u64 = 2000;
 
@@ -102,7 +100,6 @@ pub const TARGET_SIGN_TIME_US: u64 = 5000;
 pub const TARGET_VERIFY_TIME_US: u64 = 2000;
 
 /// Security levels
-
 /// Equivalent classical security level in bits
 pub const CLASSICAL_SECURITY_LEVEL: u32 = 192;
 
@@ -113,7 +110,6 @@ pub const QUANTUM_SECURITY_LEVEL: u32 = 192;
 pub const NIST_SECURITY_CATEGORY: u32 = 3;
 
 /// Validation parameters
-
 /// Maximum message size that can be signed (64MB)
 pub const MAX_MESSAGE_SIZE: usize = 64 * 1024 * 1024;
 

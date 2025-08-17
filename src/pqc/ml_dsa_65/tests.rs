@@ -39,7 +39,7 @@ mod unit_tests {
     #[test]
     fn test_signature_generation() {
         let ml_dsa = MlDsa65::new();
-        let (pk, sk) = ml_dsa.generate_keypair().unwrap();
+        let (_pk, sk) = ml_dsa.generate_keypair().unwrap();
 
         let message = b"Test message for ML-DSA-65";
         let result = ml_dsa.sign(&sk, message, None);
@@ -67,7 +67,7 @@ mod unit_tests {
     #[test]
     fn test_signature_with_context() {
         let ml_dsa = MlDsa65::new();
-        let (pk, sk) = ml_dsa.generate_keypair().unwrap();
+        let (_pk, sk) = ml_dsa.generate_keypair().unwrap();
 
         let message = b"Test message";
         let context = b"test_context";
@@ -196,7 +196,7 @@ mod unit_tests {
     #[test]
     fn test_signature_serialization() {
         let ml_dsa = MlDsa65::new();
-        let (pk, sk) = ml_dsa.generate_keypair().unwrap();
+        let (_pk, sk) = ml_dsa.generate_keypair().unwrap();
 
         let message = b"Test signature serialization";
         let signature = ml_dsa.sign(&sk, message, None).unwrap();
@@ -416,7 +416,7 @@ mod security_tests {
     #[test]
     fn test_signature_randomness() {
         let ml_dsa = MlDsa65::new();
-        let (public_key, secret_key) = ml_dsa.generate_keypair().unwrap();
+        let (_public_key, secret_key) = ml_dsa.generate_keypair().unwrap();
 
         let message = b"Test message for randomness";
 

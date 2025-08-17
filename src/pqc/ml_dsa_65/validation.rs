@@ -657,7 +657,7 @@ mod tests {
         assert!(matches!(result, Err(PqcError::InvalidPublicKey)));
 
         // Wrong size - create manually to test size validation
-        let wrong_size_data = vec![0u8; PUBLIC_KEY_SIZE - 1];
+        let _wrong_size_data = vec![0u8; PUBLIC_KEY_SIZE - 1];
         // We can't easily create a wrong-size key due to the type system,
         // so we test the size constant instead
         assert_eq!(PUBLIC_KEY_SIZE, 1952);

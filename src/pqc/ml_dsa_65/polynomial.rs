@@ -669,7 +669,7 @@ mod tests {
     #[test]
     fn test_power2_round() {
         let poly = Polynomial::from_coeffs(&[15, 31, 63]);
-        let (t1, t0) = poly.power2_round(4); // d = 4, so 2^d = 16
+        let (t1, _t0) = poly.power2_round(4); // d = 4, so 2^d = 16
 
         // 15 = 0*16 + 15, so t1[0] = 1, t0[0] = 15-16 = -1 (mod q)
         // 31 = 1*16 + 15, so t1[1] = 2, t0[1] = 31-32 = -1 (mod q)
