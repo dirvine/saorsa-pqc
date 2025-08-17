@@ -76,26 +76,35 @@ impl PoolStats {
 }
 
 /// Buffer types for pooling
+
+/// Pre-allocated buffer for ML-KEM public keys with secure memory management
 #[derive(Clone)]
 pub struct MlKemPublicKeyBuffer(pub Box<[u8; ML_KEM_768_PUBLIC_KEY_SIZE]>);
 
+/// Pre-allocated buffer for ML-KEM secret keys with automatic zeroization
 #[derive(Clone)]
 pub struct MlKemSecretKeyBuffer(pub Box<[u8; ML_KEM_768_SECRET_KEY_SIZE]>);
 
+/// Pre-allocated buffer for ML-KEM ciphertext with secure memory management
 #[derive(Clone)]
 pub struct MlKemCiphertextBuffer(pub Box<[u8; ML_KEM_768_CIPHERTEXT_SIZE]>);
 
+/// Pre-allocated buffer for ML-DSA public keys with secure memory management
 #[derive(Clone)]
 pub struct MlDsaPublicKeyBuffer(pub Box<[u8; ML_DSA_65_PUBLIC_KEY_SIZE]>);
 
+/// Pre-allocated buffer for ML-DSA secret keys with automatic zeroization
 #[derive(Clone)]
 pub struct MlDsaSecretKeyBuffer(pub Box<[u8; ML_DSA_65_SECRET_KEY_SIZE]>);
 
+/// Pre-allocated buffer for ML-DSA signatures with secure memory management
 #[derive(Clone)]
 pub struct MlDsaSignatureBuffer(pub Box<[u8; ML_DSA_65_SIGNATURE_SIZE]>);
 
 /// Trait for buffer cleanup before returning to pool
 pub trait BufferCleanup {
+    /// Clean up the buffer before returning it to the pool for reuse
+    /// This method should zero sensitive data and prepare the buffer for safe reuse
     fn cleanup(&mut self);
 }
 

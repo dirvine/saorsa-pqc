@@ -56,19 +56,28 @@ pub enum Severity {
 /// Security issue found during validation
 #[derive(Debug, Clone)]
 pub struct SecurityIssue {
+    /// Severity level of this security issue
     pub severity: Severity,
+    /// Category classification of the issue (e.g., "Timing", "Entropy", "Key Management")
     pub category: String,
+    /// Detailed description of the security issue found
     pub description: String,
+    /// Recommended action to address this security issue
     pub recommendation: String,
 }
 
 /// NIST compliance check results
 #[derive(Debug, Clone)]
 pub struct NistCompliance {
+    /// Whether algorithm parameters conform to NIST specifications
     pub parameters_valid: bool,
+    /// Whether key sizes match NIST-approved values
     pub key_sizes_correct: bool,
+    /// Whether the algorithm is NIST-approved for the security level
     pub algorithm_approved: bool,
+    /// Whether the implementation follows NIST guidelines
     pub implementation_compliant: bool,
+    /// List of specific NIST compliance issues found
     pub issues: Vec<String>,
 }
 
@@ -87,20 +96,30 @@ impl Default for NistCompliance {
 /// Timing analysis results
 #[derive(Debug, Clone)]
 pub struct TimingAnalysis {
+    /// Average execution time across all samples
     pub mean_duration: Duration,
+    /// Standard deviation of execution times
     pub std_deviation: Duration,
+    /// Coefficient of variation (std_dev / mean) as a percentage
     pub coefficient_of_variation: f64,
+    /// Whether the operation appears to run in constant time
     pub constant_time: bool,
 }
 
 /// Security validation report
 #[derive(Debug, Clone)]
 pub struct SecurityReport {
+    /// Overall security score from 0-100, where 100 is perfect security
     pub security_score: u8, // 0-100
+    /// Quality assessment of random entropy used in cryptographic operations
     pub entropy_quality: EntropyQuality,
+    /// Results of NIST compliance checks for post-quantum algorithms
     pub nist_compliance: NistCompliance,
+    /// Analysis of timing behavior for constant-time operation verification
     pub timing_analysis: TimingAnalysis,
+    /// List of security issues found during validation
     pub issues: Vec<SecurityIssue>,
+    /// Whether the overall security validation passed (score >= 70)
     pub passed: bool,
 }
 
