@@ -1,0 +1,126 @@
+{
+  "hooks": {
+    "SessionStart": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "CLAUDE_HOOK_TYPE=SessionStart /Users/davidirvine/.claude/hooks/notify.py",
+            "timeout": 10
+          }
+        ]
+      }
+    ],
+    "Notification": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "CLAUDE_HOOK_TYPE=Notification /Users/davidirvine/.claude/hooks/notify.py",
+            "timeout": 10
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "CLAUDE_HOOK_TYPE=Stop /Users/davidirvine/.claude/hooks/notify.py",
+            "timeout": 10
+          }
+        ]
+      }
+    ],
+    "SubagentStop": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "CLAUDE_HOOK_TYPE=SubagentStop /Users/davidirvine/.claude/hooks/notify.py",
+            "timeout": 10
+          }
+        ]
+      }
+    ],
+    "PreCompact": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "CLAUDE_HOOK_TYPE=PreCompact /Users/davidirvine/.claude/hooks/notify.py",
+            "timeout": 10
+          }
+        ]
+      }
+    ]
+  },
+  "qualityStandards": {
+    "enforceStrictMode": true,
+    "blockOnCompileErrors": true,
+    "blockOnWarnings": true,
+    "blockOnLintErrors": true,
+    "blockOnTestFailures": true,
+    "requireFullImplementation": true,
+    "forbidPlaceholders": true,
+    "forbidMockCode": true,
+    "forbidTodos": true,
+    "forbidDebugStatements": true,
+    "requireDocumentation": true,
+    "requireTests": true,
+    "minTestCoverage": 85,
+    "requireTypeAnnotations": true,
+    "requireErrorHandling": true,
+    "maxComplexity": 8,
+    "maxLineLength": 100,
+    "requireCodeReview": true,
+    "requireSecurityCheck": true,
+    "requirePerformanceCheck": true,
+    "autoFixIssues": true,
+    "maxRetryAttempts": 5,
+    "parallelValidation": true
+  },
+  "subagents": {
+    "autoDelegate": true,
+    "proactiveUse": true,
+    "contextIsolation": true,
+    "parallelExecution": true,
+    "chainableAgents": true,
+    "defaultAgents": [
+      "ultra-quality-enforcer",
+      "master-orchestrator",
+      "quality-enforcer",
+      "build-validator",
+      "test-runner",
+      "security-scanner",
+      "code-reviewer",
+      "performance-analyzer",
+      "documentation-auditor",
+      "dependency-fixer",
+      "final-reviewer"
+    ],
+    "criticalAgents": [
+      "quality-enforcer",
+      "build-validator",
+      "security-scanner"
+    ],
+    "agentTimeout": 120,
+    "retryFailedAgents": true
+  },
+  "environment": {
+    "CLAUDE_STRICT_MODE": "true",
+    "CLAUDE_NO_PLACEHOLDERS": "true",
+    "CLAUDE_REQUIRE_TESTS": "true",
+    "CLAUDE_ENFORCE_QUALITY": "true",
+    "CLAUDE_AUTO_FIX": "true",
+    "CLAUDE_PARALLEL_VALIDATION": "true",
+    "CLAUDE_SECURITY_SCAN": "true",
+    "CLAUDE_PERFORMANCE_CHECK": "true"
+  }
+}
