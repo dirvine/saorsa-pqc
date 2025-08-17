@@ -3,18 +3,17 @@
 //! Comprehensive benchmarking suite for ML-DSA-65 operations
 //! to ensure performance targets are met and identify bottlenecks.
 
-use criterion::{black_box, criterion_group, criterion_main, Criterion, BenchmarkId, Throughput};
+use criterion::{black_box, criterion_group, criterion_main, BenchmarkId, Criterion, Throughput};
 use saorsa_pqc::pqc::ml_dsa::{MlDsa65, MlDsaKeyPair};
 use std::time::Duration;
 
 /// Benchmark ML-DSA-65 key generation
 fn benchmark_keygen(c: &mut Criterion) {
     let ml_dsa = MlDsa65::new();
-    
+
     c.bench_function("ml_dsa_65_keygen", |b| {
         b.iter(|| {
-            let _keypair = ml_dsa.generate_keypair()
-                .expect("Key generation failed");
+            let _keypair = ml_dsa.generate_keypair().expect("Key generation failed");
             black_box(_keypair);
         })
     });
@@ -23,54 +22,55 @@ fn benchmark_keygen(c: &mut Criterion) {
 /// Benchmark ML-DSA-65 signing with different message sizes
 fn benchmark_signing(c: &mut Criterion) {
     let mut group = c.benchmark_group("ml_dsa_65_signing");
-    
+
     let ml_dsa = MlDsa65::new();
-    let keypair = ml_dsa.generate_keypair()
-        .expect("Key generation failed");
-    
+    let keypair = ml_dsa.generate_keypair().expect("Key generation failed");
+
     // Test different message sizes
     for message_size in [0, 32, 1024, 10240, 102400].iter() {
         let message = vec![0x42u8; *message_size];
         group.throughput(Throughput::Bytes(*message_size as u64));
-        
+
         group.bench_with_input(
             BenchmarkId::new("sign", message_size),
             &message,
             |b, msg| {
                 b.iter(|| {
-                    let signature = ml_dsa.sign(keypair.secret_key(), msg)
+                    let signature = ml_dsa
+                        .sign(keypair.secret_key(), msg)
                         .expect("Signing failed");
                     black_box(signature);
                 });
             },
         );
     }
-    
+
     group.finish();
 }
 
 /// Benchmark ML-DSA-65 verification with different message sizes
 fn benchmark_verification(c: &mut Criterion) {
     let mut group = c.benchmark_group("ml_dsa_65_verification");
-    
+
     let ml_dsa = MlDsa65::new();
-    let keypair = ml_dsa.generate_keypair()
-        .expect("Key generation failed");
-    
+    let keypair = ml_dsa.generate_keypair().expect("Key generation failed");
+
     // Pre-generate signatures for different message sizes
     for message_size in [0, 32, 1024, 10240, 102400].iter() {
         let message = vec![0x42u8; *message_size];
-        let signature = ml_dsa.sign(keypair.secret_key(), &message)
+        let signature = ml_dsa
+            .sign(keypair.secret_key(), &message)
             .expect("Signing failed");
-        
+
         group.throughput(Throughput::Bytes(*message_size as u64));
-        
+
         group.bench_with_input(
             BenchmarkId::new("verify", message_size),
             &(message, signature),
             |b, (msg, sig)| {
                 b.iter(|| {
-                    let is_valid = ml_dsa.verify(keypair.public_key(), msg, sig)
+                    let is_valid = ml_dsa
+                        .verify(keypair.public_key(), msg, sig)
                         .expect("Verification failed");
                     assert!(is_valid);
                     black_box(is_valid);
@@ -78,7 +78,7 @@ fn benchmark_verification(c: &mut Criterion) {
             },
         );
     }
-    
+
     group.finish();
 }
 
@@ -86,16 +86,17 @@ fn benchmark_verification(c: &mut Criterion) {
 fn benchmark_round_trip(c: &mut Criterion) {
     let ml_dsa = MlDsa65::new();
     let message = b"Benchmark message for ML-DSA round trip testing";
-    
+
     c.bench_function("ml_dsa_65_round_trip", |b| {
         b.iter(|| {
-            let keypair = ml_dsa.generate_keypair()
-                .expect("Key generation failed");
-            let signature = ml_dsa.sign(keypair.secret_key(), message)
+            let keypair = ml_dsa.generate_keypair().expect("Key generation failed");
+            let signature = ml_dsa
+                .sign(keypair.secret_key(), message)
                 .expect("Signing failed");
-            let is_valid = ml_dsa.verify(keypair.public_key(), message, &signature)
+            let is_valid = ml_dsa
+                .verify(keypair.public_key(), message, &signature)
                 .expect("Verification failed");
-            
+
             assert!(is_valid);
             black_box((signature, is_valid));
         })
@@ -105,18 +106,17 @@ fn benchmark_round_trip(c: &mut Criterion) {
 /// Benchmark batch signing operations
 fn benchmark_batch_signing(c: &mut Criterion) {
     let mut group = c.benchmark_group("ml_dsa_65_batch_signing");
-    
+
     let ml_dsa = MlDsa65::new();
-    let keypair = ml_dsa.generate_keypair()
-        .expect("Key generation failed");
-    
+    let keypair = ml_dsa.generate_keypair().expect("Key generation failed");
+
     for batch_size in [1, 10, 50, 100].iter() {
         let messages: Vec<Vec<u8>> = (0..*batch_size)
             .map(|i| format!("Message number {}", i).into_bytes())
             .collect();
-        
+
         group.throughput(Throughput::Elements(*batch_size as u64));
-        
+
         group.bench_with_input(
             BenchmarkId::new("batch_sign", batch_size),
             &messages,
@@ -124,7 +124,8 @@ fn benchmark_batch_signing(c: &mut Criterion) {
                 b.iter(|| {
                     let mut signatures = Vec::with_capacity(msgs.len());
                     for msg in msgs {
-                        let signature = ml_dsa.sign(keypair.secret_key(), msg)
+                        let signature = ml_dsa
+                            .sign(keypair.secret_key(), msg)
                             .expect("Signing failed");
                         signatures.push(signature);
                     }
@@ -133,31 +134,31 @@ fn benchmark_batch_signing(c: &mut Criterion) {
             },
         );
     }
-    
+
     group.finish();
 }
 
 /// Benchmark batch verification operations
 fn benchmark_batch_verification(c: &mut Criterion) {
     let mut group = c.benchmark_group("ml_dsa_65_batch_verification");
-    
+
     let ml_dsa = MlDsa65::new();
-    let keypair = ml_dsa.generate_keypair()
-        .expect("Key generation failed");
-    
+    let keypair = ml_dsa.generate_keypair().expect("Key generation failed");
+
     for batch_size in [1, 10, 50, 100].iter() {
         // Pre-generate message/signature pairs
         let test_data: Vec<(Vec<u8>, _)> = (0..*batch_size)
             .map(|i| {
                 let message = format!("Message number {}", i).into_bytes();
-                let signature = ml_dsa.sign(keypair.secret_key(), &message)
+                let signature = ml_dsa
+                    .sign(keypair.secret_key(), &message)
                     .expect("Signing failed");
                 (message, signature)
             })
             .collect();
-        
+
         group.throughput(Throughput::Elements(*batch_size as u64));
-        
+
         group.bench_with_input(
             BenchmarkId::new("batch_verify", batch_size),
             &test_data,
@@ -165,7 +166,8 @@ fn benchmark_batch_verification(c: &mut Criterion) {
                 b.iter(|| {
                     let mut results = Vec::with_capacity(data.len());
                     for (message, signature) in data {
-                        let is_valid = ml_dsa.verify(keypair.public_key(), message, signature)
+                        let is_valid = ml_dsa
+                            .verify(keypair.public_key(), message, signature)
                             .expect("Verification failed");
                         results.push(is_valid);
                     }
@@ -176,34 +178,34 @@ fn benchmark_batch_verification(c: &mut Criterion) {
             },
         );
     }
-    
+
     group.finish();
 }
 
 /// Benchmark signature size analysis
 fn benchmark_signature_sizes(c: &mut Criterion) {
     let ml_dsa = MlDsa65::new();
-    let keypair = ml_dsa.generate_keypair()
-        .expect("Key generation failed");
-    
+    let keypair = ml_dsa.generate_keypair().expect("Key generation failed");
+
     c.bench_function("ml_dsa_65_signature_size_analysis", |b| {
         b.iter(|| {
             let mut signature_sizes = Vec::new();
-            
+
             // Generate signatures for various message types
             for i in 0..20 {
                 let message = match i % 4 {
-                    0 => vec![],                           // Empty
-                    1 => vec![0x00; 32],                   // Zeros
-                    2 => vec![0xFF; 32],                   // Ones
+                    0 => vec![],                                   // Empty
+                    1 => vec![0x00; 32],                           // Zeros
+                    2 => vec![0xFF; 32],                           // Ones
                     _ => (0..32).map(|j| (i * j) as u8).collect(), // Pattern
                 };
-                
-                let signature = ml_dsa.sign(keypair.secret_key(), &message)
+
+                let signature = ml_dsa
+                    .sign(keypair.secret_key(), &message)
                     .expect("Signing failed");
                 signature_sizes.push(signature.as_bytes().len());
             }
-            
+
             black_box(signature_sizes);
         });
     });
@@ -212,29 +214,30 @@ fn benchmark_signature_sizes(c: &mut Criterion) {
 /// Benchmark memory allocation patterns for ML-DSA
 fn benchmark_memory_usage(c: &mut Criterion) {
     let ml_dsa = MlDsa65::new();
-    
+
     c.bench_function("ml_dsa_65_memory_stress", |b| {
         b.iter(|| {
             // Generate many keypairs to test memory allocation patterns
             let mut keypairs = Vec::new();
             for _ in 0..5 {
-                let keypair = ml_dsa.generate_keypair()
-                    .expect("Key generation failed");
+                let keypair = ml_dsa.generate_keypair().expect("Key generation failed");
                 keypairs.push(keypair);
             }
-            
+
             // Perform many sign/verify operations
             let mut results = Vec::new();
             for (i, keypair) in keypairs.iter().enumerate() {
                 let message = format!("Test message {}", i).into_bytes();
-                let signature = ml_dsa.sign(keypair.secret_key(), &message)
+                let signature = ml_dsa
+                    .sign(keypair.secret_key(), &message)
                     .expect("Signing failed");
-                let is_valid = ml_dsa.verify(keypair.public_key(), &message, &signature)
+                let is_valid = ml_dsa
+                    .verify(keypair.public_key(), &message, &signature)
                     .expect("Verification failed");
                 assert!(is_valid);
                 results.push((message, signature, is_valid));
             }
-            
+
             black_box(results);
         });
     });
@@ -243,20 +246,21 @@ fn benchmark_memory_usage(c: &mut Criterion) {
 /// Benchmark signature verification with invalid signatures
 fn benchmark_invalid_signature_verification(c: &mut Criterion) {
     let ml_dsa = MlDsa65::new();
-    let keypair = ml_dsa.generate_keypair()
-        .expect("Key generation failed");
-    
+    let keypair = ml_dsa.generate_keypair().expect("Key generation failed");
+
     let message = b"Test message for invalid signature benchmark";
-    let mut signature = ml_dsa.sign(keypair.secret_key(), message)
+    let mut signature = ml_dsa
+        .sign(keypair.secret_key(), message)
         .expect("Signing failed");
-    
+
     // Corrupt the signature
     let sig_bytes = signature.as_bytes_mut();
     sig_bytes[0] ^= 0x01;
-    
+
     c.bench_function("ml_dsa_65_verify_invalid", |b| {
         b.iter(|| {
-            let is_valid = ml_dsa.verify(keypair.public_key(), message, &signature)
+            let is_valid = ml_dsa
+                .verify(keypair.public_key(), message, &signature)
                 .expect("Verification should not error");
             assert!(!is_valid);
             black_box(is_valid);
@@ -276,7 +280,7 @@ fn configure_criterion() -> Criterion {
 criterion_group!(
     name = ml_dsa_benches;
     config = configure_criterion();
-    targets = 
+    targets =
         benchmark_keygen,
         benchmark_signing,
         benchmark_verification,

@@ -4,21 +4,21 @@
 //! - ML-KEM-768 (Module-Lattice-Based Key-Encapsulation Mechanism) - FIPS 203
 //! - ML-DSA-65 (Module-Lattice-Based Digital Signature Algorithm) - FIPS 204
 //!
-//! The implementation provides both pure PQC and hybrid modes combining classical 
+//! The implementation provides both pure PQC and hybrid modes combining classical
 //! and PQC algorithms for defense-in-depth against both classical and quantum attacks.
 
 // Core PQC implementations
+pub mod ml_dsa;
+pub mod ml_dsa_65; // Production-ready ML-DSA-65 implementation
+pub mod ml_dsa_impl;
 pub mod ml_kem;
 pub mod ml_kem_impl;
-pub mod ml_dsa;
-pub mod ml_dsa_impl;
-pub mod ml_dsa_65; // Production-ready ML-DSA-65 implementation
 pub mod types;
 
 // Hybrid cryptography
-pub mod hybrid;
 pub mod combiners;
 pub mod encryption;
+pub mod hybrid;
 
 // Configuration and utilities
 pub mod config;
@@ -42,10 +42,8 @@ pub use hybrid::{HybridKem, HybridSignature};
 pub use memory_pool::{PoolConfig, PqcMemoryPool};
 pub use ml_dsa::MlDsa65;
 pub use ml_dsa_65::{
-    MlDsa65 as MlDsa65Production, 
-    MlDsa65Operations as MlDsa65ProductionOps,
-    MlDsa65Extended as MlDsa65ExtendedOps,
-    MlDsa65Config, SecurityConfig, PerformanceConfig,
+    MlDsa65 as MlDsa65Production, MlDsa65Config, MlDsa65Extended as MlDsa65ExtendedOps,
+    MlDsa65Operations as MlDsa65ProductionOps, PerformanceConfig, SecurityConfig,
 };
 pub use ml_kem::MlKem768;
 // TLS extensions are not part of core PQC - use saorsa-pqc-tls crate if needed

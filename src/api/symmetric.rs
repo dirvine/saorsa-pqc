@@ -1,12 +1,12 @@
 //! Quantum-Secure Symmetric Encryption
-//! 
+//!
 //! This module provides ChaCha20-Poly1305 authenticated encryption, which is
 //! quantum-resistant. Symmetric algorithms like ChaCha20-Poly1305 maintain their
 //! security against quantum computers, requiring only a doubling of key sizes
 //! to defend against Grover's algorithm.
-//! 
+//!
 //! ## Quantum Security
-//! 
+//!
 //! - **Classical Security**: 256-bit keys provide 256-bit security
 //! - **Quantum Security**: 256-bit keys provide 128-bit security (due to Grover's algorithm)
 //! - **AEAD**: Provides both confidentiality and authenticity
@@ -20,7 +20,7 @@ use chacha20poly1305::{
 use zeroize::{Zeroize, ZeroizeOnDrop};
 
 /// ChaCha20-Poly1305 authenticated encryption cipher
-/// 
+///
 /// Provides quantum-secure symmetric encryption with authentication.
 /// Uses 256-bit keys and 96-bit nonces.
 pub struct ChaCha20Poly1305 {
@@ -46,7 +46,7 @@ impl ChaCha20Poly1305 {
     }
 
     /// Encrypt a message with authenticated encryption
-    /// 
+    ///
     /// Returns ciphertext that includes the authentication tag
     pub fn encrypt(&self, nonce: &Nonce, plaintext: &[u8]) -> PqcResult<Vec<u8>> {
         self.cipher
@@ -55,7 +55,7 @@ impl ChaCha20Poly1305 {
     }
 
     /// Encrypt a message with associated data
-    /// 
+    ///
     /// The associated data is authenticated but not encrypted
     pub fn encrypt_with_aad(
         &self,
@@ -73,7 +73,7 @@ impl ChaCha20Poly1305 {
     }
 
     /// Decrypt and authenticate a ciphertext
-    /// 
+    ///
     /// Returns an error if authentication fails
     pub fn decrypt(&self, nonce: &Nonce, ciphertext: &[u8]) -> PqcResult<Vec<u8>> {
         self.cipher
@@ -137,7 +137,7 @@ pub fn generate_nonce() -> Nonce {
 }
 
 /// Encrypt data using ChaCha20-Poly1305
-/// 
+///
 /// This is a convenience function for one-shot encryption
 pub fn encrypt(key: &Key, nonce: &Nonce, plaintext: &[u8]) -> PqcResult<Vec<u8>> {
     let cipher = ChaCha20Poly1305::new(key);
@@ -145,7 +145,7 @@ pub fn encrypt(key: &Key, nonce: &Nonce, plaintext: &[u8]) -> PqcResult<Vec<u8>>
 }
 
 /// Decrypt data using ChaCha20-Poly1305
-/// 
+///
 /// This is a convenience function for one-shot decryption
 pub fn decrypt(key: &Key, nonce: &Nonce, ciphertext: &[u8]) -> PqcResult<Vec<u8>> {
     let cipher = ChaCha20Poly1305::new(key);

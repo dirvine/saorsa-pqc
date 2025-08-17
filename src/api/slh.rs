@@ -1,5 +1,5 @@
 //! SLH-DSA (Stateless Hash-Based Digital Signature Algorithm) API
-//! 
+//!
 //! Provides a simple interface to FIPS 205 SLH-DSA without requiring
 //! users to manage RNG or internal details.
 
@@ -8,15 +8,12 @@ use rand_core::OsRng;
 use zeroize::{Zeroize, ZeroizeOnDrop};
 
 // Import FIPS implementations
+use fips205::traits::{SerDes, Signer, Verifier};
 use fips205::{
-    slh_dsa_sha2_128s, slh_dsa_sha2_128f,
-    slh_dsa_sha2_192s, slh_dsa_sha2_192f,
-    slh_dsa_sha2_256s, slh_dsa_sha2_256f,
-    slh_dsa_shake_128s, slh_dsa_shake_128f,
-    slh_dsa_shake_192s, slh_dsa_shake_192f,
-    slh_dsa_shake_256s, slh_dsa_shake_256f,
+    slh_dsa_sha2_128f, slh_dsa_sha2_128s, slh_dsa_sha2_192f, slh_dsa_sha2_192s, slh_dsa_sha2_256f,
+    slh_dsa_sha2_256s, slh_dsa_shake_128f, slh_dsa_shake_128s, slh_dsa_shake_192f,
+    slh_dsa_shake_192s, slh_dsa_shake_256f, slh_dsa_shake_256s,
 };
-use fips205::traits::{Signer, Verifier, SerDes};
 
 /// SLH-DSA algorithm variants
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -88,17 +85,28 @@ impl SlhDsaVariant {
     /// Get the security level description
     pub fn security_level(&self) -> &'static str {
         match self {
-            Self::Sha2_128s | Self::Sha2_128f | Self::Shake128s | Self::Shake128f => "128-bit security",
-            Self::Sha2_192s | Self::Sha2_192f | Self::Shake192s | Self::Shake192f => "192-bit security",
-            Self::Sha2_256s | Self::Sha2_256f | Self::Shake256s | Self::Shake256f => "256-bit security",
+            Self::Sha2_128s | Self::Sha2_128f | Self::Shake128s | Self::Shake128f => {
+                "128-bit security"
+            }
+            Self::Sha2_192s | Self::Sha2_192f | Self::Shake192s | Self::Shake192f => {
+                "192-bit security"
+            }
+            Self::Sha2_256s | Self::Sha2_256f | Self::Shake256s | Self::Shake256f => {
+                "256-bit security"
+            }
         }
     }
 
     /// Is this a "small" variant (slower but smaller signatures)?
     pub fn is_small(&self) -> bool {
-        matches!(self, 
-            Self::Sha2_128s | Self::Sha2_192s | Self::Sha2_256s |
-            Self::Shake128s | Self::Shake192s | Self::Shake256s
+        matches!(
+            self,
+            Self::Sha2_128s
+                | Self::Sha2_192s
+                | Self::Sha2_256s
+                | Self::Shake128s
+                | Self::Shake192s
+                | Self::Shake256s
         )
     }
 
@@ -133,7 +141,7 @@ impl SlhDsaPublicKey {
                 got: bytes.len(),
             });
         }
-        
+
         Ok(Self {
             variant,
             bytes: bytes.to_vec(),
@@ -168,7 +176,7 @@ impl SlhDsaSecretKey {
                 got: bytes.len(),
             });
         }
-        
+
         Ok(Self {
             variant,
             bytes: bytes.to_vec(),
@@ -203,7 +211,7 @@ impl SlhDsaSignature {
                 got: bytes.len(),
             });
         }
-        
+
         Ok(Self {
             variant,
             bytes: bytes.to_vec(),
@@ -288,8 +296,14 @@ impl SlhDsa {
         };
 
         Ok((
-            SlhDsaPublicKey { variant: self.variant, bytes: pk_bytes },
-            SlhDsaSecretKey { variant: self.variant, bytes: sk_bytes },
+            SlhDsaPublicKey {
+                variant: self.variant,
+                bytes: pk_bytes,
+            },
+            SlhDsaSecretKey {
+                variant: self.variant,
+                bytes: sk_bytes,
+            },
         ))
     }
 
@@ -299,11 +313,17 @@ impl SlhDsa {
     }
 
     /// Sign a message with context
-    pub fn sign_with_context(&self, secret_key: &SlhDsaSecretKey, message: &[u8], context: &[u8]) -> PqcResult<SlhDsaSignature> {
+    pub fn sign_with_context(
+        &self,
+        secret_key: &SlhDsaSecretKey,
+        message: &[u8],
+        context: &[u8],
+    ) -> PqcResult<SlhDsaSignature> {
         if secret_key.variant != self.variant {
-            return Err(PqcError::InvalidInput(
-                format!("Key variant {:?} doesn't match SLH variant {:?}", secret_key.variant, self.variant)
-            ));
+            return Err(PqcError::InvalidInput(format!(
+                "Key variant {:?} doesn't match SLH variant {:?}",
+                secret_key.variant, self.variant
+            )));
         }
 
         if context.len() > SlhDsaVariant::MAX_CONTEXT_LENGTH {
@@ -319,27 +339,33 @@ impl SlhDsa {
         let sig_bytes = match self.variant {
             SlhDsaVariant::Sha2_128s => {
                 let sk = slh_dsa_sha2_128s::PrivateKey::try_from_bytes(
-                    secret_key.bytes.as_slice().try_into()
-                        .map_err(|_| PqcError::InvalidKeySize {
+                    secret_key.bytes.as_slice().try_into().map_err(|_| {
+                        PqcError::InvalidKeySize {
                             expected: self.variant.secret_key_size(),
                             got: secret_key.bytes.len(),
-                        })?
-                ).map_err(|e| PqcError::SerializationError(e.to_string()))?;
-                
-                let sig = sk.try_sign_with_rng(&mut OsRng, message, context, use_hedged)
+                        }
+                    })?,
+                )
+                .map_err(|e| PqcError::SerializationError(e.to_string()))?;
+
+                let sig = sk
+                    .try_sign_with_rng(&mut OsRng, message, context, use_hedged)
                     .map_err(|e| PqcError::SigningFailed(e.to_string()))?;
                 sig.to_vec()
             }
             SlhDsaVariant::Sha2_128f => {
                 let sk = slh_dsa_sha2_128f::PrivateKey::try_from_bytes(
-                    secret_key.bytes.as_slice().try_into()
-                        .map_err(|_| PqcError::InvalidKeySize {
+                    secret_key.bytes.as_slice().try_into().map_err(|_| {
+                        PqcError::InvalidKeySize {
                             expected: self.variant.secret_key_size(),
                             got: secret_key.bytes.len(),
-                        })?
-                ).map_err(|e| PqcError::SerializationError(e.to_string()))?;
-                
-                let sig = sk.try_sign_with_rng(&mut OsRng, message, context, use_hedged)
+                        }
+                    })?,
+                )
+                .map_err(|e| PqcError::SerializationError(e.to_string()))?;
+
+                let sig = sk
+                    .try_sign_with_rng(&mut OsRng, message, context, use_hedged)
                     .map_err(|e| PqcError::SigningFailed(e.to_string()))?;
                 sig.to_vec()
             }
@@ -358,22 +384,35 @@ impl SlhDsa {
     }
 
     /// Verify a signature
-    pub fn verify(&self, public_key: &SlhDsaPublicKey, message: &[u8], signature: &SlhDsaSignature) -> PqcResult<bool> {
+    pub fn verify(
+        &self,
+        public_key: &SlhDsaPublicKey,
+        message: &[u8],
+        signature: &SlhDsaSignature,
+    ) -> PqcResult<bool> {
         self.verify_with_context(public_key, message, signature, b"")
     }
 
     /// Verify a signature with context
-    pub fn verify_with_context(&self, public_key: &SlhDsaPublicKey, message: &[u8], signature: &SlhDsaSignature, context: &[u8]) -> PqcResult<bool> {
+    pub fn verify_with_context(
+        &self,
+        public_key: &SlhDsaPublicKey,
+        message: &[u8],
+        signature: &SlhDsaSignature,
+        context: &[u8],
+    ) -> PqcResult<bool> {
         if public_key.variant != self.variant {
-            return Err(PqcError::InvalidInput(
-                format!("Key variant {:?} doesn't match SLH variant {:?}", public_key.variant, self.variant)
-            ));
+            return Err(PqcError::InvalidInput(format!(
+                "Key variant {:?} doesn't match SLH variant {:?}",
+                public_key.variant, self.variant
+            )));
         }
 
         if signature.variant != self.variant {
-            return Err(PqcError::InvalidInput(
-                format!("Signature variant {:?} doesn't match SLH variant {:?}", signature.variant, self.variant)
-            ));
+            return Err(PqcError::InvalidInput(format!(
+                "Signature variant {:?} doesn't match SLH variant {:?}",
+                signature.variant, self.variant
+            )));
         }
 
         if context.len() > SlhDsaVariant::MAX_CONTEXT_LENGTH {
@@ -386,36 +425,44 @@ impl SlhDsa {
         let result = match self.variant {
             SlhDsaVariant::Sha2_128s => {
                 let pk = slh_dsa_sha2_128s::PublicKey::try_from_bytes(
-                    public_key.bytes.as_slice().try_into()
-                        .map_err(|_| PqcError::InvalidKeySize {
+                    public_key.bytes.as_slice().try_into().map_err(|_| {
+                        PqcError::InvalidKeySize {
                             expected: self.variant.public_key_size(),
                             got: public_key.bytes.len(),
-                        })?
-                ).map_err(|e| PqcError::SerializationError(e.to_string()))?;
-                
-                let sig_array: [u8; 7856] = signature.bytes.as_slice().try_into()
-                    .map_err(|_| PqcError::InvalidSignatureSize {
-                        expected: self.variant.signature_size(),
-                        got: signature.bytes.len(),
+                        }
+                    })?,
+                )
+                .map_err(|e| PqcError::SerializationError(e.to_string()))?;
+
+                let sig_array: [u8; 7856] =
+                    signature.bytes.as_slice().try_into().map_err(|_| {
+                        PqcError::InvalidSignatureSize {
+                            expected: self.variant.signature_size(),
+                            got: signature.bytes.len(),
+                        }
                     })?;
-                
+
                 pk.verify(message, &sig_array, context)
             }
             SlhDsaVariant::Sha2_128f => {
                 let pk = slh_dsa_sha2_128f::PublicKey::try_from_bytes(
-                    public_key.bytes.as_slice().try_into()
-                        .map_err(|_| PqcError::InvalidKeySize {
+                    public_key.bytes.as_slice().try_into().map_err(|_| {
+                        PqcError::InvalidKeySize {
                             expected: self.variant.public_key_size(),
                             got: public_key.bytes.len(),
-                        })?
-                ).map_err(|e| PqcError::SerializationError(e.to_string()))?;
-                
-                let sig_array: [u8; 17088] = signature.bytes.as_slice().try_into()
-                    .map_err(|_| PqcError::InvalidSignatureSize {
-                        expected: self.variant.signature_size(),
-                        got: signature.bytes.len(),
+                        }
+                    })?,
+                )
+                .map_err(|e| PqcError::SerializationError(e.to_string()))?;
+
+                let sig_array: [u8; 17088] =
+                    signature.bytes.as_slice().try_into().map_err(|_| {
+                        PqcError::InvalidSignatureSize {
+                            expected: self.variant.signature_size(),
+                            got: signature.bytes.len(),
+                        }
                     })?;
-                
+
                 pk.verify(message, &sig_array, context)
             }
             _ => {
@@ -442,12 +489,12 @@ mod tests {
     fn test_slh_dsa_sign_verify() {
         let slh = slh_dsa_sha2_128s();
         let (pk, sk) = slh.generate_keypair().unwrap();
-        
+
         let message = b"Test message";
         let sig = slh.sign(&sk, message).unwrap();
-        
+
         assert!(slh.verify(&pk, message, &sig).unwrap());
-        
+
         // Wrong message should fail
         assert!(!slh.verify(&pk, b"Wrong message", &sig).unwrap());
     }
@@ -456,30 +503,34 @@ mod tests {
     fn test_with_context() {
         let slh = slh_dsa_sha2_128s();
         let (pk, sk) = slh.generate_keypair().unwrap();
-        
+
         let message = b"Test message";
         let context = b"test context";
         let sig = slh.sign_with_context(&sk, message, context).unwrap();
-        
+
         // Correct context verifies
-        assert!(slh.verify_with_context(&pk, message, &sig, context).unwrap());
-        
+        assert!(slh
+            .verify_with_context(&pk, message, &sig, context)
+            .unwrap());
+
         // Wrong context fails
-        assert!(!slh.verify_with_context(&pk, message, &sig, b"wrong context").unwrap());
+        assert!(!slh
+            .verify_with_context(&pk, message, &sig, b"wrong context")
+            .unwrap());
     }
 
     #[test]
     fn test_serialization() {
         let slh = slh_dsa_sha2_128s();
         let (pk, sk) = slh.generate_keypair().unwrap();
-        
+
         // Serialize and deserialize keys
         let pk_bytes = pk.to_bytes();
         let sk_bytes = sk.to_bytes();
-        
+
         let pk2 = SlhDsaPublicKey::from_bytes(SlhDsaVariant::Sha2_128s, &pk_bytes).unwrap();
         let sk2 = SlhDsaSecretKey::from_bytes(SlhDsaVariant::Sha2_128s, &sk_bytes).unwrap();
-        
+
         // Use deserialized keys
         let message = b"Test";
         let sig = slh.sign(&sk2, message).unwrap();

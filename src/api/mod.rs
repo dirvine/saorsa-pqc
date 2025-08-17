@@ -1,31 +1,33 @@
 //! Comprehensive API for Post-Quantum Cryptography
-//! 
+//!
 //! This module provides a clean, simple interface to all FIPS-certified
 //! post-quantum algorithms without requiring users to manage RNG or other
 //! implementation details.
 
-pub mod kem;
 pub mod dsa;
-pub mod slh;
 pub mod errors;
+pub mod kem;
+pub mod slh;
 pub mod symmetric;
 
-pub use kem::{MlKem, MlKemVariant, MlKemPublicKey, MlKemSecretKey, MlKemCiphertext, MlKemSharedSecret};
-pub use dsa::{MlDsa, MlDsaVariant, MlDsaPublicKey, MlDsaSecretKey, MlDsaSignature};
-pub use slh::{SlhDsa, SlhDsaVariant, SlhDsaPublicKey, SlhDsaSecretKey, SlhDsaSignature};
-pub use symmetric::{ChaCha20Poly1305, SecureKey};
+pub use dsa::{MlDsa, MlDsaPublicKey, MlDsaSecretKey, MlDsaSignature, MlDsaVariant};
 pub use errors::{PqcError, PqcResult};
+pub use kem::{
+    MlKem, MlKemCiphertext, MlKemPublicKey, MlKemSecretKey, MlKemSharedSecret, MlKemVariant,
+};
+pub use slh::{SlhDsa, SlhDsaPublicKey, SlhDsaSecretKey, SlhDsaSignature, SlhDsaVariant};
+pub use symmetric::{ChaCha20Poly1305, SecureKey};
 
 /// Initialize the cryptographic RNG system
 /// This should be called once at application startup
 pub fn init() -> PqcResult<()> {
     // Verify RNG is available
     use rand_core::OsRng;
-    
+
     let mut test_bytes = [0u8; 32];
     use rand_core::RngCore;
     OsRng.fill_bytes(&mut test_bytes);
-    
+
     Ok(())
 }
 
@@ -61,9 +63,7 @@ pub fn supported_algorithms() -> SupportedAlgorithms {
             SlhDsaVariant::Shake256s,
             SlhDsaVariant::Shake256f,
         ],
-        symmetric: vec![
-            "ChaCha20-Poly1305 (256-bit, quantum-secure)".into(),
-        ],
+        symmetric: vec!["ChaCha20-Poly1305 (256-bit, quantum-secure)".into()],
     }
 }
 

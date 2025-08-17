@@ -229,7 +229,7 @@ impl ChaCha20Poly1305Cipher {
     ) -> Result<(Vec<u8>, [u8; 12]), SymmetricError> {
         // Generate a random nonce
         let nonce = ChaCha20Poly1305::generate_nonce(&mut OsRng);
-        
+
         // Encrypt the plaintext with optional associated data
         let payload = match associated_data {
             Some(aad) => Payload {
@@ -241,8 +241,10 @@ impl ChaCha20Poly1305Cipher {
                 aad: b"",
             },
         };
-        
-        let ciphertext = self.cipher.encrypt(&nonce, payload)
+
+        let ciphertext = self
+            .cipher
+            .encrypt(&nonce, payload)
             .map_err(|_| SymmetricError::EncryptionFailed)?;
 
         Ok((ciphertext, *nonce.as_ref()))
@@ -283,7 +285,7 @@ impl ChaCha20Poly1305Cipher {
         associated_data: Option<&[u8]>,
     ) -> Result<Vec<u8>, SymmetricError> {
         let nonce = Nonce::from_slice(nonce);
-        
+
         // Decrypt the ciphertext with optional associated data
         let payload = match associated_data {
             Some(aad) => Payload {
@@ -295,8 +297,10 @@ impl ChaCha20Poly1305Cipher {
                 aad: b"",
             },
         };
-        
-        let plaintext = self.cipher.decrypt(nonce, payload)
+
+        let plaintext = self
+            .cipher
+            .decrypt(nonce, payload)
             .map_err(|_| SymmetricError::DecryptionFailed)?;
 
         Ok(plaintext)
@@ -323,7 +327,7 @@ impl ChaCha20Poly1305Cipher {
         associated_data: Option<&[u8]>,
     ) -> Result<Vec<u8>, SymmetricError> {
         let nonce = Nonce::from_slice(nonce);
-        
+
         // Encrypt the plaintext with optional associated data
         let payload = match associated_data {
             Some(aad) => Payload {
@@ -335,8 +339,10 @@ impl ChaCha20Poly1305Cipher {
                 aad: b"",
             },
         };
-        
-        let ciphertext = self.cipher.encrypt(&nonce, payload)
+
+        let ciphertext = self
+            .cipher
+            .encrypt(&nonce, payload)
             .map_err(|_| SymmetricError::EncryptionFailed)?;
 
         Ok(ciphertext)
@@ -372,11 +378,7 @@ impl EncryptedMessage {
     /// * `ciphertext` - The encrypted data
     /// * `nonce` - The nonce used for encryption
     /// * `associated_data` - Optional associated data
-    pub fn new(
-        ciphertext: Vec<u8>,
-        nonce: [u8; 12],
-        associated_data: Option<Vec<u8>>,
-    ) -> Self {
+    pub fn new(ciphertext: Vec<u8>, nonce: [u8; 12], associated_data: Option<Vec<u8>>) -> Self {
         Self {
             ciphertext,
             nonce,
@@ -437,7 +439,7 @@ pub mod utils {
     ) -> Result<EncryptedMessage, SymmetricError> {
         let cipher = ChaCha20Poly1305Cipher::new(key);
         let (ciphertext, nonce) = cipher.encrypt(plaintext, associated_data)?;
-        
+
         Ok(EncryptedMessage::new(
             ciphertext,
             nonce,
@@ -502,12 +504,12 @@ pub mod utils {
         salt: &[u8],
         iterations: u32,
     ) -> Result<SymmetricKey, SymmetricError> {
-        use pbkdf2::{pbkdf2_hmac_array};
+        use pbkdf2::pbkdf2_hmac_array;
         use sha2::Sha256;
-        
+
         // Use PBKDF2 to derive a key
         let key = pbkdf2_hmac_array::<Sha256, 32>(password, salt, iterations);
-            
+
         Ok(SymmetricKey::from_bytes(key))
     }
 }
@@ -520,7 +522,7 @@ mod tests {
     fn test_key_generation() {
         let key1 = SymmetricKey::generate();
         let key2 = SymmetricKey::generate();
-        
+
         // Keys should be different
         assert_ne!(key1.as_bytes(), key2.as_bytes());
         assert_eq!(key1.as_bytes().len(), 32);
@@ -578,7 +580,9 @@ mod tests {
 
         // Decrypt with wrong associated data should fail
         let wrong_associated_data = b"wrong metadata";
-        assert!(cipher.decrypt(&ciphertext, &nonce, Some(wrong_associated_data)).is_err());
+        assert!(cipher
+            .decrypt(&ciphertext, &nonce, Some(wrong_associated_data))
+            .is_err());
 
         Ok(())
     }
@@ -692,10 +696,10 @@ mod tests {
     fn test_key_zeroization() {
         let mut key = SymmetricKey::generate();
         let original_bytes = *key.as_bytes();
-        
+
         // Explicitly zeroize the key
         key.zeroize();
-        
+
         // The key should now be all zeros
         assert_eq!(key.as_bytes(), &[0u8; 32]);
         assert_ne!(&original_bytes, &[0u8; 32]); // Original wasn't all zeros

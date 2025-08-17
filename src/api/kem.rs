@@ -1,5 +1,5 @@
 //! ML-KEM (Module-Lattice-Based Key Encapsulation Mechanism) API
-//! 
+//!
 //! Provides a simple interface to FIPS 203 ML-KEM without requiring
 //! users to manage RNG or internal details.
 
@@ -8,8 +8,8 @@ use rand_core::OsRng;
 use zeroize::{Zeroize, ZeroizeOnDrop};
 
 // Import FIPS implementations
-use fips203::{ml_kem_512, ml_kem_768, ml_kem_1024};
-use fips203::traits::{Encaps, Decaps, KeyGen, SerDes};
+use fips203::traits::{Decaps, Encaps, KeyGen, SerDes};
+use fips203::{ml_kem_1024, ml_kem_512, ml_kem_768};
 
 /// ML-KEM algorithm variants
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -99,35 +99,38 @@ impl MlKemPublicKey {
                 got: bytes.len(),
             });
         }
-        
+
         // Validate by trying to deserialize
         match variant {
             MlKemVariant::MlKem512 => {
-                let _ = ml_kem_512::EncapsKey::try_from_bytes(
-                    bytes.try_into().map_err(|_| PqcError::InvalidKeySize {
+                let _ = ml_kem_512::EncapsKey::try_from_bytes(bytes.try_into().map_err(|_| {
+                    PqcError::InvalidKeySize {
                         expected: variant.public_key_size(),
                         got: bytes.len(),
-                    })?
-                ).map_err(|e| PqcError::SerializationError(e.to_string()))?;
+                    }
+                })?)
+                .map_err(|e| PqcError::SerializationError(e.to_string()))?;
             }
             MlKemVariant::MlKem768 => {
-                let _ = ml_kem_768::EncapsKey::try_from_bytes(
-                    bytes.try_into().map_err(|_| PqcError::InvalidKeySize {
+                let _ = ml_kem_768::EncapsKey::try_from_bytes(bytes.try_into().map_err(|_| {
+                    PqcError::InvalidKeySize {
                         expected: variant.public_key_size(),
                         got: bytes.len(),
-                    })?
-                ).map_err(|e| PqcError::SerializationError(e.to_string()))?;
+                    }
+                })?)
+                .map_err(|e| PqcError::SerializationError(e.to_string()))?;
             }
             MlKemVariant::MlKem1024 => {
-                let _ = ml_kem_1024::EncapsKey::try_from_bytes(
-                    bytes.try_into().map_err(|_| PqcError::InvalidKeySize {
+                let _ = ml_kem_1024::EncapsKey::try_from_bytes(bytes.try_into().map_err(|_| {
+                    PqcError::InvalidKeySize {
                         expected: variant.public_key_size(),
                         got: bytes.len(),
-                    })?
-                ).map_err(|e| PqcError::SerializationError(e.to_string()))?;
+                    }
+                })?)
+                .map_err(|e| PqcError::SerializationError(e.to_string()))?;
             }
         }
-        
+
         Ok(Self {
             variant,
             bytes: bytes.to_vec(),
@@ -162,35 +165,38 @@ impl MlKemSecretKey {
                 got: bytes.len(),
             });
         }
-        
+
         // Validate by trying to deserialize
         match variant {
             MlKemVariant::MlKem512 => {
-                let _ = ml_kem_512::DecapsKey::try_from_bytes(
-                    bytes.try_into().map_err(|_| PqcError::InvalidKeySize {
+                let _ = ml_kem_512::DecapsKey::try_from_bytes(bytes.try_into().map_err(|_| {
+                    PqcError::InvalidKeySize {
                         expected: variant.secret_key_size(),
                         got: bytes.len(),
-                    })?
-                ).map_err(|e| PqcError::SerializationError(e.to_string()))?;
+                    }
+                })?)
+                .map_err(|e| PqcError::SerializationError(e.to_string()))?;
             }
             MlKemVariant::MlKem768 => {
-                let _ = ml_kem_768::DecapsKey::try_from_bytes(
-                    bytes.try_into().map_err(|_| PqcError::InvalidKeySize {
+                let _ = ml_kem_768::DecapsKey::try_from_bytes(bytes.try_into().map_err(|_| {
+                    PqcError::InvalidKeySize {
                         expected: variant.secret_key_size(),
                         got: bytes.len(),
-                    })?
-                ).map_err(|e| PqcError::SerializationError(e.to_string()))?;
+                    }
+                })?)
+                .map_err(|e| PqcError::SerializationError(e.to_string()))?;
             }
             MlKemVariant::MlKem1024 => {
-                let _ = ml_kem_1024::DecapsKey::try_from_bytes(
-                    bytes.try_into().map_err(|_| PqcError::InvalidKeySize {
+                let _ = ml_kem_1024::DecapsKey::try_from_bytes(bytes.try_into().map_err(|_| {
+                    PqcError::InvalidKeySize {
                         expected: variant.secret_key_size(),
                         got: bytes.len(),
-                    })?
-                ).map_err(|e| PqcError::SerializationError(e.to_string()))?;
+                    }
+                })?)
+                .map_err(|e| PqcError::SerializationError(e.to_string()))?;
             }
         }
-        
+
         Ok(Self {
             variant,
             bytes: bytes.to_vec(),
@@ -225,7 +231,7 @@ impl MlKemCiphertext {
                 got: bytes.len(),
             });
         }
-        
+
         Ok(Self {
             variant,
             bytes: bytes.to_vec(),
@@ -312,13 +318,13 @@ impl MlKem {
     }
 
     /// Generate a deterministic key pair from seed values
-    /// 
+    ///
     /// This is primarily for testing with known test vectors.
     /// Takes two 32-byte seed values (d and z) as specified in FIPS 203.
     pub fn generate_keypair_from_seed(
-        &self, 
-        d_seed: &[u8; 32], 
-        z_seed: &[u8; 32]
+        &self,
+        d_seed: &[u8; 32],
+        z_seed: &[u8; 32],
     ) -> (MlKemPublicKey, MlKemSecretKey) {
         match self.variant {
             MlKemVariant::MlKem512 => {
@@ -364,28 +370,37 @@ impl MlKem {
     }
 
     /// Encapsulate a shared secret using a public key
-    pub fn encapsulate(&self, public_key: &MlKemPublicKey) -> PqcResult<(MlKemSharedSecret, MlKemCiphertext)> {
+    pub fn encapsulate(
+        &self,
+        public_key: &MlKemPublicKey,
+    ) -> PqcResult<(MlKemSharedSecret, MlKemCiphertext)> {
         if public_key.variant != self.variant {
-            return Err(PqcError::InvalidInput(
-                format!("Key variant {:?} doesn't match KEM variant {:?}", public_key.variant, self.variant)
-            ));
+            return Err(PqcError::InvalidInput(format!(
+                "Key variant {:?} doesn't match KEM variant {:?}",
+                public_key.variant, self.variant
+            )));
         }
 
         match self.variant {
             MlKemVariant::MlKem512 => {
                 let ek = ml_kem_512::EncapsKey::try_from_bytes(
-                    public_key.bytes.as_slice().try_into()
-                        .map_err(|_| PqcError::InvalidKeySize {
+                    public_key.bytes.as_slice().try_into().map_err(|_| {
+                        PqcError::InvalidKeySize {
                             expected: self.variant.public_key_size(),
                             got: public_key.bytes.len(),
-                        })?
-                ).map_err(|e| PqcError::SerializationError(e.to_string()))?;
-                
-                let (ss, ct) = ek.try_encaps_with_rng(&mut OsRng)
+                        }
+                    })?,
+                )
+                .map_err(|e| PqcError::SerializationError(e.to_string()))?;
+
+                let (ss, ct) = ek
+                    .try_encaps_with_rng(&mut OsRng)
                     .map_err(|e| PqcError::EncapsulationFailed(e.to_string()))?;
-                
+
                 Ok((
-                    MlKemSharedSecret { bytes: ss.into_bytes() },
+                    MlKemSharedSecret {
+                        bytes: ss.into_bytes(),
+                    },
                     MlKemCiphertext {
                         variant: self.variant,
                         bytes: ct.into_bytes().to_vec(),
@@ -394,18 +409,23 @@ impl MlKem {
             }
             MlKemVariant::MlKem768 => {
                 let ek = ml_kem_768::EncapsKey::try_from_bytes(
-                    public_key.bytes.as_slice().try_into()
-                        .map_err(|_| PqcError::InvalidKeySize {
+                    public_key.bytes.as_slice().try_into().map_err(|_| {
+                        PqcError::InvalidKeySize {
                             expected: self.variant.public_key_size(),
                             got: public_key.bytes.len(),
-                        })?
-                ).map_err(|e| PqcError::SerializationError(e.to_string()))?;
-                
-                let (ss, ct) = ek.try_encaps_with_rng(&mut OsRng)
+                        }
+                    })?,
+                )
+                .map_err(|e| PqcError::SerializationError(e.to_string()))?;
+
+                let (ss, ct) = ek
+                    .try_encaps_with_rng(&mut OsRng)
                     .map_err(|e| PqcError::EncapsulationFailed(e.to_string()))?;
-                
+
                 Ok((
-                    MlKemSharedSecret { bytes: ss.into_bytes() },
+                    MlKemSharedSecret {
+                        bytes: ss.into_bytes(),
+                    },
                     MlKemCiphertext {
                         variant: self.variant,
                         bytes: ct.into_bytes().to_vec(),
@@ -414,18 +434,23 @@ impl MlKem {
             }
             MlKemVariant::MlKem1024 => {
                 let ek = ml_kem_1024::EncapsKey::try_from_bytes(
-                    public_key.bytes.as_slice().try_into()
-                        .map_err(|_| PqcError::InvalidKeySize {
+                    public_key.bytes.as_slice().try_into().map_err(|_| {
+                        PqcError::InvalidKeySize {
                             expected: self.variant.public_key_size(),
                             got: public_key.bytes.len(),
-                        })?
-                ).map_err(|e| PqcError::SerializationError(e.to_string()))?;
-                
-                let (ss, ct) = ek.try_encaps_with_rng(&mut OsRng)
+                        }
+                    })?,
+                )
+                .map_err(|e| PqcError::SerializationError(e.to_string()))?;
+
+                let (ss, ct) = ek
+                    .try_encaps_with_rng(&mut OsRng)
                     .map_err(|e| PqcError::EncapsulationFailed(e.to_string()))?;
-                
+
                 Ok((
-                    MlKemSharedSecret { bytes: ss.into_bytes() },
+                    MlKemSharedSecret {
+                        bytes: ss.into_bytes(),
+                    },
                     MlKemCiphertext {
                         variant: self.variant,
                         bytes: ct.into_bytes().to_vec(),
@@ -436,85 +461,112 @@ impl MlKem {
     }
 
     /// Decapsulate a shared secret using a secret key
-    pub fn decapsulate(&self, secret_key: &MlKemSecretKey, ciphertext: &MlKemCiphertext) -> PqcResult<MlKemSharedSecret> {
+    pub fn decapsulate(
+        &self,
+        secret_key: &MlKemSecretKey,
+        ciphertext: &MlKemCiphertext,
+    ) -> PqcResult<MlKemSharedSecret> {
         if secret_key.variant != self.variant {
-            return Err(PqcError::InvalidInput(
-                format!("Key variant {:?} doesn't match KEM variant {:?}", secret_key.variant, self.variant)
-            ));
+            return Err(PqcError::InvalidInput(format!(
+                "Key variant {:?} doesn't match KEM variant {:?}",
+                secret_key.variant, self.variant
+            )));
         }
-        
+
         if ciphertext.variant != self.variant {
-            return Err(PqcError::InvalidInput(
-                format!("Ciphertext variant {:?} doesn't match KEM variant {:?}", ciphertext.variant, self.variant)
-            ));
+            return Err(PqcError::InvalidInput(format!(
+                "Ciphertext variant {:?} doesn't match KEM variant {:?}",
+                ciphertext.variant, self.variant
+            )));
         }
 
         match self.variant {
             MlKemVariant::MlKem512 => {
                 let dk = ml_kem_512::DecapsKey::try_from_bytes(
-                    secret_key.bytes.as_slice().try_into()
-                        .map_err(|_| PqcError::InvalidKeySize {
+                    secret_key.bytes.as_slice().try_into().map_err(|_| {
+                        PqcError::InvalidKeySize {
                             expected: self.variant.secret_key_size(),
                             got: secret_key.bytes.len(),
-                        })?
-                ).map_err(|e| PqcError::SerializationError(e.to_string()))?;
-                
+                        }
+                    })?,
+                )
+                .map_err(|e| PqcError::SerializationError(e.to_string()))?;
+
                 let ct = ml_kem_512::CipherText::try_from_bytes(
-                    ciphertext.bytes.as_slice().try_into()
-                        .map_err(|_| PqcError::InvalidCiphertextSize {
+                    ciphertext.bytes.as_slice().try_into().map_err(|_| {
+                        PqcError::InvalidCiphertextSize {
                             expected: self.variant.ciphertext_size(),
                             got: ciphertext.bytes.len(),
-                        })?
-                ).map_err(|e| PqcError::SerializationError(e.to_string()))?;
-                
-                let ss = dk.try_decaps(&ct)
+                        }
+                    })?,
+                )
+                .map_err(|e| PqcError::SerializationError(e.to_string()))?;
+
+                let ss = dk
+                    .try_decaps(&ct)
                     .map_err(|e| PqcError::DecapsulationFailed(e.to_string()))?;
-                
-                Ok(MlKemSharedSecret { bytes: ss.into_bytes() })
+
+                Ok(MlKemSharedSecret {
+                    bytes: ss.into_bytes(),
+                })
             }
             MlKemVariant::MlKem768 => {
                 let dk = ml_kem_768::DecapsKey::try_from_bytes(
-                    secret_key.bytes.as_slice().try_into()
-                        .map_err(|_| PqcError::InvalidKeySize {
+                    secret_key.bytes.as_slice().try_into().map_err(|_| {
+                        PqcError::InvalidKeySize {
                             expected: self.variant.secret_key_size(),
                             got: secret_key.bytes.len(),
-                        })?
-                ).map_err(|e| PqcError::SerializationError(e.to_string()))?;
-                
+                        }
+                    })?,
+                )
+                .map_err(|e| PqcError::SerializationError(e.to_string()))?;
+
                 let ct = ml_kem_768::CipherText::try_from_bytes(
-                    ciphertext.bytes.as_slice().try_into()
-                        .map_err(|_| PqcError::InvalidCiphertextSize {
+                    ciphertext.bytes.as_slice().try_into().map_err(|_| {
+                        PqcError::InvalidCiphertextSize {
                             expected: self.variant.ciphertext_size(),
                             got: ciphertext.bytes.len(),
-                        })?
-                ).map_err(|e| PqcError::SerializationError(e.to_string()))?;
-                
-                let ss = dk.try_decaps(&ct)
+                        }
+                    })?,
+                )
+                .map_err(|e| PqcError::SerializationError(e.to_string()))?;
+
+                let ss = dk
+                    .try_decaps(&ct)
                     .map_err(|e| PqcError::DecapsulationFailed(e.to_string()))?;
-                
-                Ok(MlKemSharedSecret { bytes: ss.into_bytes() })
+
+                Ok(MlKemSharedSecret {
+                    bytes: ss.into_bytes(),
+                })
             }
             MlKemVariant::MlKem1024 => {
                 let dk = ml_kem_1024::DecapsKey::try_from_bytes(
-                    secret_key.bytes.as_slice().try_into()
-                        .map_err(|_| PqcError::InvalidKeySize {
+                    secret_key.bytes.as_slice().try_into().map_err(|_| {
+                        PqcError::InvalidKeySize {
                             expected: self.variant.secret_key_size(),
                             got: secret_key.bytes.len(),
-                        })?
-                ).map_err(|e| PqcError::SerializationError(e.to_string()))?;
-                
+                        }
+                    })?,
+                )
+                .map_err(|e| PqcError::SerializationError(e.to_string()))?;
+
                 let ct = ml_kem_1024::CipherText::try_from_bytes(
-                    ciphertext.bytes.as_slice().try_into()
-                        .map_err(|_| PqcError::InvalidCiphertextSize {
+                    ciphertext.bytes.as_slice().try_into().map_err(|_| {
+                        PqcError::InvalidCiphertextSize {
                             expected: self.variant.ciphertext_size(),
                             got: ciphertext.bytes.len(),
-                        })?
-                ).map_err(|e| PqcError::SerializationError(e.to_string()))?;
-                
-                let ss = dk.try_decaps(&ct)
+                        }
+                    })?,
+                )
+                .map_err(|e| PqcError::SerializationError(e.to_string()))?;
+
+                let ss = dk
+                    .try_decaps(&ct)
                     .map_err(|e| PqcError::DecapsulationFailed(e.to_string()))?;
-                
-                Ok(MlKemSharedSecret { bytes: ss.into_bytes() })
+
+                Ok(MlKemSharedSecret {
+                    bytes: ss.into_bytes(),
+                })
             }
         }
     }
@@ -540,7 +592,11 @@ mod tests {
 
     #[test]
     fn test_all_variants() {
-        for variant in [MlKemVariant::MlKem512, MlKemVariant::MlKem768, MlKemVariant::MlKem1024] {
+        for variant in [
+            MlKemVariant::MlKem512,
+            MlKemVariant::MlKem768,
+            MlKemVariant::MlKem1024,
+        ] {
             let kem = MlKem::new(variant);
             let (pk, sk) = kem.generate_keypair().unwrap();
             let (ss1, ct) = kem.encapsulate(&pk).unwrap();
@@ -553,14 +609,14 @@ mod tests {
     fn test_serialization() {
         let kem = ml_kem_768();
         let (pk, sk) = kem.generate_keypair().unwrap();
-        
+
         // Serialize and deserialize keys
         let pk_bytes = pk.to_bytes();
         let sk_bytes = sk.to_bytes();
-        
+
         let pk2 = MlKemPublicKey::from_bytes(MlKemVariant::MlKem768, &pk_bytes).unwrap();
         let sk2 = MlKemSecretKey::from_bytes(MlKemVariant::MlKem768, &sk_bytes).unwrap();
-        
+
         // Use deserialized keys
         let (ss1, ct) = kem.encapsulate(&pk2).unwrap();
         let ss2 = kem.decapsulate(&sk2, &ct).unwrap();
@@ -577,9 +633,9 @@ mod tests {
     fn test_variant_mismatch() {
         let kem512 = MlKem::new(MlKemVariant::MlKem512);
         let kem768 = MlKem::new(MlKemVariant::MlKem768);
-        
+
         let (pk768, _) = kem768.generate_keypair().unwrap();
-        
+
         let result = kem512.encapsulate(&pk768);
         assert!(matches!(result, Err(PqcError::InvalidInput(_))));
     }

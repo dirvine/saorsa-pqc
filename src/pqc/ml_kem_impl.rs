@@ -4,13 +4,12 @@
 //! (Module-Lattice-based Key Encapsulation Mechanism) with constant-time
 //! operations and memory zeroization for security.
 
-use crate::pqc::MlKemOperations;
 use crate::pqc::types::{
-    MlKemCiphertext, MlKemPublicKey, MlKemSecretKey, SharedSecret,
-    PqcResult,
-    ML_KEM_768_PUBLIC_KEY_SIZE, ML_KEM_768_SECRET_KEY_SIZE,
-    ML_KEM_768_CIPHERTEXT_SIZE, ML_KEM_768_SHARED_SECRET_SIZE,
+    MlKemCiphertext, MlKemPublicKey, MlKemSecretKey, PqcResult, SharedSecret,
+    ML_KEM_768_CIPHERTEXT_SIZE, ML_KEM_768_PUBLIC_KEY_SIZE, ML_KEM_768_SECRET_KEY_SIZE,
+    ML_KEM_768_SHARED_SECRET_SIZE,
 };
+use crate::pqc::MlKemOperations;
 use rand::{CryptoRng, RngCore};
 use zeroize::{Zeroize, ZeroizeOnDrop};
 
@@ -40,16 +39,15 @@ pub struct Polynomial {
 impl Polynomial {
     /// Create a new zero polynomial
     pub fn new() -> Self {
-        Self {
-            coeffs: [0; N],
-        }
+        Self { coeffs: [0; N] }
     }
 
     /// Add two polynomials
     pub fn add(&self, other: &Self) -> Self {
         let mut result = Self::new();
         for i in 0..N {
-            result.coeffs[i] = ((self.coeffs[i] as u32 + other.coeffs[i] as u32) % (Q as u32)) as u16;
+            result.coeffs[i] =
+                ((self.coeffs[i] as u32 + other.coeffs[i] as u32) % (Q as u32)) as u16;
         }
         result
     }
@@ -58,7 +56,8 @@ impl Polynomial {
     pub fn sub(&self, other: &Self) -> Self {
         let mut result = Self::new();
         for i in 0..N {
-            result.coeffs[i] = ((self.coeffs[i] as u32 + Q as u32 - other.coeffs[i] as u32) % (Q as u32)) as u16;
+            result.coeffs[i] =
+                ((self.coeffs[i] as u32 + Q as u32 - other.coeffs[i] as u32) % (Q as u32)) as u16;
         }
         result
     }
@@ -68,11 +67,11 @@ impl Polynomial {
         let mut poly = Self::new();
         let mut bytes = vec![0u8; N * eta / 4];
         rng.fill_bytes(&mut bytes);
-        
+
         for i in 0..N {
             let mut a = 0u16;
             let mut b = 0u16;
-            
+
             for j in 0..eta {
                 let byte_idx = (i * eta + j) / 8;
                 let bit_idx = (i * eta + j) % 8;
@@ -85,10 +84,10 @@ impl Polynomial {
                     }
                 }
             }
-            
+
             poly.coeffs[i] = (a + Q - b) % Q;
         }
-        
+
         bytes.zeroize();
         poly
     }
@@ -246,12 +245,12 @@ impl MlKem768Impl {
 impl MlKemOperations for MlKem768Impl {
     fn generate_keypair(&self) -> PqcResult<(MlKemPublicKey, MlKemSecretKey)> {
         let mut rng = rand::rngs::OsRng;
-        
+
         // Generate random seed
         let mut seed = [0u8; 32];
         rng.fill_bytes(&mut seed);
 
-        // Split seed into rho and sigma  
+        // Split seed into rho and sigma
         let rho = &seed[..16];
         let _sigma = &seed[16..];
 
@@ -314,7 +313,7 @@ impl MlKemOperations for MlKem768Impl {
         public_key: &MlKemPublicKey,
     ) -> PqcResult<(MlKemCiphertext, SharedSecret)> {
         let mut rng = rand::rngs::OsRng;
-        
+
         // Generate random message
         let mut m = [0u8; 32];
         rng.fill_bytes(&mut m);
@@ -322,7 +321,7 @@ impl MlKemOperations for MlKem768Impl {
         // Parse public key to get t and rho (simplified)
         let pk_bytes = public_key.as_bytes();
         let rho = &pk_bytes[pk_bytes.len() - 16..];
-        
+
         // Reconstruct t from public key
         let mut t = PolynomialVector::new();
         for i in 0..K {
@@ -456,12 +455,12 @@ mod tests {
         assert_eq!(sum.coeffs[0], 0);
     }
 
-    #[test] 
+    #[test]
     fn test_ml_kem_keygen() {
         let kem = MlKem768Impl::new();
         let result = kem.generate_keypair();
         assert!(result.is_ok());
-        
+
         let (pk, sk) = result.unwrap();
         assert_eq!(pk.as_bytes().len(), ML_KEM_768_PUBLIC_KEY_SIZE);
         assert_eq!(sk.as_bytes().len(), ML_KEM_768_SECRET_KEY_SIZE);
@@ -471,10 +470,10 @@ mod tests {
     fn test_ml_kem_encap_decap() {
         let kem = MlKem768Impl::new();
         let (pk, sk) = kem.generate_keypair().unwrap();
-        
+
         let (ct, ss1) = kem.encapsulate(&pk).unwrap();
         let ss2 = kem.decapsulate(&sk, &ct).unwrap();
-        
+
         assert_eq!(ss1.as_bytes(), ss2.as_bytes());
         assert_eq!(ct.as_bytes().len(), ML_KEM_768_CIPHERTEXT_SIZE);
         assert_eq!(ss1.as_bytes().len(), ML_KEM_768_SHARED_SECRET_SIZE);
@@ -484,7 +483,7 @@ mod tests {
     fn test_polynomial_cbd_sampling() {
         let mut rng = rand::rngs::OsRng;
         let poly = Polynomial::sample_cbd(&mut rng, ETA1);
-        
+
         // Check that all coefficients are within valid range
         for &coeff in &poly.coeffs {
             assert!(coeff < Q);
@@ -496,7 +495,7 @@ mod tests {
         let vec1 = PolynomialVector::new();
         let vec2 = PolynomialVector::new();
         let sum = vec1.add(&vec2);
-        
+
         // Check that addition works
         for i in 0..K {
             assert_eq!(sum.polys[i].coeffs[0], 0);
@@ -508,7 +507,7 @@ mod tests {
         let message = [0x42u8; 32];
         let poly = Polynomial::from_message(&message);
         let decoded = poly.to_message();
-        
+
         // Should recover original message (with some loss due to rounding)
         assert_eq!(message.len(), decoded.len());
     }
@@ -518,7 +517,7 @@ mod tests {
         let matrix = PolynomialMatrix::new();
         let vector = PolynomialVector::new();
         let result = matrix.mul_vector(&vector);
-        
+
         // Multiplying zero matrix with zero vector should give zero
         for i in 0..K {
             assert_eq!(result.polys[i].coeffs[0], 0);

@@ -129,7 +129,7 @@ pub const ML_DSA_65_SIGNATURE_SIZE: usize = 3309;
 #[derive(Clone)]
 pub struct MlKemPublicKey(
     /// The raw public key bytes
-    pub Box<[u8; ML_KEM_768_PUBLIC_KEY_SIZE]>
+    pub Box<[u8; ML_KEM_768_PUBLIC_KEY_SIZE]>,
 );
 
 impl MlKemPublicKey {
@@ -153,13 +153,13 @@ impl MlKemPublicKey {
 }
 
 /// ML-KEM-768 secret key
-/// 
+///
 /// Automatically zeroized on drop to prevent sensitive data leakage.
 /// Follows NIST FIPS 203 secure key management practices.
 #[derive(Clone, Zeroize, ZeroizeOnDrop)]
 pub struct MlKemSecretKey(
     /// The raw secret key bytes
-    pub Box<[u8; ML_KEM_768_SECRET_KEY_SIZE]>
+    pub Box<[u8; ML_KEM_768_SECRET_KEY_SIZE]>,
 );
 
 impl MlKemSecretKey {
@@ -186,7 +186,7 @@ impl MlKemSecretKey {
 #[derive(Clone)]
 pub struct MlKemCiphertext(
     /// The raw ciphertext bytes
-    pub Box<[u8; ML_KEM_768_CIPHERTEXT_SIZE]>
+    pub Box<[u8; ML_KEM_768_CIPHERTEXT_SIZE]>,
 );
 
 impl MlKemCiphertext {
@@ -213,7 +213,7 @@ impl MlKemCiphertext {
 #[derive(Clone)]
 pub struct MlDsaPublicKey(
     /// The raw public key bytes
-    pub Box<[u8; ML_DSA_65_PUBLIC_KEY_SIZE]>
+    pub Box<[u8; ML_DSA_65_PUBLIC_KEY_SIZE]>,
 );
 
 impl MlDsaPublicKey {
@@ -237,13 +237,13 @@ impl MlDsaPublicKey {
 }
 
 /// ML-DSA-65 secret key
-/// 
+///
 /// Automatically zeroized on drop to prevent sensitive data leakage.
 /// Follows NIST FIPS 204 secure key management practices.
 #[derive(Clone, Zeroize, ZeroizeOnDrop)]
 pub struct MlDsaSecretKey(
     /// The raw secret key bytes
-    pub Box<[u8; ML_DSA_65_SECRET_KEY_SIZE]>
+    pub Box<[u8; ML_DSA_65_SECRET_KEY_SIZE]>,
 );
 
 impl MlDsaSecretKey {
@@ -270,7 +270,7 @@ impl MlDsaSecretKey {
 #[derive(Clone)]
 pub struct MlDsaSignature(
     /// The raw signature bytes
-    pub Box<[u8; ML_DSA_65_SIGNATURE_SIZE]>
+    pub Box<[u8; ML_DSA_65_SIGNATURE_SIZE]>,
 );
 
 impl MlDsaSignature {
@@ -294,13 +294,13 @@ impl MlDsaSignature {
 }
 
 /// Shared secret from key encapsulation
-/// 
+///
 /// Automatically zeroized on drop to prevent sensitive data leakage.
 /// This is the most sensitive data in KEM operations and must be protected.
 #[derive(Clone, PartialEq, Eq, Zeroize, ZeroizeOnDrop)]
 pub struct SharedSecret(
     /// The raw shared secret bytes
-    pub [u8; ML_KEM_768_SHARED_SECRET_SIZE]
+    pub [u8; ML_KEM_768_SHARED_SECRET_SIZE],
 );
 
 impl SharedSecret {
@@ -333,7 +333,7 @@ pub struct HybridKemPublicKey {
 }
 
 /// Hybrid KEM secret key
-/// 
+///
 /// Automatically zeroized on drop to prevent sensitive data leakage.
 /// Contains both classical and post-quantum secret keys.
 #[derive(Clone, Zeroize, ZeroizeOnDrop)]
@@ -363,7 +363,7 @@ pub struct HybridSignaturePublicKey {
 }
 
 /// Hybrid signature secret key
-/// 
+///
 /// Automatically zeroized on drop to prevent sensitive data leakage.
 /// Contains both classical and post-quantum signature secret keys.
 #[derive(Clone, Zeroize, ZeroizeOnDrop)]

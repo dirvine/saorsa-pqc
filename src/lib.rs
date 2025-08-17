@@ -132,60 +132,78 @@ pub mod api;
 
 // Re-export the comprehensive API for easy access
 pub use api::{
-    // Main APIs
-    MlKem, MlKemVariant, MlKemPublicKey as ApiMlKemPublicKey, MlKemSecretKey as ApiMlKemSecretKey,
-    MlKemCiphertext as ApiMlKemCiphertext, MlKemSharedSecret,
-    MlDsa, MlDsaVariant, MlDsaPublicKey as ApiMlDsaPublicKey, MlDsaSecretKey as ApiMlDsaSecretKey,
-    MlDsaSignature as ApiMlDsaSignature,
-    SlhDsa, SlhDsaVariant, SlhDsaPublicKey, SlhDsaSecretKey, SlhDsaSignature,
-    
-    // Convenience functions
-    kem::ml_kem_768,
     dsa::ml_dsa_65,
-    slh::slh_dsa_sha2_128s,
-    
-    // Error types
-    PqcError as ApiError, PqcResult as ApiResult,
-    
     // Utils
     init as api_init,
-    version as api_version,
+    // Convenience functions
+    kem::ml_kem_768,
+    slh::slh_dsa_sha2_128s,
+
     supported_algorithms,
+    version as api_version,
+    MlDsa,
+    MlDsaPublicKey as ApiMlDsaPublicKey,
+    MlDsaSecretKey as ApiMlDsaSecretKey,
+    MlDsaSignature as ApiMlDsaSignature,
+    MlDsaVariant,
+    // Main APIs
+    MlKem,
+    MlKemCiphertext as ApiMlKemCiphertext,
+    MlKemPublicKey as ApiMlKemPublicKey,
+    MlKemSecretKey as ApiMlKemSecretKey,
+    MlKemSharedSecret,
+    MlKemVariant,
+    // Error types
+    PqcError as ApiError,
+    PqcResult as ApiResult,
+
+    SlhDsa,
+    SlhDsaPublicKey,
+    SlhDsaSecretKey,
+    SlhDsaSignature,
+
+    SlhDsaVariant,
 };
 
 // Re-export the most commonly used types and traits for convenience (legacy)
 pub use pqc::{
-    // Core traits
-    MlKemOperations, MlDsaOperations,
-    
-    // Implementations
-    MlKem768, MlDsa65,
-    
-    // Production ML-DSA-65 implementation
-    MlDsa65Production, MlDsa65ProductionOps, MlDsa65ExtendedOps,
-    MlDsa65Config, SecurityConfig, PerformanceConfig,
-    
-    // Hybrid modes
-    HybridKem, HybridSignature,
-    
-    // Public key encryption
-    HybridPublicKeyEncryption, EncryptedMessage,
-    
     // Types
     types::{
-        PqcResult, PqcError,
-        MlKemPublicKey, MlKemSecretKey, MlKemCiphertext,
-        MlDsaPublicKey, MlDsaSecretKey, MlDsaSignature,
+        HybridKemCiphertext, HybridKemPublicKey, HybridKemSecretKey, HybridSignaturePublicKey,
+        HybridSignatureSecretKey, HybridSignatureValue, MlDsaPublicKey, MlDsaSecretKey,
+        MlDsaSignature, MlKemCiphertext, MlKemPublicKey, MlKemSecretKey, PqcError, PqcResult,
         SharedSecret,
-        HybridKemPublicKey, HybridKemSecretKey, HybridKemCiphertext,
-        HybridSignaturePublicKey, HybridSignatureSecretKey, HybridSignatureValue,
     },
+    EncryptedMessage,
+
+    // Hybrid modes
+    HybridKem,
+    // Public key encryption
+    HybridPublicKeyEncryption,
+    HybridSignature,
+
+    MlDsa65,
+
+    MlDsa65Config,
+    MlDsa65ExtendedOps,
+    // Production ML-DSA-65 implementation
+    MlDsa65Production,
+    MlDsa65ProductionOps,
+    MlDsaOperations,
+
+    // Implementations
+    MlKem768,
+    // Core traits
+    MlKemOperations,
+    PerformanceConfig,
+
+    SecurityConfig,
 };
 
 // Re-export symmetric encryption for convenience
 pub use symmetric::{
-    ChaCha20Poly1305Cipher, SymmetricKey, EncryptedMessage as SymmetricEncryptedMessage,
-    SymmetricError,
+    ChaCha20Poly1305Cipher, EncryptedMessage as SymmetricEncryptedMessage, SymmetricError,
+    SymmetricKey,
 };
 
 // Note: This is a pure PQC library - protocol integration is left to consuming crates
@@ -194,24 +212,14 @@ pub use symmetric::{
 pub const VERSION: &str = env!("CARGO_PKG_VERSION");
 
 // Re-export FIPS implementations directly
-pub use fips203::{
-    ml_kem_512, ml_kem_768, ml_kem_1024,
-    traits as kem_traits,
-};
+pub use fips203::{ml_kem_1024, ml_kem_512, ml_kem_768, traits as kem_traits};
 
-pub use fips204::{
-    ml_dsa_44, ml_dsa_65, ml_dsa_87,
-    traits as dsa_traits,
-};
+pub use fips204::{ml_dsa_44, ml_dsa_65, ml_dsa_87, traits as dsa_traits};
 
 pub use fips205::{
-    slh_dsa_sha2_128f, slh_dsa_sha2_128s,
-    slh_dsa_sha2_192f, slh_dsa_sha2_192s,
-    slh_dsa_sha2_256f, slh_dsa_sha2_256s,
-    slh_dsa_shake_128f, slh_dsa_shake_128s,
-    slh_dsa_shake_192f, slh_dsa_shake_192s,
-    slh_dsa_shake_256f, slh_dsa_shake_256s,
-    traits as slh_traits,
+    slh_dsa_sha2_128f, slh_dsa_sha2_128s, slh_dsa_sha2_192f, slh_dsa_sha2_192s, slh_dsa_sha2_256f,
+    slh_dsa_sha2_256s, slh_dsa_shake_128f, slh_dsa_shake_128s, slh_dsa_shake_192f,
+    slh_dsa_shake_192s, slh_dsa_shake_256f, slh_dsa_shake_256s, traits as slh_traits,
 };
 
 /// Supported ML-KEM parameter sets
@@ -242,13 +250,13 @@ pub const DEFAULT_SECURITY_LEVEL: &str = "NIST Level 3 (192-bit quantum security
 pub fn init() -> Result<(), Box<dyn std::error::Error>> {
     // Initialize logging if available
     // Note: Logging setup is application-specific, not library-specific
-    
+
     // Initialize memory pools if enabled
     #[cfg(feature = "memory-pool")]
     {
         pqc::memory_pool::initialize_global_pool()?;
     }
-    
+
     // Validate algorithm availability
     #[cfg(feature = "aws-lc-rs")]
     {
@@ -256,7 +264,7 @@ pub fn init() -> Result<(), Box<dyn std::error::Error>> {
         let _ml_kem = pqc::MlKem768::new();
         let _ml_dsa = pqc::MlDsa65::new();
     }
-    
+
     Ok(())
 }
 
@@ -292,28 +300,28 @@ pub struct LibraryInfo {
 /// Get the list of enabled features
 fn get_enabled_features() -> Vec<String> {
     let mut features = Vec::new();
-    
+
     #[cfg(feature = "aws-lc-rs")]
     features.push("aws-lc-rs".to_string());
-    
+
     #[cfg(feature = "rustls-ring")]
     features.push("rustls-ring".to_string());
-    
+
     #[cfg(feature = "pqc")]
     features.push("pqc".to_string());
-    
+
     #[cfg(feature = "parallel")]
     features.push("parallel".to_string());
-    
+
     #[cfg(feature = "memory-pool")]
     features.push("memory-pool".to_string());
-    
+
     #[cfg(feature = "cert_compression")]
     features.push("cert_compression".to_string());
-    
+
     #[cfg(feature = "dangerous_configuration")]
     features.push("dangerous_configuration".to_string());
-    
+
     features
 }
 
@@ -339,8 +347,11 @@ mod tests {
     #[test]
     fn test_enabled_features() {
         let features = get_enabled_features();
-        assert!(!features.is_empty(), "Should have at least one feature enabled");
-        
+        assert!(
+            !features.is_empty(),
+            "Should have at least one feature enabled"
+        );
+
         // Default feature should be present
         #[cfg(feature = "aws-lc-rs")]
         assert!(features.contains(&"aws-lc-rs".to_string()));

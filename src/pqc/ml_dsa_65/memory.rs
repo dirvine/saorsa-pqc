@@ -81,7 +81,7 @@ impl<T: Zeroize> MemoryPool<T> {
     /// - `factory`: Function to create new instances of T
     /// - `initial_size`: Initial number of objects to pre-allocate
     /// - `max_size`: Maximum number of objects to keep in pool
-    pub fn new<F>(factory: F, initial_size: usize, max_size: usize) -> Self 
+    pub fn new<F>(factory: F, initial_size: usize, max_size: usize) -> Self
     where
         F: Fn() -> T + Send + Sync + 'static,
     {
@@ -101,7 +101,9 @@ impl<T: Zeroize> MemoryPool<T> {
 
     /// Take an object from the pool or create a new one
     pub fn take(&mut self) -> Box<T> {
-        self.available.pop().unwrap_or_else(|| Box::new((self.factory)()))
+        self.available
+            .pop()
+            .unwrap_or_else(|| Box::new((self.factory)()))
     }
 
     /// Return an object to the pool
@@ -135,7 +137,10 @@ impl<'a, T: Zeroize> PoolGuard<'a, T> {
     /// Create a new pool guard
     pub fn new(pool: &'a mut MemoryPool<T>) -> Self {
         let obj = pool.take();
-        Self { obj: Some(obj), pool }
+        Self {
+            obj: Some(obj),
+            pool,
+        }
     }
 
     /// Get mutable reference to the object
@@ -288,7 +293,7 @@ mod tests {
         let obj1 = pool.take();
         let obj2 = pool.take();
         let obj3 = pool.take(); // This should create a new one
-        
+
         assert_eq!(pool.size(), 0);
 
         pool.put(obj1);
@@ -302,7 +307,7 @@ mod tests {
     #[test]
     fn test_pool_guard() {
         let mut pool = MemoryPool::new(|| vec![0u8; 10], 1, 3);
-        
+
         {
             let mut guard = PoolGuard::new(&mut pool);
             let obj = guard.get_mut();
@@ -330,7 +335,7 @@ mod tests {
     fn test_secure_buffer_from_slice() {
         let data = [1, 2, 3, 4, 5];
         let buffer = SecureBuffer::from_slice(&data);
-        
+
         assert_eq!(buffer.len(), 5);
         assert_eq!(buffer.as_slice(), &data);
     }
@@ -348,7 +353,7 @@ mod tests {
     fn test_secure_array_from_array() {
         let data = [1u8, 2, 3, 4, 5];
         let arr = SecureArray::from_array(data);
-        
+
         assert_eq!(arr.as_slice(), &data);
     }
 }

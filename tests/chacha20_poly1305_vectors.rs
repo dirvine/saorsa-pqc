@@ -1,12 +1,12 @@
 //! ChaCha20-Poly1305 test vectors from RFC 8439 and other sources
-//! 
+//!
 //! These test vectors ensure our ChaCha20-Poly1305 implementation is correct
 //! and compatible with the standard.
 
-use saorsa_pqc::api::ChaCha20Poly1305;
-use saorsa_pqc::api::symmetric::{generate_nonce};
 use chacha20poly1305::{Key, Nonce};
 use hex;
+use saorsa_pqc::api::symmetric::generate_nonce;
+use saorsa_pqc::api::ChaCha20Poly1305;
 
 #[cfg(test)]
 mod rfc8439_vectors {
@@ -15,13 +15,12 @@ mod rfc8439_vectors {
     /// Test vector from RFC 8439 Section 2.8.2
     #[test]
     fn test_rfc8439_vector_1() {
-        let key = hex::decode(
-            "808182838485868788898a8b8c8d8e8f909192939495969798999a9b9c9d9e9f"
-        ).unwrap();
+        let key = hex::decode("808182838485868788898a8b8c8d8e8f909192939495969798999a9b9c9d9e9f")
+            .unwrap();
         let nonce = hex::decode("070000004041424344454647").unwrap();
         let plaintext = b"Ladies and Gentlemen of the class of '99: If I could offer you only one tip for the future, sunscreen would be it.";
         let aad = hex::decode("50515253c0c1c2c3c4c5c6c7").unwrap();
-        
+
         let expected_ciphertext = hex::decode(
             "d31a8d34648e60db7b86afbc53ef7ec2a4aded51296e08fea9e2b5a736ee62d63dbea45e8ca9671282fafb69da92728b1a71de0a9e060b2905d6a5b67ecd3b3692ddbd7f2d778b8c9803aee328091b58fab324e4fad675945585808b4831d7bc3ff4def08e4b7a9de576d26586cec64b61161ae10b594f09e26a7e902ecbd0600691"
         ).unwrap();
@@ -32,7 +31,7 @@ mod rfc8439_vectors {
 
         // Encrypt
         let ciphertext = cipher.encrypt_with_aad(nonce, plaintext, &aad).unwrap();
-        
+
         // Note: The actual ciphertext format includes the tag, so we just verify decryption works
 
         // Decrypt
@@ -43,9 +42,8 @@ mod rfc8439_vectors {
     /// Test vector from RFC 8439 Appendix A.5
     #[test]
     fn test_rfc8439_appendix_a5() {
-        let key = hex::decode(
-            "1c9240a5eb55d38af333888604f6b5f0473917c1402b80099dca5cbc207075c0"
-        ).unwrap();
+        let key = hex::decode("1c9240a5eb55d38af333888604f6b5f0473917c1402b80099dca5cbc207075c0")
+            .unwrap();
         let nonce = hex::decode("000000000102030405060708").unwrap();
         let plaintext = hex::decode(
             "496e7465726e65742d4472616674732061726520647261667420646f63756d656e74732076616c696420666f722061206d6178696d756d206f6620736978206d6f6e74687320616e64206d617920626520757064617465642c207265706c616365642c206f72206f62736f6c65746564206279206f7468657220646f63756d656e747320617420616e792074696d652e20497420697320696e617070726f70726961746520746f2075736520496e7465726e65742d447261667473206173207265666572656e6365206d6174657269616c206f7220746f2063697465207468656d206f74686572207468616e206173202fe2809c776f726b20696e2070726f67726573732e2fe2809d"
@@ -62,7 +60,7 @@ mod rfc8439_vectors {
 
         // Encrypt
         let ciphertext = cipher.encrypt_with_aad(nonce, &plaintext, &aad).unwrap();
-        
+
         // Note: The actual ciphertext format includes the tag appended
         // We verify correctness through successful decryption
 
@@ -131,7 +129,7 @@ mod rfc8439_vectors {
         let aad = b"authentic aad";
 
         let mut ciphertext = cipher.encrypt_with_aad(nonce, plaintext, aad).unwrap();
-        
+
         // Corrupt the tag (last 16 bytes)
         let tag_start = ciphertext.len() - 16;
         ciphertext[tag_start] ^= 0x01;
@@ -152,9 +150,11 @@ mod rfc8439_vectors {
         let wrong_aad = b"wrong aad";
 
         let ciphertext = cipher.encrypt_with_aad(nonce, plaintext, aad).unwrap();
-        
+
         // Decryption with wrong AAD should fail
-        assert!(cipher.decrypt_with_aad(nonce, &ciphertext, wrong_aad).is_err());
+        assert!(cipher
+            .decrypt_with_aad(nonce, &ciphertext, wrong_aad)
+            .is_err());
     }
 
     /// Test nonce reuse detection (same nonce, different messages)
@@ -172,7 +172,7 @@ mod rfc8439_vectors {
 
         // Same nonce with different plaintexts produces different ciphertexts
         assert_ne!(ciphertext1, ciphertext2);
-        
+
         // But both decrypt correctly
         assert_eq!(cipher.decrypt(nonce, &ciphertext1).unwrap(), plaintext1);
         assert_eq!(cipher.decrypt(nonce, &ciphertext2).unwrap(), plaintext2);
@@ -193,14 +193,14 @@ mod performance_characteristics {
         let cipher = ChaCha20Poly1305::new(key);
 
         let sizes = [1024, 4096, 16384, 65536, 262144]; // 1KB to 256KB
-        
+
         for size in sizes {
             let plaintext = vec![0u8; size];
-            
+
             let start = Instant::now();
             let _ciphertext = cipher.encrypt(nonce, plaintext.as_slice()).unwrap();
             let duration = start.elapsed();
-            
+
             let throughput = (size as f64) / duration.as_secs_f64() / 1_000_000.0; // MB/s
             println!("Size: {} bytes, Throughput: {:.2} MB/s", size, throughput);
         }
@@ -215,11 +215,11 @@ mod quantum_security {
     #[test]
     fn test_key_size() {
         use std::mem::size_of;
-        
+
         // ChaCha20-Poly1305 uses 256-bit (32-byte) keys
         let key = Key::from_slice(&[0u8; 32]);
         assert_eq!(key.len(), 32);
-        
+
         // This provides 128-bit quantum security (due to Grover's algorithm)
         // which meets NIST Level 1 quantum security requirements
     }
@@ -228,18 +228,18 @@ mod quantum_security {
     #[test]
     fn test_zeroization() {
         use saorsa_pqc::api::SecureKey;
-        
+
         {
             let key = SecureKey::generate();
             let nonce = Nonce::from_slice(&[0u8; 12]);
             let cipher = ChaCha20Poly1305::new(key.as_key());
-            
+
             let plaintext = b"sensitive data";
             let _ciphertext = cipher.encrypt(nonce, plaintext).unwrap();
-            
+
             // SecureKey will be zeroized when it goes out of scope
         }
-        
+
         // At this point, the SecureKey has been dropped and zeroized
     }
 }

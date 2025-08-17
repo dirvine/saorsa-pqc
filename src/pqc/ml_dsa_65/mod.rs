@@ -1,6 +1,6 @@
 //! ML-DSA-65 (Module-Lattice-based Digital Signature Algorithm) Implementation
 //!
-//! This module provides a production-ready implementation of ML-DSA-65 following 
+//! This module provides a production-ready implementation of ML-DSA-65 following
 //! NIST FIPS 204 standards with 192-bit quantum security equivalent.
 //!
 //! ## Security Features
@@ -46,9 +46,9 @@ use crate::pqc::types::PqcResult;
 // Core algorithm implementations
 pub mod algorithms;
 pub mod encoding;
+pub mod ntt;
 pub mod params;
 pub mod polynomial;
-pub mod ntt;
 pub mod sampling;
 
 // Security and performance modules
@@ -65,8 +65,8 @@ pub mod benchmarks;
 
 // Re-export core types
 pub use crate::pqc::types::{
-    MlDsaPublicKey, MlDsaSecretKey, MlDsaSignature,
-    ML_DSA_65_PUBLIC_KEY_SIZE, ML_DSA_65_SECRET_KEY_SIZE, ML_DSA_65_SIGNATURE_SIZE,
+    MlDsaPublicKey, MlDsaSecretKey, MlDsaSignature, ML_DSA_65_PUBLIC_KEY_SIZE,
+    ML_DSA_65_SECRET_KEY_SIZE, ML_DSA_65_SIGNATURE_SIZE,
 };
 
 // Re-export main implementation
@@ -315,7 +315,7 @@ pub fn new() -> MlDsa65 {
 ///
 /// let mut config = MlDsa65Config::default();
 /// config.security.max_message_size = 1024 * 1024; // 1MB max message
-/// 
+///
 /// let ml_dsa = ml_dsa_65::with_config(config);
 /// ```
 pub fn with_config(config: MlDsa65Config) -> MlDsa65 {

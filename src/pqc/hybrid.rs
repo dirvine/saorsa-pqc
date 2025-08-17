@@ -18,7 +18,7 @@
 
 use crate::pqc::combiners::{ConcatenationCombiner, HybridCombiner};
 use crate::pqc::types::*;
-use crate::pqc::{MlDsaOperations, MlKemOperations, ml_dsa::MlDsa65, ml_kem::MlKem768};
+use crate::pqc::{ml_dsa::MlDsa65, ml_kem::MlKem768, MlDsaOperations, MlKemOperations};
 use ring::rand::{self, SecureRandom};
 use ring::signature::{self, Ed25519KeyPair, KeyPair as SignatureKeyPair};
 use std::sync::Arc;
@@ -63,9 +63,9 @@ impl HybridKem {
 
         // Generate X25519 keypair using raw bytes approach for x25519-dalek 2.0
         let mut secret_bytes = [0u8; 32];
-        self.rng.fill(&mut secret_bytes).map_err(|_| {
-            PqcError::KeyGenerationFailed("Random generation failed".to_string())
-        })?;
+        self.rng
+            .fill(&mut secret_bytes)
+            .map_err(|_| PqcError::KeyGenerationFailed("Random generation failed".to_string()))?;
 
         // In x25519-dalek 2.0, we work with raw bytes and create keys directly
         let public = X25519PublicKey::from(secret_bytes);
@@ -97,9 +97,9 @@ impl HybridKem {
 
         // Generate ephemeral X25519 keypair for encapsulation
         let mut ephemeral_secret_bytes = [0u8; 32];
-        self.rng.fill(&mut ephemeral_secret_bytes).map_err(|_| {
-            PqcError::KeyGenerationFailed("Random generation failed".to_string())
-        })?;
+        self.rng
+            .fill(&mut ephemeral_secret_bytes)
+            .map_err(|_| PqcError::KeyGenerationFailed("Random generation failed".to_string()))?;
         let ephemeral_public = X25519PublicKey::from(ephemeral_secret_bytes);
 
         // Parse peer's public key
@@ -115,7 +115,7 @@ impl HybridKem {
         // peer_public_bytes will be used directly in shared secret computation
 
         // Perform X25519 key agreement using curve25519-dalek directly
-        use curve25519_dalek::{scalar::Scalar, montgomery::MontgomeryPoint};
+        use curve25519_dalek::{montgomery::MontgomeryPoint, scalar::Scalar};
         let scalar = Scalar::from_bytes_mod_order(ephemeral_secret_bytes);
         let point = MontgomeryPoint(peer_public_bytes);
         let shared_point = scalar * point;
@@ -161,18 +161,19 @@ impl HybridKem {
                 })?;
 
         // Parse ephemeral public key from ciphertext
-        let ephemeral_public_bytes: [u8; 32] = ciphertext
-            .classical
-            .as_ref()
-            .try_into()
-            .map_err(|_| PqcError::InvalidKeySize {
-                expected: 32,
-                actual: ciphertext.classical.len(),
-            })?;
+        let ephemeral_public_bytes: [u8; 32] =
+            ciphertext
+                .classical
+                .as_ref()
+                .try_into()
+                .map_err(|_| PqcError::InvalidKeySize {
+                    expected: 32,
+                    actual: ciphertext.classical.len(),
+                })?;
         // ephemeral_public_bytes will be used directly in shared secret computation
 
         // Perform X25519 key agreement using curve25519-dalek directly
-        use curve25519_dalek::{scalar::Scalar, montgomery::MontgomeryPoint};
+        use curve25519_dalek::{montgomery::MontgomeryPoint, scalar::Scalar};
         let scalar = Scalar::from_bytes_mod_order(secret_key_bytes);
         let point = MontgomeryPoint(ephemeral_public_bytes);
         let shared_point = scalar * point;
@@ -241,13 +242,10 @@ impl HybridSignature {
 
         // Generate Ed25519 keypair
         let pkcs8_bytes = signature::Ed25519KeyPair::generate_pkcs8(self.rng.as_ref())
-            .map_err(|_| {
-                PqcError::KeyGenerationFailed("Ed25519 generation failed".to_string())
-            })?;
+            .map_err(|_| PqcError::KeyGenerationFailed("Ed25519 generation failed".to_string()))?;
 
-        let key_pair = Ed25519KeyPair::from_pkcs8(pkcs8_bytes.as_ref()).map_err(|_| {
-            PqcError::KeyGenerationFailed("Ed25519 from PKCS8 failed".to_string())
-        })?;
+        let key_pair = Ed25519KeyPair::from_pkcs8(pkcs8_bytes.as_ref())
+            .map_err(|_| PqcError::KeyGenerationFailed("Ed25519 from PKCS8 failed".to_string()))?;
 
         let classical_pub = key_pair.public_key().as_ref().to_vec().into_boxed_slice();
         let classical_sec = pkcs8_bytes.as_ref().to_vec().into_boxed_slice();

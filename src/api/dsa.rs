@@ -1,5 +1,5 @@
 //! ML-DSA (Module-Lattice-Based Digital Signature Algorithm) API
-//! 
+//!
 //! Provides a simple interface to FIPS 204 ML-DSA without requiring
 //! users to manage RNG or internal details.
 
@@ -8,8 +8,8 @@ use rand_core::OsRng;
 use zeroize::{Zeroize, ZeroizeOnDrop};
 
 // Import FIPS implementations
+use fips204::traits::{SerDes, Signer, Verifier};
 use fips204::{ml_dsa_44, ml_dsa_65, ml_dsa_87};
-use fips204::traits::{Signer, Verifier, SerDes};
 
 /// ML-DSA algorithm variants
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -97,35 +97,38 @@ impl MlDsaPublicKey {
                 got: bytes.len(),
             });
         }
-        
+
         // Validate by trying to deserialize
         match variant {
             MlDsaVariant::MlDsa44 => {
-                let _ = ml_dsa_44::PublicKey::try_from_bytes(
-                    bytes.try_into().map_err(|_| PqcError::InvalidKeySize {
+                let _ = ml_dsa_44::PublicKey::try_from_bytes(bytes.try_into().map_err(|_| {
+                    PqcError::InvalidKeySize {
                         expected: variant.public_key_size(),
                         got: bytes.len(),
-                    })?
-                ).map_err(|e| PqcError::SerializationError(e.to_string()))?;
+                    }
+                })?)
+                .map_err(|e| PqcError::SerializationError(e.to_string()))?;
             }
             MlDsaVariant::MlDsa65 => {
-                let _ = ml_dsa_65::PublicKey::try_from_bytes(
-                    bytes.try_into().map_err(|_| PqcError::InvalidKeySize {
+                let _ = ml_dsa_65::PublicKey::try_from_bytes(bytes.try_into().map_err(|_| {
+                    PqcError::InvalidKeySize {
                         expected: variant.public_key_size(),
                         got: bytes.len(),
-                    })?
-                ).map_err(|e| PqcError::SerializationError(e.to_string()))?;
+                    }
+                })?)
+                .map_err(|e| PqcError::SerializationError(e.to_string()))?;
             }
             MlDsaVariant::MlDsa87 => {
-                let _ = ml_dsa_87::PublicKey::try_from_bytes(
-                    bytes.try_into().map_err(|_| PqcError::InvalidKeySize {
+                let _ = ml_dsa_87::PublicKey::try_from_bytes(bytes.try_into().map_err(|_| {
+                    PqcError::InvalidKeySize {
                         expected: variant.public_key_size(),
                         got: bytes.len(),
-                    })?
-                ).map_err(|e| PqcError::SerializationError(e.to_string()))?;
+                    }
+                })?)
+                .map_err(|e| PqcError::SerializationError(e.to_string()))?;
             }
         }
-        
+
         Ok(Self {
             variant,
             bytes: bytes.to_vec(),
@@ -160,35 +163,38 @@ impl MlDsaSecretKey {
                 got: bytes.len(),
             });
         }
-        
+
         // Validate by trying to deserialize
         match variant {
             MlDsaVariant::MlDsa44 => {
-                let _ = ml_dsa_44::PrivateKey::try_from_bytes(
-                    bytes.try_into().map_err(|_| PqcError::InvalidKeySize {
+                let _ = ml_dsa_44::PrivateKey::try_from_bytes(bytes.try_into().map_err(|_| {
+                    PqcError::InvalidKeySize {
                         expected: variant.secret_key_size(),
                         got: bytes.len(),
-                    })?
-                ).map_err(|e| PqcError::SerializationError(e.to_string()))?;
+                    }
+                })?)
+                .map_err(|e| PqcError::SerializationError(e.to_string()))?;
             }
             MlDsaVariant::MlDsa65 => {
-                let _ = ml_dsa_65::PrivateKey::try_from_bytes(
-                    bytes.try_into().map_err(|_| PqcError::InvalidKeySize {
+                let _ = ml_dsa_65::PrivateKey::try_from_bytes(bytes.try_into().map_err(|_| {
+                    PqcError::InvalidKeySize {
                         expected: variant.secret_key_size(),
                         got: bytes.len(),
-                    })?
-                ).map_err(|e| PqcError::SerializationError(e.to_string()))?;
+                    }
+                })?)
+                .map_err(|e| PqcError::SerializationError(e.to_string()))?;
             }
             MlDsaVariant::MlDsa87 => {
-                let _ = ml_dsa_87::PrivateKey::try_from_bytes(
-                    bytes.try_into().map_err(|_| PqcError::InvalidKeySize {
+                let _ = ml_dsa_87::PrivateKey::try_from_bytes(bytes.try_into().map_err(|_| {
+                    PqcError::InvalidKeySize {
                         expected: variant.secret_key_size(),
                         got: bytes.len(),
-                    })?
-                ).map_err(|e| PqcError::SerializationError(e.to_string()))?;
+                    }
+                })?)
+                .map_err(|e| PqcError::SerializationError(e.to_string()))?;
             }
         }
-        
+
         Ok(Self {
             variant,
             bytes: bytes.to_vec(),
@@ -223,7 +229,7 @@ impl MlDsaSignature {
                 got: bytes.len(),
             });
         }
-        
+
         Ok(Self {
             variant,
             bytes: bytes.to_vec(),
@@ -296,11 +302,17 @@ impl MlDsa {
     }
 
     /// Sign a message with context
-    pub fn sign_with_context(&self, secret_key: &MlDsaSecretKey, message: &[u8], context: &[u8]) -> PqcResult<MlDsaSignature> {
+    pub fn sign_with_context(
+        &self,
+        secret_key: &MlDsaSecretKey,
+        message: &[u8],
+        context: &[u8],
+    ) -> PqcResult<MlDsaSignature> {
         if secret_key.variant != self.variant {
-            return Err(PqcError::InvalidInput(
-                format!("Key variant {:?} doesn't match DSA variant {:?}", secret_key.variant, self.variant)
-            ));
+            return Err(PqcError::InvalidInput(format!(
+                "Key variant {:?} doesn't match DSA variant {:?}",
+                secret_key.variant, self.variant
+            )));
         }
 
         if context.len() > MlDsaVariant::MAX_CONTEXT_LENGTH {
@@ -313,16 +325,19 @@ impl MlDsa {
         match self.variant {
             MlDsaVariant::MlDsa44 => {
                 let sk = ml_dsa_44::PrivateKey::try_from_bytes(
-                    secret_key.bytes.as_slice().try_into()
-                        .map_err(|_| PqcError::InvalidKeySize {
+                    secret_key.bytes.as_slice().try_into().map_err(|_| {
+                        PqcError::InvalidKeySize {
                             expected: self.variant.secret_key_size(),
                             got: secret_key.bytes.len(),
-                        })?
-                ).map_err(|e| PqcError::SerializationError(e.to_string()))?;
-                
-                let sig = sk.try_sign_with_rng(&mut OsRng, message, context)
+                        }
+                    })?,
+                )
+                .map_err(|e| PqcError::SerializationError(e.to_string()))?;
+
+                let sig = sk
+                    .try_sign_with_rng(&mut OsRng, message, context)
                     .map_err(|e| PqcError::SigningFailed(e.to_string()))?;
-                
+
                 Ok(MlDsaSignature {
                     variant: self.variant,
                     bytes: sig.to_vec(),
@@ -330,16 +345,19 @@ impl MlDsa {
             }
             MlDsaVariant::MlDsa65 => {
                 let sk = ml_dsa_65::PrivateKey::try_from_bytes(
-                    secret_key.bytes.as_slice().try_into()
-                        .map_err(|_| PqcError::InvalidKeySize {
+                    secret_key.bytes.as_slice().try_into().map_err(|_| {
+                        PqcError::InvalidKeySize {
                             expected: self.variant.secret_key_size(),
                             got: secret_key.bytes.len(),
-                        })?
-                ).map_err(|e| PqcError::SerializationError(e.to_string()))?;
-                
-                let sig = sk.try_sign_with_rng(&mut OsRng, message, context)
+                        }
+                    })?,
+                )
+                .map_err(|e| PqcError::SerializationError(e.to_string()))?;
+
+                let sig = sk
+                    .try_sign_with_rng(&mut OsRng, message, context)
                     .map_err(|e| PqcError::SigningFailed(e.to_string()))?;
-                
+
                 Ok(MlDsaSignature {
                     variant: self.variant,
                     bytes: sig.to_vec(),
@@ -347,16 +365,19 @@ impl MlDsa {
             }
             MlDsaVariant::MlDsa87 => {
                 let sk = ml_dsa_87::PrivateKey::try_from_bytes(
-                    secret_key.bytes.as_slice().try_into()
-                        .map_err(|_| PqcError::InvalidKeySize {
+                    secret_key.bytes.as_slice().try_into().map_err(|_| {
+                        PqcError::InvalidKeySize {
                             expected: self.variant.secret_key_size(),
                             got: secret_key.bytes.len(),
-                        })?
-                ).map_err(|e| PqcError::SerializationError(e.to_string()))?;
-                
-                let sig = sk.try_sign_with_rng(&mut OsRng, message, context)
+                        }
+                    })?,
+                )
+                .map_err(|e| PqcError::SerializationError(e.to_string()))?;
+
+                let sig = sk
+                    .try_sign_with_rng(&mut OsRng, message, context)
                     .map_err(|e| PqcError::SigningFailed(e.to_string()))?;
-                
+
                 Ok(MlDsaSignature {
                     variant: self.variant,
                     bytes: sig.to_vec(),
@@ -366,22 +387,35 @@ impl MlDsa {
     }
 
     /// Verify a signature
-    pub fn verify(&self, public_key: &MlDsaPublicKey, message: &[u8], signature: &MlDsaSignature) -> PqcResult<bool> {
+    pub fn verify(
+        &self,
+        public_key: &MlDsaPublicKey,
+        message: &[u8],
+        signature: &MlDsaSignature,
+    ) -> PqcResult<bool> {
         self.verify_with_context(public_key, message, signature, b"")
     }
 
     /// Verify a signature with context
-    pub fn verify_with_context(&self, public_key: &MlDsaPublicKey, message: &[u8], signature: &MlDsaSignature, context: &[u8]) -> PqcResult<bool> {
+    pub fn verify_with_context(
+        &self,
+        public_key: &MlDsaPublicKey,
+        message: &[u8],
+        signature: &MlDsaSignature,
+        context: &[u8],
+    ) -> PqcResult<bool> {
         if public_key.variant != self.variant {
-            return Err(PqcError::InvalidInput(
-                format!("Key variant {:?} doesn't match DSA variant {:?}", public_key.variant, self.variant)
-            ));
+            return Err(PqcError::InvalidInput(format!(
+                "Key variant {:?} doesn't match DSA variant {:?}",
+                public_key.variant, self.variant
+            )));
         }
 
         if signature.variant != self.variant {
-            return Err(PqcError::InvalidInput(
-                format!("Signature variant {:?} doesn't match DSA variant {:?}", signature.variant, self.variant)
-            ));
+            return Err(PqcError::InvalidInput(format!(
+                "Signature variant {:?} doesn't match DSA variant {:?}",
+                signature.variant, self.variant
+            )));
         }
 
         if context.len() > MlDsaVariant::MAX_CONTEXT_LENGTH {
@@ -394,53 +428,65 @@ impl MlDsa {
         match self.variant {
             MlDsaVariant::MlDsa44 => {
                 let pk = ml_dsa_44::PublicKey::try_from_bytes(
-                    public_key.bytes.as_slice().try_into()
-                        .map_err(|_| PqcError::InvalidKeySize {
+                    public_key.bytes.as_slice().try_into().map_err(|_| {
+                        PqcError::InvalidKeySize {
                             expected: self.variant.public_key_size(),
                             got: public_key.bytes.len(),
-                        })?
-                ).map_err(|e| PqcError::SerializationError(e.to_string()))?;
-                
-                let sig_array: [u8; 2420] = signature.bytes.as_slice().try_into()
-                    .map_err(|_| PqcError::InvalidSignatureSize {
-                        expected: self.variant.signature_size(),
-                        got: signature.bytes.len(),
+                        }
+                    })?,
+                )
+                .map_err(|e| PqcError::SerializationError(e.to_string()))?;
+
+                let sig_array: [u8; 2420] =
+                    signature.bytes.as_slice().try_into().map_err(|_| {
+                        PqcError::InvalidSignatureSize {
+                            expected: self.variant.signature_size(),
+                            got: signature.bytes.len(),
+                        }
                     })?;
-                
+
                 Ok(pk.verify(message, &sig_array, context))
             }
             MlDsaVariant::MlDsa65 => {
                 let pk = ml_dsa_65::PublicKey::try_from_bytes(
-                    public_key.bytes.as_slice().try_into()
-                        .map_err(|_| PqcError::InvalidKeySize {
+                    public_key.bytes.as_slice().try_into().map_err(|_| {
+                        PqcError::InvalidKeySize {
                             expected: self.variant.public_key_size(),
                             got: public_key.bytes.len(),
-                        })?
-                ).map_err(|e| PqcError::SerializationError(e.to_string()))?;
-                
-                let sig_array: [u8; 3309] = signature.bytes.as_slice().try_into()
-                    .map_err(|_| PqcError::InvalidSignatureSize {
-                        expected: self.variant.signature_size(),
-                        got: signature.bytes.len(),
+                        }
+                    })?,
+                )
+                .map_err(|e| PqcError::SerializationError(e.to_string()))?;
+
+                let sig_array: [u8; 3309] =
+                    signature.bytes.as_slice().try_into().map_err(|_| {
+                        PqcError::InvalidSignatureSize {
+                            expected: self.variant.signature_size(),
+                            got: signature.bytes.len(),
+                        }
                     })?;
-                
+
                 Ok(pk.verify(message, &sig_array, context))
             }
             MlDsaVariant::MlDsa87 => {
                 let pk = ml_dsa_87::PublicKey::try_from_bytes(
-                    public_key.bytes.as_slice().try_into()
-                        .map_err(|_| PqcError::InvalidKeySize {
+                    public_key.bytes.as_slice().try_into().map_err(|_| {
+                        PqcError::InvalidKeySize {
                             expected: self.variant.public_key_size(),
                             got: public_key.bytes.len(),
-                        })?
-                ).map_err(|e| PqcError::SerializationError(e.to_string()))?;
-                
-                let sig_array: [u8; 4627] = signature.bytes.as_slice().try_into()
-                    .map_err(|_| PqcError::InvalidSignatureSize {
-                        expected: self.variant.signature_size(),
-                        got: signature.bytes.len(),
+                        }
+                    })?,
+                )
+                .map_err(|e| PqcError::SerializationError(e.to_string()))?;
+
+                let sig_array: [u8; 4627] =
+                    signature.bytes.as_slice().try_into().map_err(|_| {
+                        PqcError::InvalidSignatureSize {
+                            expected: self.variant.signature_size(),
+                            got: signature.bytes.len(),
+                        }
                     })?;
-                
+
                 Ok(pk.verify(message, &sig_array, context))
             }
         }
@@ -460,25 +506,29 @@ mod tests {
     fn test_ml_dsa_65_sign_verify() {
         let dsa = ml_dsa_65();
         let (pk, sk) = dsa.generate_keypair().unwrap();
-        
+
         let message = b"Test message";
         let sig = dsa.sign(&sk, message).unwrap();
-        
+
         assert!(dsa.verify(&pk, message, &sig).unwrap());
-        
+
         // Wrong message should fail
         assert!(!dsa.verify(&pk, b"Wrong message", &sig).unwrap());
     }
 
     #[test]
     fn test_all_variants() {
-        for variant in [MlDsaVariant::MlDsa44, MlDsaVariant::MlDsa65, MlDsaVariant::MlDsa87] {
+        for variant in [
+            MlDsaVariant::MlDsa44,
+            MlDsaVariant::MlDsa65,
+            MlDsaVariant::MlDsa87,
+        ] {
             let dsa = MlDsa::new(variant);
             let (pk, sk) = dsa.generate_keypair().unwrap();
-            
+
             let message = b"Test message for all variants";
             let sig = dsa.sign(&sk, message).unwrap();
-            
+
             assert!(dsa.verify(&pk, message, &sig).unwrap());
         }
     }
@@ -487,30 +537,34 @@ mod tests {
     fn test_with_context() {
         let dsa = ml_dsa_65();
         let (pk, sk) = dsa.generate_keypair().unwrap();
-        
+
         let message = b"Test message";
         let context = b"test context";
         let sig = dsa.sign_with_context(&sk, message, context).unwrap();
-        
+
         // Correct context verifies
-        assert!(dsa.verify_with_context(&pk, message, &sig, context).unwrap());
-        
+        assert!(dsa
+            .verify_with_context(&pk, message, &sig, context)
+            .unwrap());
+
         // Wrong context fails
-        assert!(!dsa.verify_with_context(&pk, message, &sig, b"wrong context").unwrap());
+        assert!(!dsa
+            .verify_with_context(&pk, message, &sig, b"wrong context")
+            .unwrap());
     }
 
     #[test]
     fn test_serialization() {
         let dsa = ml_dsa_65();
         let (pk, sk) = dsa.generate_keypair().unwrap();
-        
+
         // Serialize and deserialize keys
         let pk_bytes = pk.to_bytes();
         let sk_bytes = sk.to_bytes();
-        
+
         let pk2 = MlDsaPublicKey::from_bytes(MlDsaVariant::MlDsa65, &pk_bytes).unwrap();
         let sk2 = MlDsaSecretKey::from_bytes(MlDsaVariant::MlDsa65, &sk_bytes).unwrap();
-        
+
         // Use deserialized keys
         let message = b"Test";
         let sig = dsa.sign(&sk2, message).unwrap();
@@ -521,10 +575,10 @@ mod tests {
     fn test_context_too_long() {
         let dsa = ml_dsa_65();
         let (_, sk) = dsa.generate_keypair().unwrap();
-        
+
         let message = b"Test";
         let long_context = vec![0u8; 256]; // Too long
-        
+
         let result = dsa.sign_with_context(&sk, message, &long_context);
         assert!(matches!(result, Err(PqcError::ContextTooLong { .. })));
     }

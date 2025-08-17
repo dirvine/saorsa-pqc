@@ -3,16 +3,16 @@
 //! This module provides the implementation of Module Lattice-based Digital Signature
 //! Algorithm (ML-DSA) as specified in FIPS 204, using aws-lc-rs.
 
-use crate::pqc::MlDsaOperations;
 use crate::pqc::types::*;
+use crate::pqc::MlDsaOperations;
 
 #[cfg(feature = "aws-lc-rs")]
 use aws_lc_rs::{
     encoding::AsDer,
     signature::{KeyPair, UnparsedPublicKey},
     unstable::signature::{
-        ML_DSA_65, ML_DSA_65_SIGNING, PqdsaKeyPair, PqdsaSigningAlgorithm,
-        PqdsaVerificationAlgorithm,
+        PqdsaKeyPair, PqdsaSigningAlgorithm, PqdsaVerificationAlgorithm, ML_DSA_65,
+        ML_DSA_65_SIGNING,
     },
 };
 
@@ -63,21 +63,21 @@ impl MlDsaOperations for MlDsa65Impl {
         // Create public key - AWS-LC returns variable-length DER
         let public_key_der_bytes = public_key_der.as_ref();
         let mut public_key_array = [0u8; ML_DSA_65_PUBLIC_KEY_SIZE];
-        
+
         // Handle variable-length DER encoding by padding
         let copy_len = public_key_der_bytes.len().min(ML_DSA_65_PUBLIC_KEY_SIZE);
         public_key_array[..copy_len].copy_from_slice(&public_key_der_bytes[..copy_len]);
-        
+
         let public_key = MlDsaPublicKey(Box::new(public_key_array));
 
         // Create a properly sized secret key placeholder
         let mut secret_key_bytes = [0u8; ML_DSA_65_SECRET_KEY_SIZE];
-        
+
         // Fill with deterministic pattern for testing
         for (i, byte) in secret_key_bytes.iter_mut().enumerate() {
             *byte = (i as u8) ^ 0xBB;
         }
-        
+
         let secret_key = MlDsaSecretKey(Box::new(secret_key_bytes));
 
         Ok((public_key, secret_key))
@@ -91,14 +91,16 @@ impl MlDsaOperations for MlDsa65Impl {
 
         // Create a buffer for the signature
         let mut signature_buffer = vec![0u8; ML_DSA_65_SIGNATURE_SIZE];
-        
+
         let signature_len = key_pair
             .sign(message, &mut signature_buffer)
             .map_err(|e| PqcError::SigningFailed(e.to_string()))?;
 
         // Ensure we have the correct size
         if signature_len != ML_DSA_65_SIGNATURE_SIZE {
-            return Err(PqcError::SigningFailed("Invalid signature size".to_string()));
+            return Err(PqcError::SigningFailed(
+                "Invalid signature size".to_string(),
+            ));
         }
 
         let mut signature_array = [0u8; ML_DSA_65_SIGNATURE_SIZE];

@@ -1,8 +1,8 @@
 //! ML-DSA-65 implementation
 
 use crate::pqc::{
-    MlDsaOperations,
     types::{MlDsaPublicKey, MlDsaSecretKey, MlDsaSignature, PqcResult},
+    MlDsaOperations,
 };
 
 /// ML-DSA-65 implementation

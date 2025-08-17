@@ -8,19 +8,18 @@ use serde::{Deserialize, Serialize};
 use serde_json;
 
 // Re-export the FIPS implementations
-use fips203::{ml_kem_512, ml_kem_768, ml_kem_1024};
 use fips203::traits::{Decaps, Encaps, KeyGen, SerDes as KemSerDes};
+use fips203::{ml_kem_1024, ml_kem_512, ml_kem_768};
 
-use fips204::{ml_dsa_44, ml_dsa_65, ml_dsa_87};
 use fips204::traits::{SerDes as DsaSerDes, Signer, Verifier};
+use fips204::{ml_dsa_44, ml_dsa_65, ml_dsa_87};
 
+use fips205::traits::{Signer as SlhSigner, Verifier as SlhVerifier};
 use fips205::{
-    slh_dsa_sha2_128f, slh_dsa_sha2_128s, slh_dsa_sha2_192f,
-    slh_dsa_sha2_192s, slh_dsa_sha2_256f, slh_dsa_sha2_256s,
-    slh_dsa_shake_128f, slh_dsa_shake_128s, slh_dsa_shake_192f,
+    slh_dsa_sha2_128f, slh_dsa_sha2_128s, slh_dsa_sha2_192f, slh_dsa_sha2_192s, slh_dsa_sha2_256f,
+    slh_dsa_sha2_256s, slh_dsa_shake_128f, slh_dsa_shake_128s, slh_dsa_shake_192f,
     slh_dsa_shake_192s, slh_dsa_shake_256f, slh_dsa_shake_256s,
 };
-use fips205::traits::{Signer as SlhSigner, Verifier as SlhVerifier};
 
 /// ML-KEM test vector structure
 #[derive(Debug, Deserialize, Serialize)]
@@ -95,7 +94,8 @@ struct TestSuite {
 const ML_KEM_768_KEYGEN: &str = include_str!("nist_vectors/ml_kem/keygen_prompt.json");
 const ML_KEM_768_KEYGEN_EXPECTED: &str = include_str!("nist_vectors/ml_kem/keygen_expected.json");
 const ML_KEM_768_ENCAPDECAP: &str = include_str!("nist_vectors/ml_kem/encapdecap_prompt.json");
-const ML_KEM_768_ENCAPDECAP_EXPECTED: &str = include_str!("nist_vectors/ml_kem/encapdecap_expected.json");
+const ML_KEM_768_ENCAPDECAP_EXPECTED: &str =
+    include_str!("nist_vectors/ml_kem/encapdecap_expected.json");
 
 // Embedded test vectors - ML-DSA-65
 const ML_DSA_65_KEYGEN: &str = include_str!("nist_vectors/ml_dsa/keygen_prompt.json");
@@ -116,18 +116,24 @@ mod ml_kem_tests {
 
     #[test]
     fn test_ml_kem_768_keygen_vectors() {
-        let prompt: TestSuite = serde_json::from_str(ML_KEM_768_KEYGEN)
-            .expect("Failed to parse ML-KEM keygen prompt");
+        let prompt: TestSuite =
+            serde_json::from_str(ML_KEM_768_KEYGEN).expect("Failed to parse ML-KEM keygen prompt");
         let expected: TestSuite = serde_json::from_str(ML_KEM_768_KEYGEN_EXPECTED)
             .expect("Failed to parse ML-KEM keygen expected");
 
-        println!("Testing {} ML-KEM-768 key generation vectors", 
-                 prompt.test_groups.iter().map(|g| g.tests.len()).sum::<usize>());
+        println!(
+            "Testing {} ML-KEM-768 key generation vectors",
+            prompt
+                .test_groups
+                .iter()
+                .map(|g| g.tests.len())
+                .sum::<usize>()
+        );
 
         for (group, exp_group) in prompt.test_groups.iter().zip(expected.test_groups.iter()) {
             for (test, exp_test) in group.tests.iter().zip(exp_group.tests.iter()) {
-                let vector: MlKemTestVector = serde_json::from_value(test.clone())
-                    .expect("Failed to parse test vector");
+                let vector: MlKemTestVector =
+                    serde_json::from_value(test.clone()).expect("Failed to parse test vector");
                 let expected: MlKemTestVector = serde_json::from_value(exp_test.clone())
                     .expect("Failed to parse expected vector");
 
@@ -138,20 +144,19 @@ mod ml_kem_tests {
                 println!("Testing vector {}", vector.tc_id);
 
                 // Test deterministic key generation with seed
-                if let (Some(seed), Some(exp_ek), Some(exp_dk)) = 
-                    (&vector.seed, &expected.ek, &expected.dk) {
-                    
+                if let (Some(seed), Some(exp_ek), Some(exp_dk)) =
+                    (&vector.seed, &expected.ek, &expected.dk)
+                {
                     let seed_bytes = decode_hex(seed);
                     if seed_bytes.len() == 64 {
                         // Note: fips203 may not expose deterministic keygen
                         // We'll test that generated keys are valid instead
-                        let (ek, dk) = ml_kem_768::KG::try_keygen()
-                            .expect("Key generation failed");
-                        
+                        let (ek, dk) = ml_kem_768::KG::try_keygen().expect("Key generation failed");
+
                         // Verify keys can be serialized
                         let _ek_bytes = ek.into_bytes();
                         let _dk_bytes = dk.into_bytes();
-                        
+
                         // In a real implementation with deterministic keygen:
                         // assert_eq!(hex::encode(ek_bytes), exp_ek.to_lowercase());
                         // assert_eq!(hex::encode(dk_bytes), exp_dk.to_lowercase());
@@ -168,13 +173,19 @@ mod ml_kem_tests {
         let expected: TestSuite = serde_json::from_str(ML_KEM_768_ENCAPDECAP_EXPECTED)
             .expect("Failed to parse ML-KEM encap/decap expected");
 
-        println!("Testing {} ML-KEM-768 encapsulation/decapsulation vectors", 
-                 prompt.test_groups.iter().map(|g| g.tests.len()).sum::<usize>());
+        println!(
+            "Testing {} ML-KEM-768 encapsulation/decapsulation vectors",
+            prompt
+                .test_groups
+                .iter()
+                .map(|g| g.tests.len())
+                .sum::<usize>()
+        );
 
         for (group, exp_group) in prompt.test_groups.iter().zip(expected.test_groups.iter()) {
             for (test, exp_test) in group.tests.iter().zip(exp_group.tests.iter()) {
-                let vector: MlKemTestVector = serde_json::from_value(test.clone())
-                    .expect("Failed to parse test vector");
+                let vector: MlKemTestVector =
+                    serde_json::from_value(test.clone()).expect("Failed to parse test vector");
                 let expected: MlKemTestVector = serde_json::from_value(exp_test.clone())
                     .expect("Failed to parse expected vector");
 
@@ -183,9 +194,9 @@ mod ml_kem_tests {
                 }
 
                 // Test encapsulation and decapsulation
-                if let (Some(ek_hex), Some(dk_hex), Some(ct_hex), Some(ss_hex)) = 
-                    (&vector.ek, &vector.dk, &expected.ct, &expected.ss) {
-                    
+                if let (Some(ek_hex), Some(dk_hex), Some(ct_hex), Some(ss_hex)) =
+                    (&vector.ek, &vector.dk, &expected.ct, &expected.ss)
+                {
                     let ek_bytes = decode_hex(ek_hex);
                     let dk_bytes = decode_hex(dk_hex);
                     let exp_ct_bytes = decode_hex(ct_hex);
@@ -204,22 +215,34 @@ mod ml_kem_tests {
                             // Use deterministic encapsulation
                             let m_array: [u8; 32] = m_bytes.try_into().unwrap();
                             let (ss, ct) = ek.encaps_from_seed(&m_array);
-                            
-                            assert_eq!(ct.into_bytes(), exp_ct_bytes.as_slice(),
-                                      "Ciphertext mismatch for vector {}", vector.tc_id);
-                            assert_eq!(ss.into_bytes(), exp_ss_bytes.as_slice(),
-                                      "Shared secret mismatch for vector {}", vector.tc_id);
+
+                            assert_eq!(
+                                ct.into_bytes(),
+                                exp_ct_bytes.as_slice(),
+                                "Ciphertext mismatch for vector {}",
+                                vector.tc_id
+                            );
+                            assert_eq!(
+                                ss.into_bytes(),
+                                exp_ss_bytes.as_slice(),
+                                "Shared secret mismatch for vector {}",
+                                vector.tc_id
+                            );
                         }
                     }
 
                     // Test decapsulation
-                    let ct = ml_kem_768::CipherText::try_from_bytes(exp_ct_bytes.try_into().unwrap())
-                        .expect("Failed to deserialize ciphertext");
-                    let ss_dec = dk.try_decaps(&ct)
-                        .expect("Decapsulation failed");
-                    
-                    assert_eq!(ss_dec.into_bytes(), exp_ss_bytes.as_slice(),
-                              "Decapsulated secret mismatch for vector {}", vector.tc_id);
+                    let ct =
+                        ml_kem_768::CipherText::try_from_bytes(exp_ct_bytes.try_into().unwrap())
+                            .expect("Failed to deserialize ciphertext");
+                    let ss_dec = dk.try_decaps(&ct).expect("Decapsulation failed");
+
+                    assert_eq!(
+                        ss_dec.into_bytes(),
+                        exp_ss_bytes.as_slice(),
+                        "Decapsulated secret mismatch for vector {}",
+                        vector.tc_id
+                    );
                 }
             }
         }
@@ -229,34 +252,25 @@ mod ml_kem_tests {
     fn test_ml_kem_all_parameter_sets() {
         // Test ML-KEM-512
         {
-            let (ek, dk) = ml_kem_512::KG::try_keygen()
-                .expect("ML-KEM-512 keygen failed");
-            let (ss_enc, ct) = ek.try_encaps()
-                .expect("ML-KEM-512 encaps failed");
-            let ss_dec = dk.try_decaps(&ct)
-                .expect("ML-KEM-512 decaps failed");
+            let (ek, dk) = ml_kem_512::KG::try_keygen().expect("ML-KEM-512 keygen failed");
+            let (ss_enc, ct) = ek.try_encaps().expect("ML-KEM-512 encaps failed");
+            let ss_dec = dk.try_decaps(&ct).expect("ML-KEM-512 decaps failed");
             assert_eq!(ss_enc.into_bytes(), ss_dec.into_bytes());
         }
 
         // Test ML-KEM-768
         {
-            let (ek, dk) = ml_kem_768::KG::try_keygen()
-                .expect("ML-KEM-768 keygen failed");
-            let (ss_enc, ct) = ek.try_encaps()
-                .expect("ML-KEM-768 encaps failed");
-            let ss_dec = dk.try_decaps(&ct)
-                .expect("ML-KEM-768 decaps failed");
+            let (ek, dk) = ml_kem_768::KG::try_keygen().expect("ML-KEM-768 keygen failed");
+            let (ss_enc, ct) = ek.try_encaps().expect("ML-KEM-768 encaps failed");
+            let ss_dec = dk.try_decaps(&ct).expect("ML-KEM-768 decaps failed");
             assert_eq!(ss_enc.into_bytes(), ss_dec.into_bytes());
         }
 
         // Test ML-KEM-1024
         {
-            let (ek, dk) = ml_kem_1024::KG::try_keygen()
-                .expect("ML-KEM-1024 keygen failed");
-            let (ss_enc, ct) = ek.try_encaps()
-                .expect("ML-KEM-1024 encaps failed");
-            let ss_dec = dk.try_decaps(&ct)
-                .expect("ML-KEM-1024 decaps failed");
+            let (ek, dk) = ml_kem_1024::KG::try_keygen().expect("ML-KEM-1024 keygen failed");
+            let (ss_enc, ct) = ek.try_encaps().expect("ML-KEM-1024 encaps failed");
+            let ss_dec = dk.try_decaps(&ct).expect("ML-KEM-1024 decaps failed");
             assert_eq!(ss_enc.into_bytes(), ss_dec.into_bytes());
         }
     }
@@ -268,18 +282,24 @@ mod ml_dsa_tests {
 
     #[test]
     fn test_ml_dsa_65_keygen_vectors() {
-        let prompt: TestSuite = serde_json::from_str(ML_DSA_65_KEYGEN)
-            .expect("Failed to parse ML-DSA keygen prompt");
+        let prompt: TestSuite =
+            serde_json::from_str(ML_DSA_65_KEYGEN).expect("Failed to parse ML-DSA keygen prompt");
         let expected: TestSuite = serde_json::from_str(ML_DSA_65_KEYGEN_EXPECTED)
             .expect("Failed to parse ML-DSA keygen expected");
 
-        println!("Testing {} ML-DSA-65 key generation vectors", 
-                 prompt.test_groups.iter().map(|g| g.tests.len()).sum::<usize>());
+        println!(
+            "Testing {} ML-DSA-65 key generation vectors",
+            prompt
+                .test_groups
+                .iter()
+                .map(|g| g.tests.len())
+                .sum::<usize>()
+        );
 
         for (group, exp_group) in prompt.test_groups.iter().zip(expected.test_groups.iter()) {
             for (test, exp_test) in group.tests.iter().zip(exp_group.tests.iter()) {
-                let vector: MlDsaTestVector = serde_json::from_value(test.clone())
-                    .expect("Failed to parse test vector");
+                let vector: MlDsaTestVector =
+                    serde_json::from_value(test.clone()).expect("Failed to parse test vector");
                 let expected: MlDsaTestVector = serde_json::from_value(exp_test.clone())
                     .expect("Failed to parse expected vector");
 
@@ -288,9 +308,8 @@ mod ml_dsa_tests {
                 }
 
                 // Test key generation (non-deterministic in fips204)
-                let (pk, sk) = ml_dsa_65::try_keygen()
-                    .expect("ML-DSA-65 key generation failed");
-                
+                let (pk, sk) = ml_dsa_65::try_keygen().expect("ML-DSA-65 key generation failed");
+
                 // Verify keys can be serialized
                 let _pk_bytes = pk.into_bytes();
                 let _sk_bytes = sk.into_bytes();
@@ -300,18 +319,24 @@ mod ml_dsa_tests {
 
     #[test]
     fn test_ml_dsa_65_sign_verify_vectors() {
-        let siggen: TestSuite = serde_json::from_str(ML_DSA_65_SIGGEN)
-            .expect("Failed to parse ML-DSA siggen prompt");
+        let siggen: TestSuite =
+            serde_json::from_str(ML_DSA_65_SIGGEN).expect("Failed to parse ML-DSA siggen prompt");
         let siggen_exp: TestSuite = serde_json::from_str(ML_DSA_65_SIGGEN_EXPECTED)
             .expect("Failed to parse ML-DSA siggen expected");
 
-        println!("Testing {} ML-DSA-65 signature generation vectors", 
-                 siggen.test_groups.iter().map(|g| g.tests.len()).sum::<usize>());
+        println!(
+            "Testing {} ML-DSA-65 signature generation vectors",
+            siggen
+                .test_groups
+                .iter()
+                .map(|g| g.tests.len())
+                .sum::<usize>()
+        );
 
         for (group, exp_group) in siggen.test_groups.iter().zip(siggen_exp.test_groups.iter()) {
             for (test, exp_test) in group.tests.iter().zip(exp_group.tests.iter()) {
-                let vector: MlDsaTestVector = serde_json::from_value(test.clone())
-                    .expect("Failed to parse test vector");
+                let vector: MlDsaTestVector =
+                    serde_json::from_value(test.clone()).expect("Failed to parse test vector");
                 let expected: MlDsaTestVector = serde_json::from_value(exp_test.clone())
                     .expect("Failed to parse expected vector");
 
@@ -319,14 +344,15 @@ mod ml_dsa_tests {
                     continue;
                 }
 
-                if let (Some(sk_hex), Some(msg_hex), Some(sig_hex)) = 
-                    (&vector.sk, &vector.message, &expected.signature) {
-                    
+                if let (Some(sk_hex), Some(msg_hex), Some(sig_hex)) =
+                    (&vector.sk, &vector.message, &expected.signature)
+                {
                     let sk_bytes = decode_hex(sk_hex);
                     let msg_bytes = decode_hex(msg_hex);
                     let exp_sig_bytes = decode_hex(sig_hex);
-                    
-                    let context = vector.context
+
+                    let context = vector
+                        .context
                         .as_ref()
                         .map(|c| decode_hex(c))
                         .unwrap_or_default();
@@ -337,24 +363,29 @@ mod ml_dsa_tests {
 
                     // Note: fips204 signatures are randomized by default
                     // We can't compare directly with expected signature
-                    let signature = sk.try_sign(&msg_bytes, &context)
-                        .expect("Signing failed");
+                    let signature = sk.try_sign(&msg_bytes, &context).expect("Signing failed");
 
                     // But we can verify the signature is valid
                     if let Some(pk_hex) = &vector.pk {
                         let pk_bytes = decode_hex(pk_hex);
                         let pk = ml_dsa_65::PublicKey::try_from_bytes(pk_bytes.try_into().unwrap())
                             .expect("Failed to deserialize public key");
-                        
-                        assert!(pk.verify(&msg_bytes, &signature, &context),
-                                "Signature verification failed for vector {}", vector.tc_id);
-                        
+
+                        assert!(
+                            pk.verify(&msg_bytes, &signature, &context),
+                            "Signature verification failed for vector {}",
+                            vector.tc_id
+                        );
+
                         // Also verify the expected signature if it has the right size
                         // ML-DSA-65 signature is 3309 bytes
                         if exp_sig_bytes.len() == 3309 {
                             let exp_sig_array: [u8; 3309] = exp_sig_bytes.try_into().unwrap();
-                            assert!(pk.verify(&msg_bytes, &exp_sig_array, &context),
-                                    "Expected signature verification failed for vector {}", vector.tc_id);
+                            assert!(
+                                pk.verify(&msg_bytes, &exp_sig_array, &context),
+                                "Expected signature verification failed for vector {}",
+                                vector.tc_id
+                            );
                         }
                     }
                 }
@@ -369,32 +400,38 @@ mod ml_dsa_tests {
 
         // Test ML-DSA-44
         {
-            let (pk, sk) = ml_dsa_44::try_keygen()
-                .expect("ML-DSA-44 keygen failed");
-            let sig = sk.try_sign(message, context)
+            let (pk, sk) = ml_dsa_44::try_keygen().expect("ML-DSA-44 keygen failed");
+            let sig = sk
+                .try_sign(message, context)
                 .expect("ML-DSA-44 signing failed");
-            assert!(pk.verify(message, &sig, context),
-                    "ML-DSA-44 verification failed");
+            assert!(
+                pk.verify(message, &sig, context),
+                "ML-DSA-44 verification failed"
+            );
         }
 
         // Test ML-DSA-65
         {
-            let (pk, sk) = ml_dsa_65::try_keygen()
-                .expect("ML-DSA-65 keygen failed");
-            let sig = sk.try_sign(message, context)
+            let (pk, sk) = ml_dsa_65::try_keygen().expect("ML-DSA-65 keygen failed");
+            let sig = sk
+                .try_sign(message, context)
                 .expect("ML-DSA-65 signing failed");
-            assert!(pk.verify(message, &sig, context),
-                    "ML-DSA-65 verification failed");
+            assert!(
+                pk.verify(message, &sig, context),
+                "ML-DSA-65 verification failed"
+            );
         }
 
         // Test ML-DSA-87
         {
-            let (pk, sk) = ml_dsa_87::try_keygen()
-                .expect("ML-DSA-87 keygen failed");
-            let sig = sk.try_sign(message, context)
+            let (pk, sk) = ml_dsa_87::try_keygen().expect("ML-DSA-87 keygen failed");
+            let sig = sk
+                .try_sign(message, context)
                 .expect("ML-DSA-87 signing failed");
-            assert!(pk.verify(message, &sig, context),
-                    "ML-DSA-87 verification failed");
+            assert!(
+                pk.verify(message, &sig, context),
+                "ML-DSA-87 verification failed"
+            );
         }
     }
 }
@@ -408,15 +445,17 @@ mod slh_dsa_tests {
         let message = b"Test message for SLH-DSA-SHAKE-128s";
         let context = b"test";
 
-        let (pk, sk) = slh_dsa_shake_128s::try_keygen()
-            .expect("SLH-DSA-SHAKE-128s keygen failed");
-        
+        let (pk, sk) = slh_dsa_shake_128s::try_keygen().expect("SLH-DSA-SHAKE-128s keygen failed");
+
         // Test with hedged randomness
-        let sig = sk.try_sign(message, context, true)
+        let sig = sk
+            .try_sign(message, context, true)
             .expect("SLH-DSA-SHAKE-128s signing failed");
-        
-        assert!(pk.verify(message, &sig, context),
-                "SLH-DSA-SHAKE-128s verification failed");
+
+        assert!(
+            pk.verify(message, &sig, context),
+            "SLH-DSA-SHAKE-128s verification failed"
+        );
     }
 
     #[test]
@@ -424,15 +463,17 @@ mod slh_dsa_tests {
         let message = b"Test message for SLH-DSA-SHA2-128f";
         let context = b"";
 
-        let (pk, sk) = slh_dsa_sha2_128f::try_keygen()
-            .expect("SLH-DSA-SHA2-128f keygen failed");
-        
+        let (pk, sk) = slh_dsa_sha2_128f::try_keygen().expect("SLH-DSA-SHA2-128f keygen failed");
+
         // Test with pure randomness
-        let sig = sk.try_sign(message, context, false)
+        let sig = sk
+            .try_sign(message, context, false)
             .expect("SLH-DSA-SHA2-128f signing failed");
-        
-        assert!(pk.verify(message, &sig, context),
-                "SLH-DSA-SHA2-128f verification failed");
+
+        assert!(
+            pk.verify(message, &sig, context),
+            "SLH-DSA-SHA2-128f verification failed"
+        );
     }
 
     #[test]
@@ -443,20 +484,26 @@ mod slh_dsa_tests {
 
         // Test each variant individually
         println!("Testing SLH-DSA-SHA2-128s");
-        let (pk_128s, sk_128s) = slh_dsa_sha2_128s::try_keygen()
-            .expect("SLH-DSA-SHA2-128s keygen failed");
-        let sig_128s = sk_128s.try_sign(message, context, true)
+        let (pk_128s, sk_128s) =
+            slh_dsa_sha2_128s::try_keygen().expect("SLH-DSA-SHA2-128s keygen failed");
+        let sig_128s = sk_128s
+            .try_sign(message, context, true)
             .expect("SLH-DSA-SHA2-128s signing failed");
-        assert!(pk_128s.verify(message, &sig_128s, context),
-                "SLH-DSA-SHA2-128s verification failed");
+        assert!(
+            pk_128s.verify(message, &sig_128s, context),
+            "SLH-DSA-SHA2-128s verification failed"
+        );
 
         println!("Testing SLH-DSA-SHA2-128f");
-        let (pk_128f, sk_128f) = slh_dsa_sha2_128f::try_keygen()
-            .expect("SLH-DSA-SHA2-128f keygen failed");
-        let sig_128f = sk_128f.try_sign(message, context, true)
+        let (pk_128f, sk_128f) =
+            slh_dsa_sha2_128f::try_keygen().expect("SLH-DSA-SHA2-128f keygen failed");
+        let sig_128f = sk_128f
+            .try_sign(message, context, true)
             .expect("SLH-DSA-SHA2-128f signing failed");
-        assert!(pk_128f.verify(message, &sig_128f, context),
-                "SLH-DSA-SHA2-128f verification failed");
+        assert!(
+            pk_128f.verify(message, &sig_128f, context),
+            "SLH-DSA-SHA2-128f verification failed"
+        );
     }
 }
 
@@ -467,27 +514,27 @@ mod cross_validation_tests {
     #[test]
     fn test_ml_kem_768_cross_serialization() {
         // Generate keys
-        let (ek1, dk1) = ml_kem_768::KG::try_keygen()
-            .expect("Key generation failed");
+        let (ek1, dk1) = ml_kem_768::KG::try_keygen().expect("Key generation failed");
 
         // Serialize
         let ek_bytes = ek1.into_bytes();
         let dk_bytes = dk1.into_bytes();
 
         // Deserialize
-        let ek2 = ml_kem_768::EncapsKey::try_from_bytes(ek_bytes)
-            .expect("EK deserialization failed");
-        let dk2 = ml_kem_768::DecapsKey::try_from_bytes(dk_bytes)
-            .expect("DK deserialization failed");
+        let ek2 =
+            ml_kem_768::EncapsKey::try_from_bytes(ek_bytes).expect("EK deserialization failed");
+        let dk2 =
+            ml_kem_768::DecapsKey::try_from_bytes(dk_bytes).expect("DK deserialization failed");
 
         // Use deserialized keys
-        let (ss1, ct) = ek2.try_encaps()
-            .expect("Encapsulation failed");
-        let ss2 = dk2.try_decaps(&ct)
-            .expect("Decapsulation failed");
+        let (ss1, ct) = ek2.try_encaps().expect("Encapsulation failed");
+        let ss2 = dk2.try_decaps(&ct).expect("Decapsulation failed");
 
-        assert_eq!(ss1.into_bytes(), ss2.into_bytes(),
-                   "Shared secrets don't match after serialization");
+        assert_eq!(
+            ss1.into_bytes(),
+            ss2.into_bytes(),
+            "Shared secrets don't match after serialization"
+        );
     }
 
     #[test]
@@ -496,24 +543,24 @@ mod cross_validation_tests {
         let context = b"";
 
         // Generate keys
-        let (pk1, sk1) = ml_dsa_65::try_keygen()
-            .expect("Key generation failed");
+        let (pk1, sk1) = ml_dsa_65::try_keygen().expect("Key generation failed");
 
         // Serialize
         let pk_bytes = pk1.into_bytes();
         let sk_bytes = sk1.into_bytes();
 
         // Deserialize
-        let pk2 = ml_dsa_65::PublicKey::try_from_bytes(pk_bytes)
-            .expect("PK deserialization failed");
-        let sk2 = ml_dsa_65::PrivateKey::try_from_bytes(sk_bytes)
-            .expect("SK deserialization failed");
+        let pk2 =
+            ml_dsa_65::PublicKey::try_from_bytes(pk_bytes).expect("PK deserialization failed");
+        let sk2 =
+            ml_dsa_65::PrivateKey::try_from_bytes(sk_bytes).expect("SK deserialization failed");
 
         // Use deserialized keys
-        let sig = sk2.try_sign(message, context)
-            .expect("Signing failed");
-        assert!(pk2.verify(message, &sig, context),
-                "Verification failed after serialization");
+        let sig = sk2.try_sign(message, context).expect("Signing failed");
+        assert!(
+            pk2.verify(message, &sig, context),
+            "Verification failed after serialization"
+        );
     }
 }
 
