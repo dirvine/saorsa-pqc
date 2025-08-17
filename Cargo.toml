@@ -1,7 +1,7 @@
 [package]
 name = "saorsa-pqc"
-version = "0.1.0"
-edition = "2024"
+version = "0.2.0"
+edition = "2021"
 authors = ["David Irvine <david@saorsalabs.com>"]
 license = "MIT OR Apache-2.0"
 description = "Post-Quantum Cryptography library for Saorsa Labs projects"
@@ -18,25 +18,45 @@ name = "saorsa_pqc"
 path = "src/lib.rs"
 
 [features]
-default = ["aws-lc-rs"]
+# All security and performance features enabled by default
+default = [
+    "aws-lc-rs", 
+    "pqc", 
+    "parallel", 
+    "memory-pool", 
+    "secure-memory", 
+    "constant-time",
+    "simd"
+]
 
-# Crypto providers (choose one)
+# Crypto providers (aws-lc-rs is default and preferred)
 aws-lc-rs = ["dep:aws-lc-rs", "dep:ring"]
 rustls-ring = ["dep:ring"]
 
-# Post-Quantum Cryptography support
+# Post-Quantum Cryptography support (always enabled by default)
 pqc = ["aws-lc-rs"]
 
-
-# Performance features
-parallel = ["dep:rayon"]
+# Performance features (enabled by default)
+parallel = []
 memory-pool = []
 
-# Testing features
+# Security features (enabled by default) 
+secure-memory = []
+constant-time = []
+simd = ["dep:wide"]
+
+# Optional development features (not enabled by default)
+cert_compression = []
+dangerous_configuration = []
 test-utils = []
 benchmarks = []
 
 [dependencies]
+# NIST Post-Quantum Cryptography Standards
+fips203 = { version = "0.4", features = ["default-rng"] }  # ML-KEM (Kyber)
+fips204 = { version = "0.4", features = ["default-rng"] }  # ML-DSA (Dilithium)
+fips205 = { version = "0.4", features = ["default-rng"] }  # SLH-DSA (SPHINCS+)
+
 # Core cryptography
 aws-lc-rs = { version = "1.8", optional = true, features = ["unstable"] }
 ring = { version = "0.17", optional = true }
@@ -62,12 +82,14 @@ bincode = "1.3"
 # Random and hash
 rand = "0.8"
 sha2 = "0.10"
+sha3 = "0.10"
 blake3 = "1.8"
 
 # Error handling and secure memory
 thiserror = "1.0"
 anyhow = "1.0"
 zeroize = { version = "1.8", features = ["derive"] }
+libc = "0.2"
 
 # Logging and tracing
 tracing = "0.1"
@@ -76,24 +98,67 @@ log = "0.4"
 # Networking
 bytes = "1.5"
 
-# Parallel processing (optional)
-rayon = { version = "1.8", optional = true }
+# Parallel processing (enabled by default)
+rayon = { version = "1.8" }
 
 # Time utilities
 time = { version = "0.3", features = ["std", "formatting", "parsing"] }
 
+# Constant-time operations (always available)
+subtle = { version = "2.5" }
+
+# SIMD acceleration for high-performance crypto
+wide = { version = "0.7", optional = true }
+rand_core = { version = "0.6.4", features = ["std", "getrandom"] }
+
 [dev-dependencies]
+# Existing dependencies
 tokio-test = "0.4"
 criterion = { version = "0.5", features = ["html_reports"] }
 proptest = "1.4"
 hex = "0.4"
 once_cell = "1.19"
 
-# Benchmarks will be added once the crate structure is stable
-# [[bench]]
-# name = "ml_kem_benchmarks"
-# harness = false
-# required-features = ["aws-lc-rs"]
+# Additional test dependencies for comprehensive testing
+serde_json = "1.0"
+lazy_static = "1.4"
+tempfile = "3.8"
+
+# For performance profiling
+pprof = { version = "0.13", features = ["flamegraph"] }
+
+# Additional test dependencies
+slh-dsa = "0.0.3"  # Alternative SLH-DSA implementation for cross-validation
+
+
+# Test configuration for specific test suites
+[[test]]
+name = "ml_kem_tests"
+path = "tests/ml_kem_tests.rs"
+required-features = ["aws-lc-rs"]
+
+[[test]]
+name = "ml_dsa_tests"
+path = "tests/ml_dsa_tests.rs"
+required-features = ["aws-lc-rs"]
+
+[[test]]
+name = "property_tests"
+path = "tests/property_tests.rs"
+required-features = ["test-utils", "aws-lc-rs"]
+
+# Benchmarks
+[[bench]]
+name = "ml_kem_benchmarks"
+path = "benches/ml_kem_benchmarks.rs"
+harness = false
+required-features = ["aws-lc-rs", "benchmarks"]
+
+[[bench]]
+name = "ml_dsa_benchmarks"
+path = "benches/ml_dsa_benchmarks.rs"
+harness = false
+required-features = ["aws-lc-rs", "benchmarks"]
 
 [profile.release]
 lto = true
@@ -119,6 +184,18 @@ ignore = []
 [package.metadata.clippy]
 msrv = "1.85.0"
 
+# Test coverage configuration
+[package.metadata.tarpaulin]
+ignore-config = true
+exclude-files = [
+    "tests/*",
+    "benches/*",
+    "examples/*"
+]
+out = ["Html", "Xml"]
+output-dir = "target/tarpaulin"
+timeout = 300
+
 [lints.rust]
 unsafe_code = "forbid"
 missing_docs = "warn"
@@ -126,7 +203,6 @@ unused_must_use = "deny"
 
 [lints.clippy]
 # Performance lints
-unnecessary_clone = "deny"
 inefficient_to_string = "deny"
 large_enum_variant = "deny"
 large_stack_arrays = "deny"
@@ -134,7 +210,7 @@ too_many_arguments = "deny"
 
 # Correctness lints
 indexing_slicing = "deny"
-integer_arithmetic = "warn"
+arithmetic_side_effects = "warn"
 unwrap_used = "deny"
 expect_used = "deny"
 panic = "deny"
@@ -149,8 +225,7 @@ redundant_field_names = "deny"
 
 # Complexity lints
 cognitive_complexity = "warn"
-cyclomatic_complexity = "warn"
 
 # Pedantic lints for ultra-quality
 pedantic = "warn"
-nursery = "warn"
+nursery = { level = "warn", priority = -1 }

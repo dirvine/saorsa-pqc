@@ -1,4 +1,7 @@
 //! Type definitions for Post-Quantum Cryptography
+//!
+//! This module implements secure key serialization following NIST FIPS 203/204 standards
+//! with proper memory management using zeroize for sensitive data protection.
 
 use thiserror::Error;
 use zeroize::{Zeroize, ZeroizeOnDrop};
@@ -11,11 +14,21 @@ pub type PqcResult<T> = Result<T, PqcError>;
 pub enum PqcError {
     /// Invalid key size
     #[error("Invalid key size: expected {expected}, got {actual}")]
-    InvalidKeySize { expected: usize, actual: usize },
+    InvalidKeySize {
+        /// Expected size in bytes
+        expected: usize,
+        /// Actual size provided
+        actual: usize,
+    },
 
     /// Invalid ciphertext size
     #[error("Invalid ciphertext size: expected {expected}, got {actual}")]
-    InvalidCiphertextSize { expected: usize, actual: usize },
+    InvalidCiphertextSize {
+        /// Expected size in bytes
+        expected: usize,
+        /// Actual size provided
+        actual: usize,
+    },
 
     /// Invalid ciphertext
     #[error("Invalid ciphertext")]
@@ -23,7 +36,12 @@ pub enum PqcError {
 
     /// Invalid signature size
     #[error("Invalid signature size: expected {expected}, got {actual}")]
-    InvalidSignatureSize { expected: usize, actual: usize },
+    InvalidSignatureSize {
+        /// Expected size in bytes
+        expected: usize,
+        /// Actual size provided
+        actual: usize,
+    },
 
     /// Key generation failed
     #[error("Key generation failed: {0}")]
@@ -86,20 +104,33 @@ pub enum PqcError {
     KeyExchangeFailed,
 }
 
-// ML-KEM-768 constants
+/// Size of ML-KEM-768 public key in bytes (1184 bytes)
 pub const ML_KEM_768_PUBLIC_KEY_SIZE: usize = 1184;
+
+/// Size of ML-KEM-768 secret key in bytes (2400 bytes)
 pub const ML_KEM_768_SECRET_KEY_SIZE: usize = 2400;
+
+/// Size of ML-KEM-768 ciphertext in bytes (1088 bytes)
 pub const ML_KEM_768_CIPHERTEXT_SIZE: usize = 1088;
+
+/// Size of ML-KEM-768 shared secret in bytes (32 bytes)
 pub const ML_KEM_768_SHARED_SECRET_SIZE: usize = 32;
 
-// ML-DSA-65 constants
+/// Size of ML-DSA-65 public key in bytes (1952 bytes)
 pub const ML_DSA_65_PUBLIC_KEY_SIZE: usize = 1952;
+
+/// Size of ML-DSA-65 secret key in bytes (4032 bytes)
 pub const ML_DSA_65_SECRET_KEY_SIZE: usize = 4032;
+
+/// Size of ML-DSA-65 signature in bytes (3309 bytes)
 pub const ML_DSA_65_SIGNATURE_SIZE: usize = 3309;
 
 /// ML-KEM-768 public key
 #[derive(Clone)]
-pub struct MlKemPublicKey(pub Box<[u8; ML_KEM_768_PUBLIC_KEY_SIZE]>);
+pub struct MlKemPublicKey(
+    /// The raw public key bytes
+    pub Box<[u8; ML_KEM_768_PUBLIC_KEY_SIZE]>
+);
 
 impl MlKemPublicKey {
     /// Get the public key as bytes
@@ -122,25 +153,41 @@ impl MlKemPublicKey {
 }
 
 /// ML-KEM-768 secret key
-#[derive(ZeroizeOnDrop)]
-pub struct MlKemSecretKey(pub Box<[u8; ML_KEM_768_SECRET_KEY_SIZE]>);
-
-impl Zeroize for MlKemSecretKey {
-    fn zeroize(&mut self) {
-        self.0.as_mut().zeroize();
-    }
-}
+/// 
+/// Automatically zeroized on drop to prevent sensitive data leakage.
+/// Follows NIST FIPS 203 secure key management practices.
+#[derive(Clone, Zeroize, ZeroizeOnDrop)]
+pub struct MlKemSecretKey(
+    /// The raw secret key bytes
+    pub Box<[u8; ML_KEM_768_SECRET_KEY_SIZE]>
+);
 
 impl MlKemSecretKey {
     /// Get the secret key as bytes
     pub fn as_bytes(&self) -> &[u8] {
         &self.0[..]
     }
+
+    /// Create from bytes
+    pub fn from_bytes(bytes: &[u8]) -> Result<Self, PqcError> {
+        if bytes.len() != ML_KEM_768_SECRET_KEY_SIZE {
+            return Err(PqcError::InvalidKeySize {
+                expected: ML_KEM_768_SECRET_KEY_SIZE,
+                actual: bytes.len(),
+            });
+        }
+        let mut key = Box::new([0u8; ML_KEM_768_SECRET_KEY_SIZE]);
+        key.copy_from_slice(bytes);
+        Ok(Self(key))
+    }
 }
 
 /// ML-KEM-768 ciphertext
 #[derive(Clone)]
-pub struct MlKemCiphertext(pub Box<[u8; ML_KEM_768_CIPHERTEXT_SIZE]>);
+pub struct MlKemCiphertext(
+    /// The raw ciphertext bytes
+    pub Box<[u8; ML_KEM_768_CIPHERTEXT_SIZE]>
+);
 
 impl MlKemCiphertext {
     /// Get the ciphertext as bytes
@@ -164,13 +211,10 @@ impl MlKemCiphertext {
 
 /// ML-DSA-65 public key
 #[derive(Clone)]
-pub struct MlDsaPublicKey(pub Box<[u8; ML_DSA_65_PUBLIC_KEY_SIZE]>);
-
-impl std::fmt::Debug for MlDsaPublicKey {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "MlDsaPublicKey({} bytes)", self.0.len())
-    }
-}
+pub struct MlDsaPublicKey(
+    /// The raw public key bytes
+    pub Box<[u8; ML_DSA_65_PUBLIC_KEY_SIZE]>
+);
 
 impl MlDsaPublicKey {
     /// Get the public key as bytes
@@ -193,14 +237,14 @@ impl MlDsaPublicKey {
 }
 
 /// ML-DSA-65 secret key
-#[derive(ZeroizeOnDrop)]
-pub struct MlDsaSecretKey(pub Box<[u8; ML_DSA_65_SECRET_KEY_SIZE]>);
-
-impl Zeroize for MlDsaSecretKey {
-    fn zeroize(&mut self) {
-        self.0.as_mut().zeroize();
-    }
-}
+/// 
+/// Automatically zeroized on drop to prevent sensitive data leakage.
+/// Follows NIST FIPS 204 secure key management practices.
+#[derive(Clone, Zeroize, ZeroizeOnDrop)]
+pub struct MlDsaSecretKey(
+    /// The raw secret key bytes
+    pub Box<[u8; ML_DSA_65_SECRET_KEY_SIZE]>
+);
 
 impl MlDsaSecretKey {
     /// Get the secret key as bytes
@@ -224,7 +268,10 @@ impl MlDsaSecretKey {
 
 /// ML-DSA-65 signature
 #[derive(Clone)]
-pub struct MlDsaSignature(pub Box<[u8; ML_DSA_65_SIGNATURE_SIZE]>);
+pub struct MlDsaSignature(
+    /// The raw signature bytes
+    pub Box<[u8; ML_DSA_65_SIGNATURE_SIZE]>
+);
 
 impl MlDsaSignature {
     /// Get the signature as bytes
@@ -247,89 +294,92 @@ impl MlDsaSignature {
 }
 
 /// Shared secret from key encapsulation
-#[derive(Clone, Zeroize, ZeroizeOnDrop)]
-pub struct SharedSecret(pub [u8; ML_KEM_768_SHARED_SECRET_SIZE]);
-
-impl std::fmt::Debug for SharedSecret {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "SharedSecret([..{}])", self.0.len())
-    }
-}
+/// 
+/// Automatically zeroized on drop to prevent sensitive data leakage.
+/// This is the most sensitive data in KEM operations and must be protected.
+#[derive(Clone, PartialEq, Eq, Zeroize, ZeroizeOnDrop)]
+pub struct SharedSecret(
+    /// The raw shared secret bytes
+    pub [u8; ML_KEM_768_SHARED_SECRET_SIZE]
+);
 
 impl SharedSecret {
-    /// Get the shared secret as a byte slice
+    /// Get the shared secret as bytes
     pub fn as_bytes(&self) -> &[u8] {
-        &self.0
+        &self.0[..]
+    }
+
+    /// Create from bytes
+    pub fn from_bytes(bytes: &[u8]) -> Result<Self, PqcError> {
+        if bytes.len() != ML_KEM_768_SHARED_SECRET_SIZE {
+            return Err(PqcError::InvalidKeySize {
+                expected: ML_KEM_768_SHARED_SECRET_SIZE,
+                actual: bytes.len(),
+            });
+        }
+        let mut ss = [0u8; ML_KEM_768_SHARED_SECRET_SIZE];
+        ss.copy_from_slice(bytes);
+        Ok(Self(ss))
     }
 }
 
-// Hybrid types for combining classical and PQC algorithms
-
-/// Hybrid KEM public key (classical + ML-KEM)
+/// Hybrid KEM public key
 #[derive(Clone)]
 pub struct HybridKemPublicKey {
-    /// Classical ECDH public key (e.g., P-256)
+    /// Classical public key (e.g., X25519)
     pub classical: Box<[u8]>,
-    /// ML-KEM-768 public key
+    /// ML-KEM public key
     pub ml_kem: MlKemPublicKey,
 }
 
-/// Hybrid KEM secret key (classical + ML-KEM)
-#[derive(ZeroizeOnDrop)]
+/// Hybrid KEM secret key
+/// 
+/// Automatically zeroized on drop to prevent sensitive data leakage.
+/// Contains both classical and post-quantum secret keys.
+#[derive(Clone, Zeroize, ZeroizeOnDrop)]
 pub struct HybridKemSecretKey {
-    /// Classical ECDH private key
+    /// Classical secret key (e.g., X25519)
     pub classical: Box<[u8]>,
-    /// ML-KEM-768 secret key
+    /// ML-KEM secret key
     pub ml_kem: MlKemSecretKey,
 }
 
-impl Zeroize for HybridKemSecretKey {
-    fn zeroize(&mut self) {
-        self.classical.as_mut().zeroize();
-        self.ml_kem.zeroize();
-    }
-}
-
-/// Hybrid KEM ciphertext (classical + ML-KEM)
+/// Hybrid KEM ciphertext
 #[derive(Clone)]
 pub struct HybridKemCiphertext {
-    /// Classical ECDH ephemeral public key
+    /// Classical ciphertext (e.g., X25519 ephemeral key)
     pub classical: Box<[u8]>,
-    /// ML-KEM-768 ciphertext
+    /// ML-KEM ciphertext
     pub ml_kem: MlKemCiphertext,
 }
 
-/// Hybrid signature public key (classical + ML-DSA)
+/// Hybrid signature public key
 #[derive(Clone)]
 pub struct HybridSignaturePublicKey {
-    /// Classical signature public key (e.g., Ed25519)
+    /// Classical public key (e.g., Ed25519)
     pub classical: Box<[u8]>,
-    /// ML-DSA-65 public key
+    /// ML-DSA public key
     pub ml_dsa: MlDsaPublicKey,
 }
 
-/// Hybrid signature secret key (classical + ML-DSA)
-#[derive(ZeroizeOnDrop)]
+/// Hybrid signature secret key
+/// 
+/// Automatically zeroized on drop to prevent sensitive data leakage.
+/// Contains both classical and post-quantum signature secret keys.
+#[derive(Clone, Zeroize, ZeroizeOnDrop)]
 pub struct HybridSignatureSecretKey {
-    /// Classical signature private key
+    /// Classical secret key (e.g., Ed25519)
     pub classical: Box<[u8]>,
-    /// ML-DSA-65 secret key
+    /// ML-DSA secret key
     pub ml_dsa: MlDsaSecretKey,
 }
 
-impl Zeroize for HybridSignatureSecretKey {
-    fn zeroize(&mut self) {
-        self.classical.as_mut().zeroize();
-        self.ml_dsa.zeroize();
-    }
-}
-
-/// Hybrid signature value (classical + ML-DSA signatures)
+/// Hybrid signature value
 #[derive(Clone)]
 pub struct HybridSignatureValue {
-    /// Classical signature (e.g., Ed25519 signature)
+    /// Classical signature (e.g., Ed25519)
     pub classical: Box<[u8]>,
-    /// ML-DSA-65 signature
+    /// ML-DSA signature
     pub ml_dsa: Box<[u8]>,
 }
 
@@ -338,8 +388,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_pqc_error_conversions() {
-        // Test error type conversions and display
+    fn test_error_display() {
         let err = PqcError::InvalidKeySize {
             expected: 1184,
             actual: 1000,
@@ -361,5 +410,14 @@ mod tests {
         assert_eq!(ML_DSA_65_PUBLIC_KEY_SIZE, 1952);
         assert_eq!(ML_DSA_65_SECRET_KEY_SIZE, 4032);
         assert_eq!(ML_DSA_65_SIGNATURE_SIZE, 3309);
+    }
+
+    #[test]
+    fn test_key_creation() {
+        let pub_key = MlKemPublicKey(Box::new([0u8; ML_KEM_768_PUBLIC_KEY_SIZE]));
+        assert_eq!(pub_key.as_bytes().len(), ML_KEM_768_PUBLIC_KEY_SIZE);
+
+        let sec_key = MlKemSecretKey(Box::new([0u8; ML_KEM_768_SECRET_KEY_SIZE]));
+        assert_eq!(sec_key.as_bytes().len(), ML_KEM_768_SECRET_KEY_SIZE);
     }
 }

@@ -2,7 +2,7 @@
 
 use crate::pqc::{
     MlDsaOperations,
-    types::{MlDsaPublicKey, MlDsaSecretKey, MlDsaSignature, PqcError, PqcResult},
+    types::{MlDsaPublicKey, MlDsaSecretKey, MlDsaSignature, PqcResult},
 };
 
 /// ML-DSA-65 implementation

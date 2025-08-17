@@ -18,7 +18,7 @@
 
 use std::fmt;
 use std::sync::atomic::{AtomicU64, AtomicUsize, Ordering};
-use std::sync::{Arc, Mutex};
+use std::sync::{Arc, Mutex, OnceLock};
 use std::time::Duration;
 
 use crate::pqc::types::*;
@@ -345,6 +345,26 @@ impl PqcMemoryPool {
     pub fn available_count(&self) -> usize {
         self.ml_kem_public_keys.available_count()
     }
+}
+
+/// Global memory pool instance using safe OnceLock
+static GLOBAL_POOL: OnceLock<PqcMemoryPool> = OnceLock::new();
+
+/// Initialize the global memory pool
+pub fn initialize_global_pool() -> Result<(), Box<dyn std::error::Error>> {
+    let config = PoolConfig::default();
+    let pool = PqcMemoryPool::new(config);
+    
+    GLOBAL_POOL.set(pool).map_err(|_| -> Box<dyn std::error::Error> {
+        "Global pool already initialized".into()
+    })?;
+    
+    Ok(())
+}
+
+/// Get a reference to the global memory pool
+pub fn global_pool() -> Option<&'static PqcMemoryPool> {
+    GLOBAL_POOL.get()
 }
 
 impl fmt::Debug for PqcMemoryPool {

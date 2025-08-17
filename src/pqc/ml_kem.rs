@@ -2,7 +2,7 @@
 
 use crate::pqc::{
     MlKemOperations,
-    types::{MlKemCiphertext, MlKemPublicKey, MlKemSecretKey, PqcError, PqcResult, SharedSecret},
+    types::{MlKemCiphertext, MlKemPublicKey, MlKemSecretKey, PqcResult, SharedSecret},
 };
 
 /// ML-KEM-768 implementation

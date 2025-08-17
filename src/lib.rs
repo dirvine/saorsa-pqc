@@ -1,19 +1,25 @@
 //! # Saorsa Post-Quantum Cryptography Library
 //!
-//! A comprehensive, production-ready Post-Quantum Cryptography (PQC) library designed for
-//! high-performance network protocols and secure communications. This library provides
-//! NIST-standardized algorithms with both pure PQC and hybrid (classical + PQC) modes.
+//! A comprehensive, production-ready Post-Quantum Cryptography (PQC) library implementing
+//! NIST-standardized algorithms FIPS 203 (ML-KEM), FIPS 204 (ML-DSA), and FIPS 205 (SLH-DSA)
+//! with both pure PQC and hybrid (classical + PQC) modes.
 //!
 //! ## Features
 //!
-//! ### Key Encapsulation Mechanisms (KEM)
-//! - **ML-KEM-768**: NIST FIPS 203 standardized lattice-based KEM
+//! ### Key Encapsulation Mechanisms (KEM) - FIPS 203
+//! - **ML-KEM-512**: NIST Level 1 security (128-bit)
+//! - **ML-KEM-768**: NIST Level 3 security (192-bit)
+//! - **ML-KEM-1024**: NIST Level 5 security (256-bit)
 //! - **Hybrid KEM**: Classical ECDH + ML-KEM for defense-in-depth
-//! - **Public Key Encryption**: Complete ML-KEM/AES-256-GCM hybrid encryption
 //!
-//! ### Digital Signatures
-//! - **ML-DSA-65**: NIST FIPS 204 standardized lattice-based signatures
+//! ### Digital Signatures - FIPS 204
+//! - **ML-DSA-44**: NIST Level 2 security (~128-bit)
+//! - **ML-DSA-65**: NIST Level 3 security (~192-bit)
+//! - **ML-DSA-87**: NIST Level 5 security (~256-bit)
 //! - **Hybrid Signatures**: Classical Ed25519 + ML-DSA for defense-in-depth
+//!
+//! ### Hash-Based Signatures - FIPS 205
+//! - **SLH-DSA**: 12 parameter sets (SHA2/SHAKE, 128/192/256-bit, fast/small)
 //!
 //! ### Symmetric Encryption (Quantum-Resistant)
 //! - **ChaCha20-Poly1305**: AEAD cipher providing quantum-resistant symmetric encryption
@@ -121,13 +127,43 @@ pub mod pqc;
 // Symmetric encryption (quantum-resistant)
 pub mod symmetric;
 
-// Re-export the most commonly used types and traits for convenience
+// Comprehensive API module
+pub mod api;
+
+// Re-export the comprehensive API for easy access
+pub use api::{
+    // Main APIs
+    MlKem, MlKemVariant, MlKemPublicKey as ApiMlKemPublicKey, MlKemSecretKey as ApiMlKemSecretKey,
+    MlKemCiphertext as ApiMlKemCiphertext, MlKemSharedSecret,
+    MlDsa, MlDsaVariant, MlDsaPublicKey as ApiMlDsaPublicKey, MlDsaSecretKey as ApiMlDsaSecretKey,
+    MlDsaSignature as ApiMlDsaSignature,
+    SlhDsa, SlhDsaVariant, SlhDsaPublicKey, SlhDsaSecretKey, SlhDsaSignature,
+    
+    // Convenience functions
+    kem::ml_kem_768,
+    dsa::ml_dsa_65,
+    slh::slh_dsa_sha2_128s,
+    
+    // Error types
+    PqcError as ApiError, PqcResult as ApiResult,
+    
+    // Utils
+    init as api_init,
+    version as api_version,
+    supported_algorithms,
+};
+
+// Re-export the most commonly used types and traits for convenience (legacy)
 pub use pqc::{
     // Core traits
     MlKemOperations, MlDsaOperations,
     
     // Implementations
     MlKem768, MlDsa65,
+    
+    // Production ML-DSA-65 implementation
+    MlDsa65Production, MlDsa65ProductionOps, MlDsa65ExtendedOps,
+    MlDsa65Config, SecurityConfig, PerformanceConfig,
     
     // Hybrid modes
     HybridKem, HybridSignature,
@@ -156,6 +192,27 @@ pub use symmetric::{
 
 /// Library version information
 pub const VERSION: &str = env!("CARGO_PKG_VERSION");
+
+// Re-export FIPS implementations directly
+pub use fips203::{
+    ml_kem_512, ml_kem_768, ml_kem_1024,
+    traits as kem_traits,
+};
+
+pub use fips204::{
+    ml_dsa_44, ml_dsa_65, ml_dsa_87,
+    traits as dsa_traits,
+};
+
+pub use fips205::{
+    slh_dsa_sha2_128f, slh_dsa_sha2_128s,
+    slh_dsa_sha2_192f, slh_dsa_sha2_192s,
+    slh_dsa_sha2_256f, slh_dsa_sha2_256s,
+    slh_dsa_shake_128f, slh_dsa_shake_128s,
+    slh_dsa_shake_192f, slh_dsa_shake_192s,
+    slh_dsa_shake_256f, slh_dsa_shake_256s,
+    traits as slh_traits,
+};
 
 /// Supported ML-KEM parameter sets
 pub const SUPPORTED_ML_KEM: &[&str] = &["ML-KEM-768"];
@@ -251,8 +308,8 @@ fn get_enabled_features() -> Vec<String> {
     #[cfg(feature = "memory-pool")]
     features.push("memory-pool".to_string());
     
-    #[cfg(feature = "cert-compression")]
-    features.push("cert-compression".to_string());
+    #[cfg(feature = "cert_compression")]
+    features.push("cert_compression".to_string());
     
     #[cfg(feature = "dangerous_configuration")]
     features.push("dangerous_configuration".to_string());

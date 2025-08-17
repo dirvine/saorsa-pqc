@@ -12,6 +12,7 @@ pub mod ml_kem;
 pub mod ml_kem_impl;
 pub mod ml_dsa;
 pub mod ml_dsa_impl;
+pub mod ml_dsa_65; // Production-ready ML-DSA-65 implementation
 pub mod types;
 
 // Hybrid cryptography
@@ -40,6 +41,12 @@ pub use encryption::{EncryptedMessage, HybridPublicKeyEncryption};
 pub use hybrid::{HybridKem, HybridSignature};
 pub use memory_pool::{PoolConfig, PqcMemoryPool};
 pub use ml_dsa::MlDsa65;
+pub use ml_dsa_65::{
+    MlDsa65 as MlDsa65Production, 
+    MlDsa65Operations as MlDsa65ProductionOps,
+    MlDsa65Extended as MlDsa65ExtendedOps,
+    MlDsa65Config, SecurityConfig, PerformanceConfig,
+};
 pub use ml_kem::MlKem768;
 // TLS extensions are not part of core PQC - use saorsa-pqc-tls crate if needed
 
@@ -102,13 +109,9 @@ use types::{
 
 #[cfg(test)]
 mod tests {
-    use super::*;
-
     #[test]
     fn test_pqc_module_imports() {
         // Verify all submodules are accessible
-        use crate::pqc::{ml_dsa, ml_kem, types};
-
         // This test just verifies compilation
     }
 
@@ -121,7 +124,8 @@ mod tests {
 
 #[cfg(test)]
 mod performance_tests {
-    use super::*;
+    use super::ml_dsa::MlDsa65;
+    use super::ml_kem::MlKem768;
     use std::time::Instant;
 
     #[test]

@@ -3,24 +3,29 @@
 //! This module provides comprehensive security checks for the PQC implementation
 //! to ensure compliance with NIST standards and prevent common vulnerabilities.
 
-use std::time::{Duration, Instant};
+use std::time::Duration;
 use thiserror::Error;
 
 /// Security validation errors
 #[derive(Debug, Error)]
 pub enum ValidationError {
+    /// Timing variance too high for constant-time operations
     #[error("Timing variance too high: {0}%")]
     TimingVariance(f64),
 
+    /// Entropy quality too low for cryptographic use
     #[error("Entropy quality too low: {0:?}")]
     LowEntropy(EntropyQuality),
 
+    /// NIST parameter violation detected
     #[error("NIST parameter violation: {0}")]
     NistViolation(String),
 
+    /// Key reuse detected (security violation)
     #[error("Key reuse detected")]
     KeyReuse,
 
+    /// Weak randomness detected
     #[error("Weak randomness detected")]
     WeakRandomness,
 }
