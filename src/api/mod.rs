@@ -95,6 +95,7 @@ mod tests {
     }
 
     #[test]
+    #[allow(clippy::indexing_slicing)]
     fn test_supported_algorithms() {
         let algos = supported_algorithms();
         assert_eq!(algos.ml_kem.len(), 3);
