@@ -1,1 +1,59 @@
-target/
+# Rust build artifacts
+/target/
+**/*.rs.bk
+*.pdb
+
+# Cargo files
+Cargo.lock
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Testing and coverage
+/.tarpaulin-report.html
+/target/debug/deps/*
+/target/debug/.fingerprint/*
+/target/debug/build/*
+/target/debug/examples/*
+/target/debug/incremental/*
+/target/debug/native/*
+/target/release/deps/*
+/target/release/.fingerprint/*
+/target/release/build/*
+/target/release/examples/*
+/target/release/incremental/*
+/target/release/native/*
+
+# Benchmarking
+/target/criterion/
+
+# Documentation build
+/target/doc/
+
+# Temporary files
+*.tmp
+*.temp
+
+# Claude Code artifacts (keep .claude/settings.json but ignore temporary files)
+.claude/logs/
+.claude/temp/
+
+# Backup files
+*.bak
+*.backup
+
+# Runtime artifacts
+*.log
