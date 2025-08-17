@@ -5,9 +5,11 @@
 
 use super::*;
 use crate::pqc::ml_dsa_65::{MlDsa65, MlDsa65Operations};
+#[cfg(feature = "benchmarks")]
 use criterion::{black_box, Criterion};
 
 /// Benchmark key generation performance
+#[cfg(feature = "benchmarks")]
 pub fn bench_key_generation(c: &mut Criterion) {
     let ml_dsa = MlDsa65::new();
     
