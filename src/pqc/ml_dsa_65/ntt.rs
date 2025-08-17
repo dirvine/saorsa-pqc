@@ -72,7 +72,7 @@ pub fn ntt_inverse(coeffs: &mut [u32; N]) {
     }
 
     // Multiply by n^(-1) mod q
-    let n_inv = to_montgomery(8380415); // 256^(-1) mod q
+    let n_inv = to_montgomery(8_380_415); // 256^(-1) mod q
     for coeff in coeffs.iter_mut() {
         *coeff = montgomery_mul(*coeff, n_inv);
     }

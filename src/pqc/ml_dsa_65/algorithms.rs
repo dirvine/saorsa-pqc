@@ -8,6 +8,8 @@
 //! All algorithms are implemented with constant-time guarantees and comprehensive
 //! security measures following the architecture specification.
 
+#![allow(clippy::similar_names, clippy::many_single_char_names)]
+
 use super::{
     params::{
         BETA, D, ETA, GAMMA1, GAMMA2, K, L, MAX_REJECTION_ATTEMPTS, N, OMEGA, PUBLIC_KEY_SIZE, Q,
@@ -1346,7 +1348,7 @@ mod tests {
     #[test]
     fn test_sign_with_context() {
         let ml_dsa = MlDsa65::new();
-        let (pk, sk) = ml_dsa.generate_keypair().unwrap();
+        let (_pk, sk) = ml_dsa.generate_keypair().unwrap();
 
         let message = b"Test message";
         let context = b"test context";
@@ -1467,7 +1469,7 @@ mod tests {
     #[test]
     fn test_invalid_inputs() {
         let ml_dsa = MlDsa65::new();
-        let (pk, sk) = ml_dsa.generate_keypair().unwrap();
+        let (_pk, sk) = ml_dsa.generate_keypair().unwrap();
 
         // Test oversized message
         let large_message = vec![0u8; crate::pqc::ml_dsa_65::params::MAX_MESSAGE_SIZE + 1];

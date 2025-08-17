@@ -263,14 +263,14 @@ mod tests {
     #[test]
     fn test_encode_decode_z() {
         let mut poly = Polynomial::zero();
-        poly.coeffs[0] = 100000;
-        poly.coeffs[1] = 50000;
+        poly.coeffs[0] = 100_000;
+        poly.coeffs[1] = 50_000;
 
         let encoded = encode_z(&poly);
         let decoded = decode_z(&encoded).unwrap();
 
-        assert_eq!(decoded.coeffs[0], 100000);
-        assert_eq!(decoded.coeffs[1], 50000);
+        assert_eq!(decoded.coeffs[0], 100_000);
+        assert_eq!(decoded.coeffs[1], 50_000);
     }
 
     #[test]

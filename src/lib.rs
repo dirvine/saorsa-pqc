@@ -116,8 +116,7 @@
 #![warn(
     clippy::pedantic,
     clippy::nursery,
-    clippy::cognitive_complexity,
-    clippy::cyclomatic_complexity
+    clippy::cognitive_complexity
 )]
 #![cfg_attr(docsrs, feature(doc_cfg))]
 

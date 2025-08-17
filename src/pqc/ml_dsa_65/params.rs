@@ -9,7 +9,7 @@ pub const N: usize = 256;
 
 /// Modulus for the polynomial ring Zq[X]/(X^256 + 1)
 /// This is a prime that satisfies q ≡ 1 (mod 2n) for efficient NTT
-pub const Q: u32 = 8380417;
+pub const Q: u32 = 8_380_417;
 
 /// Matrix dimensions for ML-DSA-65: k × l
 /// These define the dimensions of the matrix A in the ML-DSA scheme
@@ -47,7 +47,6 @@ pub const D: u32 = 13;
 pub const OMEGA: usize = 80;
 
 /// Size parameters for ML-DSA-65 (in bytes)
-
 /// Public key size: 32 + 32*(k*ceil(log2(q-2^d))) bits
 pub const PUBLIC_KEY_SIZE: usize = 1952;
 
@@ -73,7 +72,6 @@ pub const TR_SIZE: usize = 32;
 pub const C_TILDE_SIZE: usize = 32;
 
 /// Working memory sizes for operations
-
 /// Memory needed for polynomial operations
 pub const POLYNOMIAL_MEMORY: usize = N * 4; // 4 bytes per coefficient
 
