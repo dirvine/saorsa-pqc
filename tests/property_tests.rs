@@ -5,8 +5,8 @@
 
 use proptest::prelude::*;
 use saorsa_pqc::api::{
-    kem::{ml_kem_768, MlKemCiphertext, MlKemPublicKey, MlKemSecretKey, MlKemSharedSecret},
-    dsa::{ml_dsa_65, MlDsaPublicKey, MlDsaSecretKey, MlDsaSignature},
+    kem::{ml_kem_768, MlKemCiphertext, MlKemPublicKey, MlKemSecretKey, MlKemVariant},
+    dsa::{ml_dsa_65, MlDsaPublicKey, MlDsaSecretKey, MlDsaSignature, MlDsaVariant},
 };
 use std::collections::HashSet;
 
@@ -32,8 +32,8 @@ proptest! {
         let (public_key, secret_key) = ml_kem.generate_keypair()
             .expect("Key generation should succeed");
 
-        // Encapsulate to get ciphertext and shared secret
-        let (ciphertext, shared_secret1) = ml_kem.encapsulate(&public_key)
+        // Encapsulate to get shared secret and ciphertext
+        let (shared_secret1, ciphertext) = ml_kem.encapsulate(&public_key)
             .expect("Encapsulation should succeed");
 
         // Decapsulate to recover shared secret
@@ -101,8 +101,8 @@ proptest! {
         );
 
         // Encapsulation with different keys should produce different results
-        let (ct1, ss1) = ml_kem.encapsulate(&public_key1).expect("Encap 1 failed");
-        let (ct2, ss2) = ml_kem.encapsulate(&public_key2).expect("Encap 2 failed");
+        let (ss1, ct1) = ml_kem.encapsulate(&public_key1).expect("Encap 1 failed");
+        let (ss2, ct2) = ml_kem.encapsulate(&public_key2).expect("Encap 2 failed");
 
         // Ciphertexts and shared secrets should be different
         prop_assert_ne!(ct1.to_bytes(), ct2.to_bytes(), "Different keys should produce different ciphertexts");
@@ -118,8 +118,8 @@ proptest! {
 
         let (public_key, secret_key) = ml_kem.generate_keypair().expect("Key generation failed");
 
-        // Create original ciphertext and shared secret
-        let (ciphertext, original_secret) = ml_kem.encapsulate(&public_key)
+        // Create original shared secret and ciphertext
+        let (original_secret, ciphertext) = ml_kem.encapsulate(&public_key)
             .expect("Encapsulation failed");
 
         // Create corrupted ciphertext by modifying bytes
@@ -127,7 +127,7 @@ proptest! {
         let original_byte = corrupted_bytes[corruption_pos];
         if original_byte != corruption_byte {
             corrupted_bytes[corruption_pos] = corruption_byte;
-            let corrupted_ciphertext = MlKemCiphertext::from_bytes(&corrupted_bytes)
+            let corrupted_ciphertext = MlKemCiphertext::from_bytes(MlKemVariant::MlKem768, &corrupted_bytes)
                 .expect("Should create corrupted ciphertext");
 
             // Decapsulate corrupted ciphertext
@@ -252,7 +252,7 @@ proptest! {
             let original_byte = corrupted_bytes[corruption_pos];
             if original_byte != corruption_byte {
                 corrupted_bytes[corruption_pos] = corruption_byte;
-                let corrupted_signature = MlDsaSignature::from_bytes(&corrupted_bytes)
+                let corrupted_signature = MlDsaSignature::from_bytes(MlDsaVariant::MlDsa65, &corrupted_bytes)
                     .expect("Should create corrupted signature");
 
                 // Verification should fail
@@ -312,9 +312,9 @@ proptest! {
         let invalid_sk = vec![0u8; sk_size];
 
         // Invalid sizes should be rejected
-        prop_assert!(MlKemPublicKey::from_bytes(&invalid_pk).is_err(),
+        prop_assert!(MlKemPublicKey::from_bytes(MlKemVariant::MlKem768, &invalid_pk).is_err(),
                     "Invalid public key size {} should be rejected", pk_size);
-        prop_assert!(MlKemSecretKey::from_bytes(&invalid_sk).is_err(),
+        prop_assert!(MlKemSecretKey::from_bytes(MlKemVariant::MlKem768, &invalid_sk).is_err(),
                     "Invalid secret key size {} should be rejected", sk_size);
     }
 
@@ -331,9 +331,9 @@ proptest! {
         let invalid_sk = vec![0u8; sk_size];
 
         // Invalid sizes should be rejected
-        prop_assert!(MlDsaPublicKey::from_bytes(&invalid_pk).is_err(),
+        prop_assert!(MlDsaPublicKey::from_bytes(MlDsaVariant::MlDsa65, &invalid_pk).is_err(),
                     "Invalid public key size {} should be rejected", pk_size);
-        prop_assert!(MlDsaSecretKey::from_bytes(&invalid_sk).is_err(),
+        prop_assert!(MlDsaSecretKey::from_bytes(MlDsaVariant::MlDsa65, &invalid_sk).is_err(),
                     "Invalid secret key size {} should be rejected", sk_size);
     }
 
@@ -342,32 +342,32 @@ proptest! {
         _seed in any::<[u8; 32]>()
     ) {
         // Test ML-KEM key serialization
-        let ml_kem = MlKem768::new();
-        let kem_keypair = ml_kem.generate_keypair().expect("ML-KEM key generation failed");
+        let ml_kem = ml_kem_768();
+        let (kem_public_key, kem_secret_key) = ml_kem.generate_keypair().expect("ML-KEM key generation failed");
 
-        let kem_pk_bytes = kem_keypair.public_key().as_bytes();
-        let kem_sk_bytes = kem_keypair.secret_key().as_bytes();
+        let kem_pk_bytes = kem_public_key.to_bytes();
+        let kem_sk_bytes = kem_secret_key.to_bytes();
 
-        let restored_kem_pk = MlKemPublicKey::from_bytes(kem_pk_bytes)
+        let restored_kem_pk = MlKemPublicKey::from_bytes(MlKemVariant::MlKem768, &kem_pk_bytes)
             .expect("ML-KEM public key restoration failed");
-        let restored_kem_sk = MlKemSecretKey::from_bytes(kem_sk_bytes)
+        let restored_kem_sk = MlKemSecretKey::from_bytes(MlKemVariant::MlKem768, &kem_sk_bytes)
             .expect("ML-KEM secret key restoration failed");
 
         // Verify restored keys work
-        let (ct, ss1) = ml_kem.encapsulate(&restored_kem_pk).expect("Encapsulation failed");
+        let (ss1, ct) = ml_kem.encapsulate(&restored_kem_pk).expect("Encapsulation failed");
         let ss2 = ml_kem.decapsulate(&restored_kem_sk, &ct).expect("Decapsulation failed");
-        prop_assert_eq!(ss1.as_bytes(), ss2.as_bytes());
+        prop_assert_eq!(ss1.to_bytes(), ss2.to_bytes());
 
         // Test ML-DSA key serialization
-        let ml_dsa = MlDsa65::new();
-        let dsa_keypair = ml_dsa.generate_keypair().expect("ML-DSA key generation failed");
+        let ml_dsa = ml_dsa_65();
+        let (dsa_public_key, dsa_secret_key) = ml_dsa.generate_keypair().expect("ML-DSA key generation failed");
 
-        let dsa_pk_bytes = dsa_keypair.public_key().as_bytes();
-        let dsa_sk_bytes = dsa_keypair.secret_key().as_bytes();
+        let dsa_pk_bytes = dsa_public_key.to_bytes();
+        let dsa_sk_bytes = dsa_secret_key.to_bytes();
 
-        let restored_dsa_pk = MlDsaPublicKey::from_bytes(dsa_pk_bytes)
+        let restored_dsa_pk = MlDsaPublicKey::from_bytes(MlDsaVariant::MlDsa65, &dsa_pk_bytes)
             .expect("ML-DSA public key restoration failed");
-        let restored_dsa_sk = MlDsaSecretKey::from_bytes(dsa_sk_bytes)
+        let restored_dsa_sk = MlDsaSecretKey::from_bytes(MlDsaVariant::MlDsa65, &dsa_sk_bytes)
             .expect("ML-DSA secret key restoration failed");
 
         // Verify restored keys work
@@ -384,16 +384,16 @@ proptest! {
     fn prop_empty_message_handling(
         _seed in any::<[u8; 16]>()
     ) {
-        let ml_dsa = MlDsa65::new();
-        let keypair = ml_dsa.generate_keypair().expect("Key generation failed");
+        let ml_dsa = ml_dsa_65();
+        let (public_key, secret_key) = ml_dsa.generate_keypair().expect("Key generation failed");
 
         let empty_message = b"";
 
         // Should be able to sign and verify empty messages
-        let signature = ml_dsa.sign(keypair.secret_key(), empty_message)
+        let signature = ml_dsa.sign(&secret_key, empty_message)
             .expect("Signing empty message should succeed");
 
-        let is_valid = ml_dsa.verify(keypair.public_key(), empty_message, &signature)
+        let is_valid = ml_dsa.verify(&public_key, empty_message, &signature)
             .expect("Verifying empty message should succeed");
 
         prop_assert!(is_valid, "Empty message signature should verify");
@@ -403,16 +403,16 @@ proptest! {
     fn prop_large_message_handling(
         message_size in 1000usize..100000usize
     ) {
-        let ml_dsa = MlDsa65::new();
-        let keypair = ml_dsa.generate_keypair().expect("Key generation failed");
+        let ml_dsa = ml_dsa_65();
+        let (public_key, secret_key) = ml_dsa.generate_keypair().expect("Key generation failed");
 
         let large_message = vec![0x42u8; message_size];
 
         // Should be able to handle large messages
-        let signature = ml_dsa.sign(keypair.secret_key(), &large_message)
+        let signature = ml_dsa.sign(&secret_key, &large_message)
             .expect("Signing large message should succeed");
 
-        let is_valid = ml_dsa.verify(keypair.public_key(), &large_message, &signature)
+        let is_valid = ml_dsa.verify(&public_key, &large_message, &signature)
             .expect("Verifying large message should succeed");
 
         prop_assert!(is_valid, "Large message signature should verify");
@@ -427,15 +427,15 @@ proptest! {
     fn prop_shared_secret_distribution(
         _seeds in prop::collection::vec(any::<[u8; 32]>(), 50..100)
     ) {
-        let ml_kem = MlKem768::new();
+        let ml_kem = ml_kem_768();
         let mut shared_secrets = HashSet::new();
 
         // Generate many shared secrets
         for _ in 0..50 {
-            let keypair = ml_kem.generate_keypair().expect("Key generation failed");
-            let (_, shared_secret) = ml_kem.encapsulate(keypair.public_key())
+            let (public_key, _secret_key) = ml_kem.generate_keypair().expect("Key generation failed");
+            let (shared_secret, _) = ml_kem.encapsulate(&public_key)
                 .expect("Encapsulation failed");
-            shared_secrets.insert(shared_secret.as_bytes().to_vec());
+            shared_secrets.insert(shared_secret.to_bytes().to_vec());
         }
 
         // Should have good diversity (no duplicates expected)
@@ -447,15 +447,15 @@ proptest! {
     fn prop_signature_size_distribution(
         messages in prop::collection::vec(arbitrary_message(), 20..50)
     ) {
-        let ml_dsa = MlDsa65::new();
-        let keypair = ml_dsa.generate_keypair().expect("Key generation failed");
+        let ml_dsa = ml_dsa_65();
+        let (public_key, secret_key) = ml_dsa.generate_keypair().expect("Key generation failed");
 
         let mut signature_sizes = Vec::new();
 
         for message in messages {
-            let signature = ml_dsa.sign(keypair.secret_key(), &message)
+            let signature = ml_dsa.sign(&secret_key, &message)
                 .expect("Signing should succeed");
-            signature_sizes.push(signature.as_bytes().len());
+            signature_sizes.push(signature.to_bytes().len());
         }
 
         // All signatures should be within valid bounds
