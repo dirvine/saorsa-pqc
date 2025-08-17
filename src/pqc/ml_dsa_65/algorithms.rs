@@ -1077,7 +1077,7 @@ impl MlDsa65Operations for MlDsa65 {
         // Step 4: Rejection sampling loop
         let mut nonce = 0u16;
         
-        for attempt in 0..MAX_REJECTION_ATTEMPTS {
+        for _attempt in 0..MAX_REJECTION_ATTEMPTS {
             // Step 5: Sample mask vector y
             let y = Self::sample_mask(&k, nonce)?;
             nonce = nonce.wrapping_add(L as u16);

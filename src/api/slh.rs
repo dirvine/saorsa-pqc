@@ -16,7 +16,7 @@ use fips205::{
     slh_dsa_shake_192s, slh_dsa_shake_192f,
     slh_dsa_shake_256s, slh_dsa_shake_256f,
 };
-use fips205::traits::{KeyGen, Signer, Verifier, SerDes};
+use fips205::traits::{Signer, Verifier, SerDes};
 
 /// SLH-DSA algorithm variants
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
