@@ -311,6 +311,58 @@ impl MlKem {
         }
     }
 
+    /// Generate a deterministic key pair from seed values
+    /// 
+    /// This is primarily for testing with known test vectors.
+    /// Takes two 32-byte seed values (d and z) as specified in FIPS 203.
+    pub fn generate_keypair_from_seed(
+        &self, 
+        d_seed: &[u8; 32], 
+        z_seed: &[u8; 32]
+    ) -> (MlKemPublicKey, MlKemSecretKey) {
+        match self.variant {
+            MlKemVariant::MlKem512 => {
+                let (pk, sk) = ml_kem_512::KG::keygen_from_seed(*d_seed, *z_seed);
+                (
+                    MlKemPublicKey {
+                        variant: self.variant,
+                        bytes: pk.into_bytes().to_vec(),
+                    },
+                    MlKemSecretKey {
+                        variant: self.variant,
+                        bytes: sk.into_bytes().to_vec(),
+                    },
+                )
+            }
+            MlKemVariant::MlKem768 => {
+                let (pk, sk) = ml_kem_768::KG::keygen_from_seed(*d_seed, *z_seed);
+                (
+                    MlKemPublicKey {
+                        variant: self.variant,
+                        bytes: pk.into_bytes().to_vec(),
+                    },
+                    MlKemSecretKey {
+                        variant: self.variant,
+                        bytes: sk.into_bytes().to_vec(),
+                    },
+                )
+            }
+            MlKemVariant::MlKem1024 => {
+                let (pk, sk) = ml_kem_1024::KG::keygen_from_seed(*d_seed, *z_seed);
+                (
+                    MlKemPublicKey {
+                        variant: self.variant,
+                        bytes: pk.into_bytes().to_vec(),
+                    },
+                    MlKemSecretKey {
+                        variant: self.variant,
+                        bytes: sk.into_bytes().to_vec(),
+                    },
+                )
+            }
+        }
+    }
+
     /// Encapsulate a shared secret using a public key
     pub fn encapsulate(&self, public_key: &MlKemPublicKey) -> PqcResult<(MlKemSharedSecret, MlKemCiphertext)> {
         if public_key.variant != self.variant {

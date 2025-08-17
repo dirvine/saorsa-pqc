@@ -8,10 +8,12 @@ pub mod kem;
 pub mod dsa;
 pub mod slh;
 pub mod errors;
+pub mod symmetric;
 
 pub use kem::{MlKem, MlKemVariant, MlKemPublicKey, MlKemSecretKey, MlKemCiphertext, MlKemSharedSecret};
 pub use dsa::{MlDsa, MlDsaVariant, MlDsaPublicKey, MlDsaSecretKey, MlDsaSignature};
 pub use slh::{SlhDsa, SlhDsaVariant, SlhDsaPublicKey, SlhDsaSecretKey, SlhDsaSignature};
+pub use symmetric::{ChaCha20Poly1305, SecureKey};
 pub use errors::{PqcError, PqcResult};
 
 /// Initialize the cryptographic RNG system
@@ -59,6 +61,9 @@ pub fn supported_algorithms() -> SupportedAlgorithms {
             SlhDsaVariant::Shake256s,
             SlhDsaVariant::Shake256f,
         ],
+        symmetric: vec![
+            "ChaCha20-Poly1305 (256-bit, quantum-secure)".into(),
+        ],
     }
 }
 
@@ -71,6 +76,8 @@ pub struct SupportedAlgorithms {
     pub ml_dsa: Vec<MlDsaVariant>,
     /// Supported SLH-DSA variants
     pub slh_dsa: Vec<SlhDsaVariant>,
+    /// Supported symmetric encryption algorithms
+    pub symmetric: Vec<String>,
 }
 
 #[cfg(test)]
@@ -93,5 +100,7 @@ mod tests {
         assert_eq!(algos.ml_kem.len(), 3);
         assert_eq!(algos.ml_dsa.len(), 3);
         assert_eq!(algos.slh_dsa.len(), 12);
+        assert_eq!(algos.symmetric.len(), 1);
+        assert!(algos.symmetric[0].contains("ChaCha20-Poly1305"));
     }
 }

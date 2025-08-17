@@ -9,12 +9,10 @@
 //! security measures following the architecture specification.
 
 use super::{
-    params::*,
+    params::{K, L, N, Q, ETA, D, OMEGA, GAMMA1, GAMMA2, TAU, BETA, MAX_REJECTION_ATTEMPTS, 
+             PUBLIC_KEY_SIZE, SECRET_KEY_SIZE, SIGNATURE_SIZE},
     polynomial::Polynomial,
-    constant_time::*,
     validation::Validator,
-    sampling::*,
-    ntt::*,
     MlDsa65Operations, MlDsa65Extended, MlDsa65Config,
 };
 use crate::pqc::types::{
@@ -23,7 +21,7 @@ use crate::pqc::types::{
 };
 
 use zeroize::{Zeroize, ZeroizeOnDrop};
-use subtle::ConditionallySelectable;
+
 use sha3::{Shake256, digest::{Update, ExtendableOutput, XofReader}};
 
 /// ML-DSA-65 implementation with security and performance optimizations
@@ -1424,12 +1422,12 @@ mod tests {
         let (pk, sk) = ml_dsa.generate_keypair().unwrap();
         
         // Test oversized message
-        let large_message = vec![0u8; MAX_MESSAGE_SIZE + 1];
+        let large_message = vec![0u8; crate::pqc::ml_dsa_65::params::MAX_MESSAGE_SIZE + 1];
         let result = ml_dsa.sign(&sk, &large_message, None);
         assert!(result.is_err());
         
         // Test oversized context
-        let large_context = vec![0u8; MAX_CONTEXT_SIZE + 1];
+        let large_context = vec![0u8; crate::pqc::ml_dsa_65::params::MAX_CONTEXT_SIZE + 1];
         let result = ml_dsa.sign(&sk, b"test", Some(&large_context));
         assert!(result.is_err());
     }

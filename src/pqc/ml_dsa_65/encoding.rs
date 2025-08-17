@@ -284,9 +284,9 @@ mod tests {
         assert_eq!(decoded.len(), K);
         assert_eq!(decoded[0], vec![1, 5, 10]);
         assert_eq!(decoded[1], vec![2, 7]);
-        assert_eq!(decoded[2], vec![]);
+        assert_eq!(decoded[2], Vec::<usize>::new());
         assert_eq!(decoded[3], vec![3, 8, 15, 20]);
-        assert_eq!(decoded[4], vec![]);
+        assert_eq!(decoded[4], Vec::<usize>::new());
         assert_eq!(decoded[5], vec![4]);
     }
 

@@ -21,6 +21,7 @@ pub fn bench_key_generation(c: &mut Criterion) {
 }
 
 /// Benchmark signing performance
+#[cfg(feature = "benchmarks")]
 pub fn bench_signing(c: &mut Criterion) {
     let ml_dsa = MlDsa65::new();
     let (_, secret_key) = ml_dsa.generate_keypair().unwrap();
@@ -34,6 +35,7 @@ pub fn bench_signing(c: &mut Criterion) {
 }
 
 /// Benchmark verification performance
+#[cfg(feature = "benchmarks")]
 pub fn bench_verification(c: &mut Criterion) {
     let ml_dsa = MlDsa65::new();
     let (public_key, secret_key) = ml_dsa.generate_keypair().unwrap();
@@ -53,6 +55,7 @@ pub fn bench_verification(c: &mut Criterion) {
 }
 
 /// Benchmark batch verification performance
+#[cfg(feature = "benchmarks")]
 pub fn bench_batch_verification(c: &mut Criterion) {
     let ml_dsa = MlDsa65::new();
     let mut signatures = Vec::new();
@@ -73,6 +76,7 @@ pub fn bench_batch_verification(c: &mut Criterion) {
 }
 
 /// Benchmark memory usage for key operations
+#[cfg(feature = "benchmarks")]
 pub fn bench_memory_usage(c: &mut Criterion) {
     let ml_dsa = MlDsa65::new();
     
@@ -90,6 +94,7 @@ pub fn bench_memory_usage(c: &mut Criterion) {
 }
 
 /// Comprehensive benchmark group
+#[cfg(feature = "benchmarks")]
 pub fn ml_dsa_65_benchmarks(c: &mut Criterion) {
     bench_key_generation(c);
     bench_signing(c);
@@ -101,20 +106,23 @@ pub fn ml_dsa_65_benchmarks(c: &mut Criterion) {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use criterion::Criterion;
 
     #[test]
     fn test_benchmark_functions_compile() {
         // Ensure benchmark functions compile correctly
-        let mut c = Criterion::default().sample_size(10);
-        
-        // Just test compilation, don't actually run benchmarks
-        let _ = std::panic::catch_unwind(|| {
-            bench_key_generation(&mut c);
-            bench_signing(&mut c);
-            bench_verification(&mut c);
-            bench_batch_verification(&mut c);
-            bench_memory_usage(&mut c);
-        });
+        #[cfg(feature = "benchmarks")]
+        {
+            use criterion::Criterion;
+            let mut c = Criterion::default().sample_size(10);
+            
+            // Just test compilation, don't actually run benchmarks
+            let _ = std::panic::catch_unwind(|| {
+                bench_key_generation(&mut c);
+                bench_signing(&mut c);
+                bench_verification(&mut c);
+                bench_batch_verification(&mut c);
+                bench_memory_usage(&mut c);
+            });
+        }
     }
 }

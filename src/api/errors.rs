@@ -66,6 +66,15 @@ pub enum PqcError {
         /// Actual context length provided
         got: usize
     },
+    
+    /// Encryption failed
+    EncryptionFailed(String),
+    
+    /// Decryption failed
+    DecryptionFailed(String),
+    
+    /// Feature not available
+    FeatureNotAvailable,
 }
 
 impl fmt::Display for PqcError {
@@ -91,7 +100,10 @@ impl fmt::Display for PqcError {
             }
             Self::ContextTooLong { max, got } => {
                 write!(f, "Context too long: maximum {} bytes, got {}", max, got)
-            }
+            },
+            Self::EncryptionFailed(msg) => write!(f, "Encryption failed: {}", msg),
+            Self::DecryptionFailed(msg) => write!(f, "Decryption failed: {}", msg),
+            Self::FeatureNotAvailable => write!(f, "Feature not available"),
         }
     }
 }

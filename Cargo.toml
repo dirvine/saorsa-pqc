@@ -12,6 +12,7 @@ keywords = ["cryptography", "post-quantum", "ml-kem", "ml-dsa", "quic"]
 categories = ["cryptography", "network-programming"]
 readme = "README.md"
 rust-version = "1.85.0"
+exclude = ["tests/nist_vectors/*", "*.profraw", "scripts/*"]
 
 [lib]
 name = "saorsa_pqc"
@@ -159,6 +160,11 @@ name = "ml_dsa_benchmarks"
 path = "benches/ml_dsa_benchmarks.rs"
 harness = false
 required-features = ["aws-lc-rs", "benchmarks"]
+
+[[bench]]
+name = "comprehensive_benchmarks"
+path = "benches/comprehensive_benchmarks.rs"
+harness = false
 
 [profile.release]
 lto = true
