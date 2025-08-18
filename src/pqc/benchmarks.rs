@@ -16,6 +16,7 @@ pub struct BenchmarkResult {
 
 impl BenchmarkResult {
     /// Create a new benchmark result with the given name
+    #[must_use]
     pub fn new(name: &str) -> Self {
         Self {
             name: name.to_string(),
@@ -32,6 +33,7 @@ impl BenchmarkResult {
     }
 
     /// Get the name of this benchmark result
+    #[must_use]
     pub fn name(&self) -> &str {
         &self.name
     }
@@ -39,11 +41,13 @@ impl BenchmarkResult {
 
 impl PqcBenchmarks {
     /// Create a new PQC benchmarks instance with specified iterations
-    pub fn new(iterations: usize) -> Self {
+    #[must_use]
+    pub const fn new(iterations: usize) -> Self {
         Self { iterations }
     }
 
     /// Benchmark key exchange operations
+    #[must_use]
     pub fn benchmark_key_exchange(&self) -> BenchmarkResult {
         // Use the iterations field for actual benchmarking
         println!(
@@ -54,6 +58,7 @@ impl PqcBenchmarks {
     }
 
     /// Benchmark signature operations
+    #[must_use]
     pub fn benchmark_signatures(&self) -> BenchmarkResult {
         // Use the iterations field for actual benchmarking
         println!(
@@ -64,7 +69,8 @@ impl PqcBenchmarks {
     }
 
     /// Get the number of iterations configured
-    pub fn iterations(&self) -> usize {
+    #[must_use]
+    pub const fn iterations(&self) -> usize {
         self.iterations
     }
 }

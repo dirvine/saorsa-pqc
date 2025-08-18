@@ -11,6 +11,7 @@ use zeroize::Zeroize;
 /// Returns true if the slices are equal, false otherwise.
 /// The comparison runs in constant time regardless of where differences occur.
 #[inline]
+#[must_use]
 pub fn ct_eq(a: &[u8], b: &[u8]) -> bool {
     if a.len() != b.len() {
         return false;
@@ -24,7 +25,7 @@ pub fn ct_eq(a: &[u8], b: &[u8]) -> bool {
 /// The selection happens in constant time.
 #[inline]
 pub fn ct_select<T: ConditionallySelectable>(a: &T, b: &T, choice: bool) -> T {
-    T::conditional_select(b, a, Choice::from(choice as u8))
+    T::conditional_select(b, a, Choice::from(u8::from(choice)))
 }
 
 /// Constant-time conditional assignment
@@ -33,7 +34,7 @@ pub fn ct_select<T: ConditionallySelectable>(a: &T, b: &T, choice: bool) -> T {
 /// The assignment happens in constant time.
 #[inline]
 pub fn ct_assign<T: ConditionallySelectable>(dest: &mut T, new_val: &T, choice: bool) {
-    dest.conditional_assign(new_val, Choice::from(choice as u8))
+    dest.conditional_assign(new_val, Choice::from(u8::from(choice)));
 }
 
 /// Constant-time option type for cryptographic operations
@@ -65,7 +66,7 @@ impl<T> CtSecretOption<T> {
 
     /// Check if the option contains a value (constant-time)
     #[inline]
-    pub fn is_some(&self) -> Choice {
+    pub const fn is_some(&self) -> Choice {
         self.is_some
     }
 
@@ -130,13 +131,11 @@ macro_rules! impl_ct_eq_for_secret {
 }
 
 // Import types that need constant-time operations
-use crate::pqc::types::{
-    MlDsaSecretKey, MlDsaSignature, MlKemSecretKey, SharedSecret,
-};
 use crate::pqc::ml_dsa_44::{MlDsa44SecretKey, MlDsa44Signature};
 use crate::pqc::ml_dsa_87::{MlDsa87SecretKey, MlDsa87Signature};
-use crate::pqc::ml_kem_512::MlKem512SecretKey;
 use crate::pqc::ml_kem_1024::MlKem1024SecretKey;
+use crate::pqc::ml_kem_512::MlKem512SecretKey;
+use crate::pqc::types::{MlDsaSecretKey, MlDsaSignature, MlKemSecretKey, SharedSecret};
 
 // Implement constant-time comparison for all sensitive types
 impl_ct_eq_for_secret!(MlKemSecretKey);
@@ -172,13 +171,14 @@ impl ConstantTimeEqExt for MlDsa87Signature {
 /// The operation runs in constant time.
 #[inline]
 pub fn ct_verify<T>(condition: bool, value: T) -> CtOption<T> {
-    CtOption::new(value, Choice::from(condition as u8))
+    CtOption::new(value, Choice::from(u8::from(condition)))
 }
 
 /// Constant-time byte array comparison
 ///
 /// Compares two fixed-size byte arrays in constant time.
 #[inline]
+#[must_use]
 pub fn ct_array_eq<const N: usize>(a: &[u8; N], b: &[u8; N]) -> bool {
     a.ct_eq(b).into()
 }
@@ -200,8 +200,8 @@ pub fn ct_copy_bytes(dest: &mut [u8], src: &[u8], choice: bool) {
     if dest.len() != src.len() {
         return;
     }
-    
-    let choice = Choice::from(choice as u8);
+
+    let choice = Choice::from(u8::from(choice));
     for (d, s) in dest.iter_mut().zip(src.iter()) {
         d.conditional_assign(s, choice);
     }
@@ -216,7 +216,7 @@ mod tests {
         let a = [1u8, 2, 3, 4];
         let b = [1u8, 2, 3, 4];
         let c = [1u8, 2, 3, 5];
-        
+
         assert!(ct_eq(&a, &b));
         assert!(!ct_eq(&a, &c));
         assert!(!ct_eq(&a[..3], &b)); // Different lengths
@@ -226,7 +226,7 @@ mod tests {
     fn test_ct_select() {
         let a = 42u32;
         let b = 100u32;
-        
+
         assert_eq!(ct_select(&a, &b, true), a);
         assert_eq!(ct_select(&a, &b, false), b);
     }
@@ -235,10 +235,10 @@ mod tests {
     fn test_ct_option() {
         let some_val = CtSecretOption::some(42u32);
         let none_val = CtSecretOption::none(0u32);
-        
+
         assert_eq!(some_val.is_some().unwrap_u8(), 1);
         assert_eq!(none_val.is_none().unwrap_u8(), 1);
-        
+
         assert_eq!(some_val.unwrap_or(100), 42);
         assert_eq!(none_val.unwrap_or(100), 100);
     }
@@ -248,10 +248,10 @@ mod tests {
         let src = [1u8, 2, 3, 4];
         let mut dest1 = [0u8; 4];
         let mut dest2 = [0u8; 4];
-        
+
         ct_copy_bytes(&mut dest1, &src, true);
         ct_copy_bytes(&mut dest2, &src, false);
-        
+
         assert_eq!(dest1, src);
         assert_eq!(dest2, [0, 0, 0, 0]);
     }
@@ -260,14 +260,14 @@ mod tests {
     fn test_constant_time_property() {
         // This test doesn't verify constant-time execution directly
         // (that requires specialized tools), but ensures the API works correctly
-        
+
         let secret1 = vec![0u8; 1000];
         let secret2 = vec![1u8; 1000];
-        
+
         // These operations should take the same time regardless of content
         let _ = ct_eq(&secret1, &secret2);
         let _ = ct_eq(&secret1, &secret1);
-        
+
         // The actual constant-time property would be verified with tools like
         // valgrind, dudect, or specialized timing analysis
     }

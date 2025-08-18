@@ -422,9 +422,7 @@ impl EncryptedMessage {
 
 /// Utility functions for symmetric encryption
 pub mod utils {
-    use super::{
-        ChaCha20Poly1305Cipher, EncryptedMessage, SymmetricError, SymmetricKey,
-    };
+    use super::{ChaCha20Poly1305Cipher, EncryptedMessage, SymmetricError, SymmetricKey};
 
     /// Encrypt data and return a complete `EncryptedMessage`
     ///
