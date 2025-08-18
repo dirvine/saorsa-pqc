@@ -184,6 +184,11 @@ impl MlKemPublicKey {
     }
 
     /// Create from bytes
+    ///
+    /// # Errors
+    ///
+    /// Returns `PqcError::InvalidKeySize` if the byte slice length does not match
+    /// the expected ML-KEM-768 public key size.
     pub fn from_bytes(bytes: &[u8]) -> Result<Self, PqcError> {
         if bytes.len() != ML_KEM_768_PUBLIC_KEY_SIZE {
             return Err(PqcError::InvalidKeySize {
@@ -215,6 +220,11 @@ impl MlKemSecretKey {
     }
 
     /// Create from bytes
+    ///
+    /// # Errors
+    ///
+    /// Returns `PqcError::InvalidKeySize` if the byte slice length does not match
+    /// the expected ML-KEM-768 secret key size.
     pub fn from_bytes(bytes: &[u8]) -> Result<Self, PqcError> {
         if bytes.len() != ML_KEM_768_SECRET_KEY_SIZE {
             return Err(PqcError::InvalidKeySize {
@@ -243,6 +253,11 @@ impl MlKemCiphertext {
     }
 
     /// Create from bytes
+    ///
+    /// # Errors
+    ///
+    /// Returns `PqcError::InvalidCiphertextSize` if the byte slice length does not match
+    /// the expected ML-KEM-768 ciphertext size.
     pub fn from_bytes(bytes: &[u8]) -> Result<Self, PqcError> {
         if bytes.len() != ML_KEM_768_CIPHERTEXT_SIZE {
             return Err(PqcError::InvalidCiphertextSize {
@@ -271,6 +286,11 @@ impl MlDsaPublicKey {
     }
 
     /// Create from bytes
+    ///
+    /// # Errors
+    ///
+    /// Returns `PqcError::InvalidKeySize` if the byte slice length does not match
+    /// the expected ML-DSA-65 public key size.
     pub fn from_bytes(bytes: &[u8]) -> Result<Self, PqcError> {
         if bytes.len() != ML_DSA_65_PUBLIC_KEY_SIZE {
             return Err(PqcError::InvalidKeySize {
@@ -302,6 +322,11 @@ impl MlDsaSecretKey {
     }
 
     /// Create from bytes
+    ///
+    /// # Errors
+    ///
+    /// Returns `PqcError::InvalidKeySize` if the byte slice length does not match
+    /// the expected ML-DSA-65 secret key size.
     pub fn from_bytes(bytes: &[u8]) -> Result<Self, PqcError> {
         if bytes.len() != ML_DSA_65_SECRET_KEY_SIZE {
             return Err(PqcError::InvalidKeySize {
@@ -330,6 +355,11 @@ impl MlDsaSignature {
     }
 
     /// Create from bytes
+    ///
+    /// # Errors
+    ///
+    /// Returns `PqcError::InvalidSignatureSize` if the byte slice length does not match
+    /// the expected ML-DSA-65 signature size.
     pub fn from_bytes(bytes: &[u8]) -> Result<Self, PqcError> {
         if bytes.len() != ML_DSA_65_SIGNATURE_SIZE {
             return Err(PqcError::InvalidSignatureSize {
@@ -361,6 +391,11 @@ impl SharedSecret {
     }
 
     /// Create from bytes
+    ///
+    /// # Errors
+    ///
+    /// Returns `PqcError::InvalidKeySize` if the byte slice length does not match
+    /// the expected shared secret size.
     pub fn from_bytes(bytes: &[u8]) -> Result<Self, PqcError> {
         if bytes.len() != ML_KEM_SHARED_SECRET_SIZE {
             return Err(PqcError::InvalidKeySize {

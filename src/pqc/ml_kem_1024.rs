@@ -24,6 +24,11 @@ impl MlKem1024PublicKey {
     }
 
     /// Create from bytes
+    ///
+    /// # Errors
+    ///
+    /// Returns `PqcError::InvalidKeySize` if the byte slice length does not match
+    /// the expected ML-KEM-1024 public key size.
     pub fn from_bytes(bytes: &[u8]) -> Result<Self, PqcError> {
         if bytes.len() != ML_KEM_1024_PUBLIC_KEY_SIZE {
             return Err(PqcError::InvalidKeySize {
@@ -55,6 +60,11 @@ impl MlKem1024SecretKey {
     }
 
     /// Create from bytes
+    ///
+    /// # Errors
+    ///
+    /// Returns `PqcError::InvalidKeySize` if the byte slice length does not match
+    /// the expected ML-KEM-1024 secret key size.
     pub fn from_bytes(bytes: &[u8]) -> Result<Self, PqcError> {
         if bytes.len() != ML_KEM_1024_SECRET_KEY_SIZE {
             return Err(PqcError::InvalidKeySize {
@@ -83,6 +93,11 @@ impl MlKem1024Ciphertext {
     }
 
     /// Create from bytes
+    ///
+    /// # Errors
+    ///
+    /// Returns `PqcError::InvalidCiphertextSize` if the byte slice length does not match
+    /// the expected ML-KEM-1024 ciphertext size.
     pub fn from_bytes(bytes: &[u8]) -> Result<Self, PqcError> {
         if bytes.len() != ML_KEM_1024_CIPHERTEXT_SIZE {
             return Err(PqcError::InvalidCiphertextSize {
@@ -99,15 +114,30 @@ impl MlKem1024Ciphertext {
 /// ML-KEM-1024 operations trait
 pub trait MlKem1024Operations {
     /// Generate a new key pair
+    ///
+    /// # Errors
+    ///
+    /// Returns `PqcError::KeyGenerationFailed` if the underlying cryptographic
+    /// key generation operation fails.
     fn generate_keypair(&self) -> PqcResult<(MlKem1024PublicKey, MlKem1024SecretKey)>;
 
     /// Encapsulate a shared secret using the public key
+    ///
+    /// # Errors
+    ///
+    /// Returns `PqcError::EncapsulationFailed` if the cryptographic encapsulation operation fails
+    /// or `PqcError::InvalidKeySize` if the public key has invalid format.
     fn encapsulate(
         &self,
         public_key: &MlKem1024PublicKey,
     ) -> PqcResult<(MlKem1024Ciphertext, SharedSecret)>;
 
     /// Decapsulate a shared secret using the secret key and ciphertext
+    ///
+    /// # Errors
+    ///
+    /// Returns `PqcError::DecapsulationFailed` if the cryptographic decapsulation operation fails
+    /// or `PqcError::InvalidKeySize`/`PqcError::InvalidCiphertextSize` for invalid formats.
     fn decapsulate(
         &self,
         secret_key: &MlKem1024SecretKey,

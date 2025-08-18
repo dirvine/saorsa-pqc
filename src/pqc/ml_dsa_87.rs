@@ -24,6 +24,11 @@ impl MlDsa87PublicKey {
     }
 
     /// Create from bytes
+    ///
+    /// # Errors
+    ///
+    /// Returns `PqcError::InvalidKeySize` if the byte slice length does not match
+    /// the expected ML-DSA-87 public key size.
     pub fn from_bytes(bytes: &[u8]) -> Result<Self, PqcError> {
         if bytes.len() != ML_DSA_87_PUBLIC_KEY_SIZE {
             return Err(PqcError::InvalidKeySize {
@@ -55,6 +60,11 @@ impl MlDsa87SecretKey {
     }
 
     /// Create from bytes
+    ///
+    /// # Errors
+    ///
+    /// Returns `PqcError::InvalidKeySize` if the byte slice length does not match
+    /// the expected ML-DSA-87 secret key size.
     pub fn from_bytes(bytes: &[u8]) -> Result<Self, PqcError> {
         if bytes.len() != ML_DSA_87_SECRET_KEY_SIZE {
             return Err(PqcError::InvalidKeySize {
@@ -83,6 +93,11 @@ impl MlDsa87Signature {
     }
 
     /// Create from bytes
+    ///
+    /// # Errors
+    ///
+    /// Returns `PqcError::InvalidSignatureSize` if the byte slice length does not match
+    /// the expected ML-DSA-87 signature size.
     pub fn from_bytes(bytes: &[u8]) -> Result<Self, PqcError> {
         if bytes.len() != ML_DSA_87_SIGNATURE_SIZE {
             return Err(PqcError::InvalidSignatureSize {
@@ -99,12 +114,27 @@ impl MlDsa87Signature {
 /// ML-DSA-87 operations trait
 pub trait MlDsa87Operations {
     /// Generate a new key pair
+    ///
+    /// # Errors
+    ///
+    /// Returns `PqcError::KeyGenerationFailed` if the underlying cryptographic
+    /// key generation operation fails.
     fn generate_keypair(&self) -> PqcResult<(MlDsa87PublicKey, MlDsa87SecretKey)>;
 
     /// Sign a message using the secret key
+    ///
+    /// # Errors
+    ///
+    /// Returns `PqcError::SigningFailed` if the cryptographic signing operation fails
+    /// or `PqcError::InvalidKeySize` if the secret key has invalid format.
     fn sign(&self, secret_key: &MlDsa87SecretKey, message: &[u8]) -> PqcResult<MlDsa87Signature>;
 
     /// Verify a signature using the public key
+    ///
+    /// # Errors
+    ///
+    /// Returns `PqcError::CryptoError` if the cryptographic verification operation fails
+    /// or `PqcError::InvalidKeySize`/`PqcError::InvalidSignatureSize` for invalid formats.
     fn verify(
         &self,
         public_key: &MlDsa87PublicKey,
