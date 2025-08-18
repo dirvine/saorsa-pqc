@@ -13,7 +13,7 @@
 
 use criterion::{black_box, criterion_group, criterion_main, BenchmarkId, Criterion, Throughput};
 use saorsa_pqc::api::{
-    dsa::{ml_dsa_65, MlDsa, MlDsaVariant},
+    sig::{ml_dsa_65, MlDsa, MlDsaVariant},
     kem::{ml_kem_768, MlKem, MlKemVariant},
     symmetric::ChaCha20Poly1305,
 };

@@ -4,12 +4,12 @@
 //! to ensure performance targets are met and identify bottlenecks.
 
 use criterion::{black_box, criterion_group, criterion_main, BenchmarkId, Criterion, Throughput};
-use saorsa_pqc::pqc::ml_kem::{MlKem768, MlKemKeyPair};
+use saorsa_pqc::api::kem::{ml_kem_768, MlKem};
 use std::time::Duration;
 
 /// Benchmark ML-KEM-768 key generation
 fn benchmark_keygen(c: &mut Criterion) {
-    let ml_kem = MlKem768::new();
+    let ml_kem = ml_kem_768();
 
     c.bench_function("ml_kem_768_keygen", |b| {
         b.iter(|| {
@@ -21,13 +21,13 @@ fn benchmark_keygen(c: &mut Criterion) {
 
 /// Benchmark ML-KEM-768 encapsulation
 fn benchmark_encapsulation(c: &mut Criterion) {
-    let ml_kem = MlKem768::new();
-    let keypair = ml_kem.generate_keypair().expect("Key generation failed");
+    let ml_kem = ml_kem_768();
+    let (public_key, _secret_key) = ml_kem.generate_keypair().expect("Key generation failed");
 
     c.bench_function("ml_kem_768_encapsulation", |b| {
         b.iter(|| {
-            let (ciphertext, shared_secret) = ml_kem
-                .encapsulate(keypair.public_key())
+            let (shared_secret, ciphertext) = ml_kem
+                .encapsulate(&public_key)
                 .expect("Encapsulation failed");
             black_box((ciphertext, shared_secret));
         })
@@ -36,16 +36,16 @@ fn benchmark_encapsulation(c: &mut Criterion) {
 
 /// Benchmark ML-KEM-768 decapsulation
 fn benchmark_decapsulation(c: &mut Criterion) {
-    let ml_kem = MlKem768::new();
-    let keypair = ml_kem.generate_keypair().expect("Key generation failed");
-    let (ciphertext, _) = ml_kem
-        .encapsulate(keypair.public_key())
+    let ml_kem = ml_kem_768();
+    let (public_key, secret_key) = ml_kem.generate_keypair().expect("Key generation failed");
+    let (shared_secret, ciphertext) = ml_kem
+        .encapsulate(&public_key)
         .expect("Encapsulation failed");
 
     c.bench_function("ml_kem_768_decapsulation", |b| {
         b.iter(|| {
             let shared_secret = ml_kem
-                .decapsulate(keypair.secret_key(), &ciphertext)
+                .decapsulate(&secret_key, &ciphertext)
                 .expect("Decapsulation failed");
             black_box(shared_secret);
         })
@@ -54,19 +54,19 @@ fn benchmark_decapsulation(c: &mut Criterion) {
 
 /// Benchmark full ML-KEM-768 round trip
 fn benchmark_round_trip(c: &mut Criterion) {
-    let ml_kem = MlKem768::new();
+    let ml_kem = ml_kem_768();
 
     c.bench_function("ml_kem_768_round_trip", |b| {
         b.iter(|| {
-            let keypair = ml_kem.generate_keypair().expect("Key generation failed");
-            let (ciphertext, shared_secret1) = ml_kem
-                .encapsulate(keypair.public_key())
+            let (public_key, secret_key) = ml_kem.generate_keypair().expect("Key generation failed");
+            let (shared_secret1, ciphertext) = ml_kem
+                .encapsulate(&public_key)
                 .expect("Encapsulation failed");
             let shared_secret2 = ml_kem
-                .decapsulate(keypair.secret_key(), &ciphertext)
+                .decapsulate(&secret_key, &ciphertext)
                 .expect("Decapsulation failed");
 
-            assert_eq!(shared_secret1.as_bytes(), shared_secret2.as_bytes());
+            assert_eq!(shared_secret1.to_bytes(), shared_secret2.to_bytes());
             black_box((shared_secret1, shared_secret2));
         })
     });
@@ -83,7 +83,7 @@ fn benchmark_batch_operations(c: &mut Criterion) {
             BenchmarkId::new("keygen", batch_size),
             batch_size,
             |b, &size| {
-                let ml_kem = MlKem768::new();
+                let ml_kem = ml_kem_768();
                 b.iter(|| {
                     let mut keypairs = Vec::with_capacity(size);
                     for _ in 0..size {
@@ -99,7 +99,7 @@ fn benchmark_batch_operations(c: &mut Criterion) {
             BenchmarkId::new("encapsulation", batch_size),
             batch_size,
             |b, &size| {
-                let ml_kem = MlKem768::new();
+                let ml_kem = ml_kem_768();
                 // Pre-generate keypairs for batch encapsulation
                 let keypairs: Vec<_> = (0..size)
                     .map(|_| ml_kem.generate_keypair().expect("Key generation failed"))
@@ -107,9 +107,9 @@ fn benchmark_batch_operations(c: &mut Criterion) {
 
                 b.iter(|| {
                     let mut results = Vec::with_capacity(size);
-                    for keypair in &keypairs {
+                    for (public_key, _secret_key) in &keypairs {
                         let result = ml_kem
-                            .encapsulate(keypair.public_key())
+                            .encapsulate(public_key)
                             .expect("Encapsulation failed");
                         results.push(result);
                     }
@@ -124,27 +124,27 @@ fn benchmark_batch_operations(c: &mut Criterion) {
 
 /// Benchmark memory allocation patterns
 fn benchmark_memory_usage(c: &mut Criterion) {
-    let ml_kem = MlKem768::new();
+    let ml_kem = ml_kem_768();
 
     c.bench_function("ml_kem_768_memory_stress", |b| {
         b.iter(|| {
             // Generate many keypairs to test memory allocation patterns
             let mut keypairs = Vec::new();
             for _ in 0..10 {
-                let keypair = ml_kem.generate_keypair().expect("Key generation failed");
-                keypairs.push(keypair);
+                let (public_key, secret_key) = ml_kem.generate_keypair().expect("Key generation failed");
+                keypairs.push((public_key, secret_key));
             }
 
             // Perform many operations
             let mut results = Vec::new();
-            for keypair in &keypairs {
-                let (ciphertext, shared_secret) = ml_kem
-                    .encapsulate(keypair.public_key())
+            for (public_key, secret_key) in &keypairs {
+                let (shared_secret, ciphertext) = ml_kem
+                    .encapsulate(public_key)
                     .expect("Encapsulation failed");
                 let recovered_secret = ml_kem
-                    .decapsulate(keypair.secret_key(), &ciphertext)
+                    .decapsulate(secret_key, &ciphertext)
                     .expect("Decapsulation failed");
-                assert_eq!(shared_secret.as_bytes(), recovered_secret.as_bytes());
+                assert_eq!(shared_secret.to_bytes(), recovered_secret.to_bytes());
                 results.push((ciphertext, shared_secret, recovered_secret));
             }
 
