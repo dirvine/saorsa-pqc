@@ -132,7 +132,8 @@ mod ml_kem_tests {
                     // Skip unknown entry shape
                     continue;
                 };
-                let Ok(expected) = serde_json::from_value::<MlKemTestVector>(exp_test.clone()) else {
+                let Ok(expected) = serde_json::from_value::<MlKemTestVector>(exp_test.clone())
+                else {
                     continue;
                 };
 
@@ -186,7 +187,8 @@ mod ml_kem_tests {
                 let Ok(vector) = serde_json::from_value::<MlKemTestVector>(test.clone()) else {
                     continue;
                 };
-                let Ok(expected) = serde_json::from_value::<MlKemTestVector>(exp_test.clone()) else {
+                let Ok(expected) = serde_json::from_value::<MlKemTestVector>(exp_test.clone())
+                else {
                     continue;
                 };
 
@@ -302,7 +304,8 @@ mod ml_dsa_tests {
                 let Ok(vector) = serde_json::from_value::<MlDsaTestVector>(test.clone()) else {
                     continue;
                 };
-                let Ok(_expected) = serde_json::from_value::<MlDsaTestVector>(exp_test.clone()) else {
+                let Ok(_expected) = serde_json::from_value::<MlDsaTestVector>(exp_test.clone())
+                else {
                     continue;
                 };
 
@@ -346,7 +349,8 @@ mod ml_dsa_tests {
                 let Ok(vector) = serde_json::from_value::<MlDsaTestVector>(test.clone()) else {
                     continue;
                 };
-                let Ok(expected) = serde_json::from_value::<MlDsaTestVector>(exp_test.clone()) else {
+                let Ok(expected) = serde_json::from_value::<MlDsaTestVector>(exp_test.clone())
+                else {
                     continue;
                 };
 

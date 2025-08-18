@@ -21,7 +21,7 @@ fn _arbitrary_key_material() -> impl Strategy<Value = Vec<u8>> {
     prop::collection::vec(any::<u8>(), 16..64)
 }
 
-/// Test ML-KEM-768 round-trip property: encap(pk) -> (ct, ss1), decap(sk, ct) -> ss2, ss1 == ss2
+// Test ML-KEM-768 round-trip property: encap(pk) -> (ct, ss1), decap(sk, ct) -> ss2, ss1 == ss2
 proptest! {
     #[test]
     fn prop_ml_kem_round_trip_consistency(
@@ -145,7 +145,7 @@ proptest! {
     }
 }
 
-/// Test ML-DSA-65 signature properties
+// Test ML-DSA-65 signature properties
 proptest! {
     #[test]
     fn prop_ml_dsa_sign_verify_consistency(
@@ -298,7 +298,7 @@ proptest! {
     }
 }
 
-/// Test cross-algorithm properties and error conditions
+// Test cross-algorithm properties and error conditions
 proptest! {
     #[test]
     fn prop_ml_kem_invalid_key_sizes_rejected(
@@ -379,7 +379,7 @@ proptest! {
     }
 }
 
-/// Test edge cases and boundary conditions
+// Test edge cases and boundary conditions
 proptest! {
     #[test]
     fn prop_empty_message_handling(
