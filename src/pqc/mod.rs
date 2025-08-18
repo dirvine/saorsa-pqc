@@ -27,6 +27,9 @@ pub mod ml_kem_1024;
 pub mod ml_kem_512;
 pub mod types;
 
+// Security-critical modules
+pub mod constant_time;
+
 // Hybrid cryptography
 pub mod combiners;
 pub mod encryption;

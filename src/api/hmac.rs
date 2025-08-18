@@ -196,7 +196,7 @@ impl HmacAlgorithm {
 
 /// Helper functions for common HMAC operations
 pub mod helpers {
-    use super::{HmacAlgorithm, HmacMac, HmacSha3_256, HmacSha3_512, Mac, PqcResult, Zeroizing};
+    use super::{HmacAlgorithm, HmacSha3_256, HmacSha3_512, Mac, PqcResult, Zeroizing};
 
     /// Compute HMAC-SHA3-256
     pub fn hmac_sha3_256(key: &[u8], data: &[u8]) -> PqcResult<[u8; 32]> {

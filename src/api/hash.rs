@@ -203,7 +203,7 @@ impl HashAlgorithm {
 
 /// Helper functions for common hashing operations
 pub mod helpers {
-    use super::{blake3, Blake3Hasher, Digest, Hash, Sha3_256Hasher, Sha3_512Hasher, Shake256Xof};
+    use super::{blake3, Blake3Hasher, Hash, Sha3_256Hasher, Sha3_512Hasher, Shake256Xof};
 
     /// Hash data with BLAKE3
     #[must_use]

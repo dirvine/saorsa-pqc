@@ -238,7 +238,7 @@ impl AeadCipher {
 
 /// Helper functions for AEAD operations
 pub mod helpers {
-    use super::{Aead, AeadCipher, GcmNonce, KeyInit, PqcResult, Zeroizing};
+    use super::{AeadCipher, GcmNonce, PqcResult, Zeroizing};
 
     /// Generate a random nonce for AES-GCM
     #[must_use]
