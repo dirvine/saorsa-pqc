@@ -1,7 +1,7 @@
 //! Comprehensive tests for the clean API
 
 use saorsa_pqc::api::{
-    dsa::ml_dsa_65, kem::ml_kem_768, slh::slh_dsa_sha2_128s, MlDsaVariant, MlKem, MlKemVariant,
+    sig::ml_dsa_65, kem::ml_kem_768, slh::slh_dsa_sha2_128s, MlDsaVariant, MlKem, MlKemVariant,
     SlhDsa, SlhDsaVariant,
 };
 

@@ -75,6 +75,21 @@ pub enum PqcError {
 
     /// Feature not available
     FeatureNotAvailable,
+    
+    /// Invalid nonce length
+    InvalidNonceLength,
+    
+    /// Invalid key length
+    InvalidKeyLength,
+    
+    /// Invalid signature (for HMAC/MAC verification)
+    InvalidSignature,
+    
+    /// Generic encryption error (for AEAD)
+    EncryptionError,
+    
+    /// Generic decryption error (for AEAD)
+    DecryptionError,
 }
 
 impl fmt::Display for PqcError {
@@ -116,6 +131,11 @@ impl fmt::Display for PqcError {
             Self::EncryptionFailed(msg) => write!(f, "Encryption failed: {}", msg),
             Self::DecryptionFailed(msg) => write!(f, "Decryption failed: {}", msg),
             Self::FeatureNotAvailable => write!(f, "Feature not available"),
+            Self::InvalidNonceLength => write!(f, "Invalid nonce length"),
+            Self::InvalidKeyLength => write!(f, "Invalid key length"),
+            Self::InvalidSignature => write!(f, "Invalid signature or MAC"),
+            Self::EncryptionError => write!(f, "Encryption error"),
+            Self::DecryptionError => write!(f, "Decryption error"),
         }
     }
 }

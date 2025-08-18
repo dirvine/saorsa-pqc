@@ -4,13 +4,19 @@
 //! post-quantum algorithms without requiring users to manage RNG or other
 //! implementation details.
 
-pub mod dsa;
+pub mod aead;
 pub mod errors;
+pub mod hash;
+pub mod hmac;
+pub mod hpke;
+pub mod kdf;
 pub mod kem;
+pub mod sig;  // Renamed from dsa for consistency
 pub mod slh;
 pub mod symmetric;
+pub mod traits;
 
-pub use dsa::{MlDsa, MlDsaPublicKey, MlDsaSecretKey, MlDsaSignature, MlDsaVariant};
+pub use sig::{ml_dsa_65, MlDsa, MlDsaPublicKey, MlDsaSecretKey, MlDsaSignature, MlDsaVariant};
 pub use errors::{PqcError, PqcResult};
 pub use kem::{
     MlKem, MlKemCiphertext, MlKemPublicKey, MlKemSecretKey, MlKemSharedSecret, MlKemVariant,

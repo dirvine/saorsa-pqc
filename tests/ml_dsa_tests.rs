@@ -6,7 +6,7 @@
 mod common;
 
 use common::{hex_to_bytes, load_test_vectors};
-use saorsa_pqc::api::dsa::{
+use saorsa_pqc::api::sig::{
     ml_dsa_65, MlDsaPublicKey, MlDsaSecretKey, MlDsaSignature, MlDsaVariant,
 };
 use std::path::Path;

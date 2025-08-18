@@ -1,6 +1,6 @@
 [package]
 name = "saorsa-pqc"
-version = "0.3.2"
+version = "0.3.4"
 edition = "2021"
 authors = ["David Irvine <david@saorsalabs.com>"]
 license = "MIT OR Apache-2.0"
@@ -27,7 +27,9 @@ default = [
     "memory-pool", 
     "secure-memory", 
     "constant-time",
-    "simd"
+    "simd",
+    "hpke-support",
+    "extended-crypto"
 ]
 
 # Crypto providers (aws-lc-rs is default and preferred)
@@ -45,6 +47,10 @@ memory-pool = []
 secure-memory = []
 constant-time = []
 simd = ["dep:wide"]
+
+# Extended cryptographic primitives (enabled by default)
+hpke-support = []    # HPKE with PQC KEMs
+extended-crypto = []  # Hash, KDF, HMAC, AES-GCM
 
 # Optional development features (not enabled by default)
 cert_compression = []
@@ -75,6 +81,15 @@ ed25519-dalek = { version = "2.0", features = ["rand_core"] }
 # Symmetric encryption (quantum-resistant)
 chacha20poly1305 = "0.10"
 pbkdf2 = { version = "0.12", features = ["simple"] }
+aes-gcm = "0.10"
+aead = "0.5"
+
+# Key derivation and MAC
+hkdf = "0.12"
+hmac = "0.12"
+
+# Hybrid Public Key Encryption (RFC 9180)
+hpke = { version = "0.12", features = ["std"] }
 
 # Serialization and data handling
 serde = { version = "1.0", features = ["derive"] }

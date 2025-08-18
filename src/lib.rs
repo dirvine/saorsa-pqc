@@ -127,7 +127,7 @@ pub mod api;
 
 // Re-export the comprehensive API for easy access
 pub use api::{
-    dsa::ml_dsa_65,
+    sig::ml_dsa_65,
     // Utils
     init as api_init,
     // Convenience functions
