@@ -9,13 +9,7 @@
 
 // Core PQC implementations
 pub mod ml_dsa;
-#[cfg(feature = "experimental-impl")]
-pub mod ml_dsa_65; // Experimental ML-DSA-65 implementation (disabled by default)
-#[cfg(feature = "experimental-impl")]
-pub mod ml_dsa_impl; // Experimental ML-DSA implementation (disabled by default)
 pub mod ml_kem;
-#[cfg(feature = "experimental-impl")]
-pub mod ml_kem_impl; // Experimental ML-KEM implementation (disabled by default)
 pub mod types;
 
 // Hybrid cryptography
@@ -44,11 +38,6 @@ pub use encryption::{EncryptedMessage, HybridPublicKeyEncryption};
 pub use hybrid::{HybridKem, HybridSignature};
 pub use memory_pool::{PoolConfig, PqcMemoryPool};
 pub use ml_dsa::MlDsa65;
-#[cfg(feature = "experimental-impl")]
-pub use ml_dsa_65::{
-    MlDsa65 as MlDsa65Production, MlDsa65Config, MlDsa65Extended as MlDsa65ExtendedOps,
-    MlDsa65Operations as MlDsa65ProductionOps, PerformanceConfig, SecurityConfig,
-};
 pub use ml_kem::MlKem768;
 // TLS extensions are not part of core PQC - use saorsa-pqc-tls crate if needed
 

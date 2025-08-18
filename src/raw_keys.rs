@@ -177,20 +177,7 @@ pub fn derive_peer_id_from_public_key(public_key: &VerifyingKey) -> [u8; 32] {
         peer_id_bytes
     }
 
-    #[cfg(feature = "aws-lc-rs")]
-    {
-        use aws_lc_rs::digest;
-
-        // Hash the input
-        let hash = digest::digest(&digest::SHA256, &input);
-        let hash_bytes = hash.as_ref();
-
-        let mut peer_id_bytes = [0u8; 32];
-        peer_id_bytes.copy_from_slice(hash_bytes);
-        peer_id_bytes
-    }
-
-    #[cfg(not(any(feature = "ring", feature = "aws-lc-rs")))]
+    #[cfg(not(feature = "ring"))]
     {
         // Use SHA2 crate as fallback
         use sha2::{Digest, Sha256};

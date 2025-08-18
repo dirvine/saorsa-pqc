@@ -16,327 +16,249 @@
 //! - KEM: Uses KDF to combine shared secrets (not XOR)
 //! - Signatures: Concatenates both signatures, both must verify
 
-use crate::pqc::combiners::{ConcatenationCombiner, HybridCombiner};
+use crate::pqc::combiners::ConcatenationCombiner;
 use crate::pqc::types::*;
 use crate::pqc::{ml_dsa::MlDsa65, ml_kem::MlKem768, MlDsaOperations, MlKemOperations};
-use ring::rand::{self, SecureRandom};
-use ring::signature::{self, Ed25519KeyPair, KeyPair as SignatureKeyPair};
+use ed25519_dalek::{Signature as Ed25519Signature, Signer, SigningKey, Verifier, VerifyingKey};
+use rand::rngs::OsRng;
 use std::sync::Arc;
-use x25519_dalek::PublicKey as X25519PublicKey;
+use x25519_dalek::{EphemeralSecret, PublicKey as X25519PublicKey, StaticSecret};
 
 /// Hybrid KEM combiner for classical ECDH and ML-KEM-768
 ///
 /// This combiner provides quantum-resistant key exchange by combining
 /// classical elliptic curve Diffie-Hellman with post-quantum ML-KEM.
-#[derive(Clone)]
 pub struct HybridKem {
+    /// ML-KEM-768 instance for post-quantum key encapsulation
     ml_kem: MlKem768,
-    combiner: Arc<dyn HybridCombiner>,
-    rng: Arc<dyn SecureRandom>,
 }
 
 impl HybridKem {
-    /// Create a new hybrid KEM combiner
+    /// Create a new hybrid KEM instance
     pub fn new() -> Self {
         Self {
             ml_kem: MlKem768::new(),
-            combiner: Arc::new(ConcatenationCombiner),
-            rng: Arc::new(rand::SystemRandom::new()),
         }
     }
 
-    /// Create with a specific combiner
-    pub fn with_combiner(combiner: Arc<dyn HybridCombiner>) -> Self {
-        Self {
-            ml_kem: MlKem768::new(),
-            combiner,
-            rng: Arc::new(rand::SystemRandom::new()),
-        }
-    }
-
-    /// Generate a hybrid keypair (classical + PQC)
-    ///
-    /// Returns both classical ECDH and ML-KEM keypairs
-    pub fn generate_keypair(&self) -> PqcResult<(HybridKemPublicKey, HybridKemSecretKey)> {
+    /// Generate a hybrid keypair (ML-KEM + X25519)
+    pub fn generate_keypair(&self) -> PqcResult<HybridKemKeypair> {
         // Generate ML-KEM keypair
-        let (ml_kem_pub, ml_kem_sec) = self.ml_kem.generate_keypair()?;
+        let (ml_kem_public, ml_kem_secret) = self.ml_kem.generate_keypair()?;
 
-        // Generate X25519 keypair using raw bytes approach for x25519-dalek 2.0
-        let mut secret_bytes = [0u8; 32];
-        self.rng
-            .fill(&mut secret_bytes)
-            .map_err(|_| PqcError::KeyGenerationFailed("Random generation failed".to_string()))?;
+        // Generate X25519 keypair
+        let x25519_secret = StaticSecret::random_from_rng(OsRng);
+        let x25519_public = X25519PublicKey::from(&x25519_secret);
 
-        // In x25519-dalek 2.0, we work with raw bytes and create keys properly
-        let public = X25519PublicKey::from(secret_bytes);
-
-        let classical_sec = secret_bytes.to_vec();
-        let classical_pub = public.to_bytes().to_vec();
-
-        Ok((
-            HybridKemPublicKey {
-                classical: classical_pub.into_boxed_slice(),
-                ml_kem: ml_kem_pub,
+        Ok(HybridKemKeypair {
+            public: HybridKemPublicKey {
+                ml_kem: ml_kem_public,
+                x25519: x25519_public,
             },
-            HybridKemSecretKey {
-                classical: classical_sec.into_boxed_slice(),
-                ml_kem: ml_kem_sec,
+            secret: HybridKemSecretKey {
+                ml_kem: ml_kem_secret,
+                x25519: Arc::new(x25519_secret),
             },
-        ))
+        })
     }
 
-    /// Encapsulate using hybrid mode
-    ///
-    /// Performs both classical ECDH and ML-KEM encapsulation
+    /// Encapsulate to create a shared secret
     pub fn encapsulate(
         &self,
         public_key: &HybridKemPublicKey,
     ) -> PqcResult<(HybridKemCiphertext, SharedSecret)> {
-        // Perform ML-KEM encapsulation
+        // ML-KEM encapsulation
         let (ml_kem_ct, ml_kem_ss) = self.ml_kem.encapsulate(&public_key.ml_kem)?;
 
-        // Generate ephemeral X25519 keypair for encapsulation
-        let mut ephemeral_secret_bytes = [0u8; 32];
-        self.rng
-            .fill(&mut ephemeral_secret_bytes)
-            .map_err(|_| PqcError::KeyGenerationFailed("Random generation failed".to_string()))?;
-        let ephemeral_public = X25519PublicKey::from(ephemeral_secret_bytes);
+        // X25519 ephemeral key exchange
+        let ephemeral_secret = EphemeralSecret::random_from_rng(OsRng);
+        let ephemeral_public = X25519PublicKey::from(&ephemeral_secret);
+        let x25519_shared = ephemeral_secret.diffie_hellman(&public_key.x25519);
 
-        // Parse peer's public key
-        let peer_public_bytes: [u8; 32] =
-            public_key
-                .classical
-                .as_ref()
-                .try_into()
-                .map_err(|_| PqcError::InvalidKeySize {
-                    expected: 32,
-                    actual: public_key.classical.len(),
-                })?;
-        let _peer_public = X25519PublicKey::from(peer_public_bytes);
-
-        // Perform X25519 key agreement using curve25519-dalek directly
-        use curve25519_dalek::{montgomery::MontgomeryPoint, scalar::Scalar};
-        let scalar = Scalar::from_bytes_mod_order(ephemeral_secret_bytes);
-        let point = MontgomeryPoint(peer_public_bytes);
-        let shared_point = scalar * point;
-        let classical_ss = shared_point.0.to_vec();
-
-        // Combine the shared secrets
-        let info = b"hybrid-kem-encapsulation";
-        let combined_ss = self
-            .combiner
-            .combine(&classical_ss, ml_kem_ss.as_bytes(), info)?;
+        // Combine secrets using concatenation combiner
+        let combined = ConcatenationCombiner::combine(
+            x25519_shared.as_bytes(),
+            ml_kem_ss.as_bytes(),
+            b"hybrid-kem",
+        )?;
 
         Ok((
             HybridKemCiphertext {
-                classical: ephemeral_public.to_bytes().to_vec().into_boxed_slice(),
                 ml_kem: ml_kem_ct,
+                x25519_ephemeral: ephemeral_public,
             },
-            combined_ss,
+            combined,
         ))
     }
 
-    /// Decapsulate using hybrid mode
-    ///
-    /// Recovers shared secret from both classical and PQC components
+    /// Decapsulate to recover the shared secret
     pub fn decapsulate(
         &self,
         secret_key: &HybridKemSecretKey,
         ciphertext: &HybridKemCiphertext,
     ) -> PqcResult<SharedSecret> {
-        // Perform ML-KEM decapsulation
+        // ML-KEM decapsulation
         let ml_kem_ss = self
             .ml_kem
             .decapsulate(&secret_key.ml_kem, &ciphertext.ml_kem)?;
 
-        // Parse our secret key
-        let secret_key_bytes: [u8; 32] =
-            secret_key
-                .classical
-                .as_ref()
-                .try_into()
-                .map_err(|_| PqcError::InvalidKeySize {
-                    expected: 32,
-                    actual: secret_key.classical.len(),
-                })?;
+        // X25519 key agreement
+        let x25519_shared = secret_key.x25519.diffie_hellman(&ciphertext.x25519_ephemeral);
 
-        // Parse ephemeral public key from ciphertext
-        let ephemeral_public_bytes: [u8; 32] =
-            ciphertext
-                .classical
-                .as_ref()
-                .try_into()
-                .map_err(|_| PqcError::InvalidKeySize {
-                    expected: 32,
-                    actual: ciphertext.classical.len(),
-                })?;
-        let _ephemeral_public = X25519PublicKey::from(ephemeral_public_bytes);
-
-        // Perform X25519 key agreement using curve25519-dalek directly
-        use curve25519_dalek::{montgomery::MontgomeryPoint, scalar::Scalar};
-        let scalar = Scalar::from_bytes_mod_order(secret_key_bytes);
-        let point = MontgomeryPoint(ephemeral_public_bytes);
-        let shared_point = scalar * point;
-        let classical_ss = shared_point.0.to_vec();
-
-        // Combine the shared secrets
-        let info = b"hybrid-kem-encapsulation";
-        let combined_ss = self
-            .combiner
-            .combine(&classical_ss, ml_kem_ss.as_bytes(), info)?;
-
-        Ok(combined_ss)
-    }
-
-    /// Get the algorithm name
-    pub const fn algorithm_name() -> &'static str {
-        "Hybrid-ECDH-ML-KEM-768"
-    }
-
-    /// Get the combined security level
-    pub const fn security_level() -> &'static str {
-        "Classical 128-bit + Quantum 192-bit (NIST Level 3)"
-    }
-
-    /// Check if hybrid KEM is available
-    pub fn is_available() -> bool {
-        // Check if both classical and PQC are available
-        // For now, we consider it available if ML-KEM is available
-        true // Since we're using temporary classical implementation
+        // Combine secrets
+        ConcatenationCombiner::combine(
+            x25519_shared.as_bytes(),
+            ml_kem_ss.as_bytes(),
+            b"hybrid-kem",
+        )
     }
 }
 
-impl Default for HybridKem {
-    fn default() -> Self {
-        Self::new()
-    }
-}
-
-/// Hybrid signature combiner for classical signatures and ML-DSA-65
-///
-/// This combiner provides quantum-resistant signatures by combining
-/// classical signature algorithms with post-quantum ML-DSA.
-#[derive(Clone)]
+/// Hybrid signature scheme combining Ed25519 and ML-DSA-65
 pub struct HybridSignature {
+    /// ML-DSA-65 instance for post-quantum signatures
     ml_dsa: MlDsa65,
-    rng: Arc<dyn SecureRandom>,
 }
 
 impl HybridSignature {
-    /// Create a new hybrid signature combiner
+    /// Create a new hybrid signature instance
     pub fn new() -> Self {
         Self {
             ml_dsa: MlDsa65::new(),
-            rng: Arc::new(rand::SystemRandom::new()),
         }
     }
 
-    /// Generate a hybrid signature keypair
-    ///
-    /// Returns both classical and ML-DSA keypairs
-    pub fn generate_keypair(
-        &self,
-    ) -> PqcResult<(HybridSignaturePublicKey, HybridSignatureSecretKey)> {
+    /// Generate a hybrid signing keypair
+    pub fn generate_keypair(&self) -> PqcResult<HybridSignatureKeypair> {
         // Generate ML-DSA keypair
-        let (ml_dsa_pub, ml_dsa_sec) = self.ml_dsa.generate_keypair()?;
+        let (ml_dsa_public, ml_dsa_secret) = self.ml_dsa.generate_keypair()?;
 
         // Generate Ed25519 keypair
-        let pkcs8_bytes = signature::Ed25519KeyPair::generate_pkcs8(self.rng.as_ref())
-            .map_err(|_| PqcError::KeyGenerationFailed("Ed25519 generation failed".to_string()))?;
+        let ed25519_secret = SigningKey::generate(&mut OsRng);
+        let ed25519_public = ed25519_secret.verifying_key();
 
-        let key_pair = Ed25519KeyPair::from_pkcs8(pkcs8_bytes.as_ref())
-            .map_err(|_| PqcError::KeyGenerationFailed("Ed25519 from PKCS8 failed".to_string()))?;
-
-        let classical_pub = key_pair.public_key().as_ref().to_vec().into_boxed_slice();
-        let classical_sec = pkcs8_bytes.as_ref().to_vec().into_boxed_slice();
-
-        Ok((
-            HybridSignaturePublicKey {
-                classical: classical_pub,
-                ml_dsa: ml_dsa_pub,
+        Ok(HybridSignatureKeypair {
+            public: HybridSignaturePublicKey {
+                ml_dsa: ml_dsa_public,
+                ed25519: ed25519_public,
             },
-            HybridSignatureSecretKey {
-                classical: classical_sec,
-                ml_dsa: ml_dsa_sec,
+            secret: HybridSignatureSecretKey {
+                ml_dsa: ml_dsa_secret,
+                ed25519: Arc::new(ed25519_secret),
             },
-        ))
+        })
     }
 
-    /// Sign a message using both algorithms
-    ///
-    /// Creates a hybrid signature containing both classical and PQC signatures
+    /// Sign a message with both algorithms
     pub fn sign(
         &self,
         secret_key: &HybridSignatureSecretKey,
         message: &[u8],
     ) -> PqcResult<HybridSignatureValue> {
-        // Sign with ML-DSA
+        // ML-DSA signature
         let ml_dsa_sig = self.ml_dsa.sign(&secret_key.ml_dsa, message)?;
 
-        // Sign with Ed25519
-        let key_pair = Ed25519KeyPair::from_pkcs8(&secret_key.classical)
-            .map_err(|_| PqcError::SigningFailed("Ed25519 key parsing failed".to_string()))?;
-
-        let classical_sig = key_pair.sign(message);
+        // Ed25519 signature (dereference Arc first)
+        let ed25519_sig = secret_key.ed25519.as_ref().sign(message);
 
         Ok(HybridSignatureValue {
-            classical: classical_sig.as_ref().to_vec().into_boxed_slice(),
-            ml_dsa: ml_dsa_sig.as_bytes().to_vec().into_boxed_slice(),
+            ml_dsa: ml_dsa_sig,
+            ed25519: ed25519_sig,
         })
     }
 
     /// Verify a hybrid signature
-    ///
-    /// Both classical and PQC signatures must verify for success
     pub fn verify(
         &self,
         public_key: &HybridSignaturePublicKey,
         message: &[u8],
         signature: &HybridSignatureValue,
     ) -> PqcResult<bool> {
-        // Verify Ed25519 signature
-        let ed25519_public_key =
-            signature::UnparsedPublicKey::new(&signature::ED25519, &public_key.classical);
-        let classical_valid = ed25519_public_key
-            .verify(message, &signature.classical)
-            .is_ok();
-
-        if !classical_valid {
-            return Ok(false);
-        }
-
-        // Verify ML-DSA signature
-        let ml_dsa_sig = MlDsaSignature::from_bytes(&signature.ml_dsa)
-            .map_err(|_| PqcError::InvalidSignature)?;
-
+        // Both signatures must verify
         let ml_dsa_valid = self
             .ml_dsa
-            .verify(&public_key.ml_dsa, message, &ml_dsa_sig)?;
+            .verify(&public_key.ml_dsa, message, &signature.ml_dsa)?;
 
-        // Both must verify
-        Ok(classical_valid && ml_dsa_valid)
+        let ed25519_valid = public_key
+            .ed25519
+            .verify(message, &signature.ed25519)
+            .is_ok();
+
+        Ok(ml_dsa_valid && ed25519_valid)
     }
+}
 
-    /// Get the algorithm name
-    pub const fn algorithm_name() -> &'static str {
-        "Hybrid-Ed25519-ML-DSA-65"
-    }
+/// Hybrid KEM keypair
+pub struct HybridKemKeypair {
+    /// Public key component of the hybrid keypair
+    pub public: HybridKemPublicKey,
+    /// Secret key component of the hybrid keypair
+    pub secret: HybridKemSecretKey,
+}
 
-    /// Get the combined security level
-    pub const fn security_level() -> &'static str {
-        "Classical 128-bit + Quantum 192-bit (NIST Level 3)"
-    }
+/// Hybrid KEM public key
+#[derive(Clone, Debug)]
+pub struct HybridKemPublicKey {
+    /// ML-KEM-768 public key component
+    pub ml_kem: MlKemPublicKey,
+    /// X25519 public key component for classical ECDH
+    pub x25519: X25519PublicKey,
+}
 
-    /// Get the total signature size
-    pub const fn signature_size() -> usize {
-        64 + ML_DSA_65_SIGNATURE_SIZE // Ed25519 (64) + ML-DSA-65 (3309)
-    }
+/// Hybrid KEM secret key
+pub struct HybridKemSecretKey {
+    /// ML-KEM-768 secret key component
+    pub ml_kem: MlKemSecretKey,
+    /// X25519 secret key component for classical ECDH
+    pub x25519: Arc<StaticSecret>,
+}
 
-    /// Check if hybrid signatures are available
-    pub fn is_available() -> bool {
-        // Check if both classical and PQC are available
-        // For now, we consider it available since we have Ed25519 + ML-DSA
-        true
+/// Hybrid KEM ciphertext
+#[derive(Clone, Debug)]
+pub struct HybridKemCiphertext {
+    /// ML-KEM-768 ciphertext component
+    pub ml_kem: MlKemCiphertext,
+    /// X25519 ephemeral public key for ECDH
+    pub x25519_ephemeral: X25519PublicKey,
+}
+
+/// Hybrid signature keypair
+pub struct HybridSignatureKeypair {
+    /// Public key component of the signature keypair
+    pub public: HybridSignaturePublicKey,
+    /// Secret key component of the signature keypair
+    pub secret: HybridSignatureSecretKey,
+}
+
+/// Hybrid signature public key
+#[derive(Clone, Debug)]
+pub struct HybridSignaturePublicKey {
+    /// ML-DSA-65 public key component
+    pub ml_dsa: MlDsaPublicKey,
+    /// Ed25519 public key component for classical signatures
+    pub ed25519: VerifyingKey,
+}
+
+/// Hybrid signature secret key
+pub struct HybridSignatureSecretKey {
+    /// ML-DSA-65 secret key component
+    pub ml_dsa: MlDsaSecretKey,
+    /// Ed25519 secret key component for classical signatures
+    pub ed25519: Arc<SigningKey>,
+}
+
+/// Hybrid signature value
+#[derive(Clone, Debug)]
+pub struct HybridSignatureValue {
+    /// ML-DSA-65 signature component
+    pub ml_dsa: MlDsaSignature,
+    /// Ed25519 signature component
+    pub ed25519: Ed25519Signature,
+}
+
+impl Default for HybridKem {
+    fn default() -> Self {
+        Self::new()
     }
 }
 
@@ -346,258 +268,49 @@ impl Default for HybridSignature {
     }
 }
 
-/// Combines two shared secrets using a key derivation function
-///
-/// This is more secure than simple XOR as it provides proper entropy mixing.
-/// Following draft-ietf-tls-hybrid-design, we concatenate the secrets and
-/// apply a KDF to derive the final shared secret.
-///
-/// # Arguments
-///
-/// * `classical` - The classical ECDH shared secret
-/// * `pqc` - The post-quantum ML-KEM shared secret
-/// * `info` - Context-specific information for the KDF
-///
-/// # Security
-///
-/// The combined secret is at least as strong as the stronger of the two inputs.
-/// If either algorithm is secure, the combined output remains secure.
-// #[allow(dead_code)]
-// fn combine_shared_secrets(classical: &[u8], pqc: &[u8], info: &[u8]) -> SharedSecret {
-//     // Use HKDF to combine the secrets securely
-//     // Implementation would go here
-//     SharedSecret([0u8; 32])
-// }
-
 #[cfg(test)]
 mod tests {
     use super::*;
 
     #[test]
-    fn test_hybrid_kem_creation() {
-        let hybrid_kem = HybridKem::new();
-        let _hybrid_kem2: HybridKem = Default::default();
-
-        // Just verify creation works
-        let _ = hybrid_kem;
-    }
-
-    #[test]
-    fn test_hybrid_kem_key_generation() {
-        let hybrid_kem = HybridKem::new();
-        let result = hybrid_kem.generate_keypair();
-
-        assert!(result.is_ok());
-        let (pub_key, sec_key) = result.unwrap();
-        assert_eq!(pub_key.classical.len(), 32); // X25519 public key
-        assert_eq!(pub_key.ml_kem.as_bytes().len(), ML_KEM_768_PUBLIC_KEY_SIZE);
-        assert_eq!(sec_key.classical.len(), 32); // X25519 secret key
-        assert_eq!(sec_key.ml_kem.as_bytes().len(), ML_KEM_768_SECRET_KEY_SIZE);
-    }
-
-    #[test]
-    fn test_hybrid_kem_encapsulation() {
-        let hybrid_kem = HybridKem::new();
-
-        // Generate a proper keypair first
-        let (public_key, _) = hybrid_kem.generate_keypair().unwrap();
-
-        let result = hybrid_kem.encapsulate(&public_key);
-        assert!(result.is_ok());
-
-        let (ciphertext, shared_secret) = result.unwrap();
-        assert_eq!(ciphertext.classical.len(), 32); // X25519 ephemeral public key
-        assert_eq!(
-            ciphertext.ml_kem.as_bytes().len(),
-            ML_KEM_768_CIPHERTEXT_SIZE
-        );
-        assert_eq!(shared_secret.as_bytes().len(), 32);
-    }
-
-    #[test]
-    fn test_hybrid_kem_decapsulation() {
-        let hybrid_kem = HybridKem::new();
-
-        // Generate keypair and encapsulate first
-        let (public_key, secret_key) = hybrid_kem.generate_keypair().unwrap();
-        let (ciphertext, _expected_ss) = hybrid_kem.encapsulate(&public_key).unwrap();
-
-        let result = hybrid_kem.decapsulate(&secret_key, &ciphertext);
-        assert!(result.is_ok());
-
-        let shared_secret = result.unwrap();
-        assert_eq!(shared_secret.as_bytes().len(), 32);
-    }
-
-    #[test]
-    fn test_hybrid_signature_creation() {
-        let hybrid_sig = HybridSignature::new();
-        let _hybrid_sig2: HybridSignature = Default::default();
-
-        // Just verify creation works
-        let _ = hybrid_sig;
-    }
-
-    #[test]
-    fn test_hybrid_signature_key_generation() {
-        let hybrid_sig = HybridSignature::new();
-        let result = hybrid_sig.generate_keypair();
-
-        assert!(result.is_ok());
-        let (pub_key, sec_key) = result.unwrap();
-        assert_eq!(pub_key.classical.len(), 32); // Ed25519 public key
-        assert_eq!(pub_key.ml_dsa.as_bytes().len(), ML_DSA_65_PUBLIC_KEY_SIZE);
-        // Secret key will be PKCS8 format, so size varies
-        assert!(sec_key.classical.len() > 32);
-        assert_eq!(sec_key.ml_dsa.as_bytes().len(), ML_DSA_65_SECRET_KEY_SIZE);
-    }
-
-    #[test]
-    fn test_hybrid_signature_signing() {
-        let hybrid_sig = HybridSignature::new();
-
-        // Generate proper keypair first
-        let (_, secret_key) = hybrid_sig.generate_keypair().unwrap();
-
-        let message = b"Test message for hybrid signing";
-        let result = hybrid_sig.sign(&secret_key, message);
-
-        assert!(result.is_ok());
-        let signature = result.unwrap();
-        assert_eq!(signature.classical.len(), 64); // Ed25519 signature
-        assert_eq!(signature.ml_dsa.len(), ML_DSA_65_SIGNATURE_SIZE);
-    }
-
-    #[test]
-    fn test_hybrid_signature_verification() {
-        let hybrid_sig = HybridSignature::new();
-
-        // Generate keypair and sign first
-        let (public_key, secret_key) = hybrid_sig.generate_keypair().unwrap();
-        let message = b"Test message for verification";
-        let signature = hybrid_sig.sign(&secret_key, message).unwrap();
-
-        let result = hybrid_sig.verify(&public_key, message, &signature);
-        assert!(result.is_ok(), "Verification returned error: {:?}", result);
-        let is_valid = result.unwrap();
-        assert!(is_valid, "Signature verification failed");
-
-        // Test with wrong message
-        let wrong_message = b"Wrong message";
-        let result = hybrid_sig.verify(&public_key, wrong_message, &signature);
-        assert!(result.is_ok());
-        assert!(!result.unwrap());
-    }
-
-    // #[test]
-    // fn test_combine_shared_secrets() {
-    //     let classical = [1u8; 32];
-    //     let pqc = [2u8; 32];
-    //     let info = b"test info";
-
-    //     let combined = combine_shared_secrets(&classical, &pqc, info);
-
-    //     // Verify the output has correct length
-    //     assert_eq!(combined.as_bytes().len(), 32);
-
-    //     // Verify it's deterministic
-    //     let combined2 = combine_shared_secrets(&classical, &pqc, info);
-    //     assert_eq!(combined.as_bytes(), combined2.as_bytes());
-
-    //     // Verify different inputs produce different outputs
-    //     let different_classical = [3u8; 32];
-    //     let combined3 = combine_shared_secrets(&different_classical, &pqc, info);
-    //     assert_ne!(combined.as_bytes(), combined3.as_bytes());
-    // }
-
-    #[test]
-    fn test_hybrid_kem_utility_methods() {
-        assert_eq!(HybridKem::algorithm_name(), "Hybrid-ECDH-ML-KEM-768");
-        assert_eq!(
-            HybridKem::security_level(),
-            "Classical 128-bit + Quantum 192-bit (NIST Level 3)"
-        );
-
-        assert!(HybridKem::is_available()); // Always available now
-    }
-
-    #[test]
-    fn test_hybrid_signature_utility_methods() {
-        assert_eq!(
-            HybridSignature::algorithm_name(),
-            "Hybrid-Ed25519-ML-DSA-65"
-        );
-        assert_eq!(
-            HybridSignature::security_level(),
-            "Classical 128-bit + Quantum 192-bit (NIST Level 3)"
-        );
-        assert_eq!(
-            HybridSignature::signature_size(),
-            64 + ML_DSA_65_SIGNATURE_SIZE
-        );
-
-        assert!(HybridSignature::is_available()); // Always available now
-    }
-
-    #[test]
-    #[ignore = "Temporarily ignored while fixing X25519 key agreement implementation"]
     fn test_hybrid_kem_roundtrip() {
         let hybrid_kem = HybridKem::new();
+        let keypair = hybrid_kem.generate_keypair().unwrap();
 
-        // Generate hybrid keypair
-        let (public_key, secret_key) = hybrid_kem
-            .generate_keypair()
-            .expect("Hybrid key generation should succeed");
+        let (ciphertext, shared1) = hybrid_kem.encapsulate(&keypair.public).unwrap();
+        let shared2 = hybrid_kem
+            .decapsulate(&keypair.secret, &ciphertext)
+            .unwrap();
 
-        // Encapsulate
-        let (ciphertext, shared_secret1) = hybrid_kem
-            .encapsulate(&public_key)
-            .expect("Hybrid encapsulation should succeed");
-
-        // Decapsulate
-        let shared_secret2 = hybrid_kem
-            .decapsulate(&secret_key, &ciphertext)
-            .expect("Hybrid decapsulation should succeed");
-
-        // Verify shared secrets match
-        assert_eq!(shared_secret1.as_bytes(), shared_secret2.as_bytes());
+        assert_eq!(shared1.as_bytes(), shared2.as_bytes());
     }
 
     #[test]
     fn test_hybrid_signature_roundtrip() {
         let hybrid_sig = HybridSignature::new();
+        let keypair = hybrid_sig.generate_keypair().unwrap();
 
-        // Generate hybrid keypair
-        let (public_key, secret_key) = hybrid_sig
-            .generate_keypair()
-            .expect("Hybrid key generation should succeed");
-
-        // Sign message
         let message = b"Test message for hybrid signature";
-        let signature = hybrid_sig
-            .sign(&secret_key, message)
-            .expect("Hybrid signing should succeed");
+        let signature = hybrid_sig.sign(&keypair.secret, message).unwrap();
+        let valid = hybrid_sig
+            .verify(&keypair.public, message, &signature)
+            .unwrap();
 
-        // Verify signature
-        let is_valid = hybrid_sig
-            .verify(&public_key, message, &signature)
-            .expect("Hybrid verification should succeed");
-        assert!(is_valid);
-
-        // Verify with wrong message fails
-        let wrong_message = b"Different message";
-        let is_valid = hybrid_sig
-            .verify(&public_key, wrong_message, &signature)
-            .expect("Hybrid verification should succeed");
-        assert!(!is_valid);
+        assert!(valid);
     }
 
     #[test]
-    #[ignore = "Placeholder for future security property tests"]
-    fn test_hybrid_security_properties() {
-        // Test that hybrid remains secure if one algorithm fails
-        // This would involve simulating algorithm compromise
-        // and verifying the hybrid construction still provides security
-        // TODO: Implement when we have formal security property verification
+    fn test_hybrid_signature_wrong_message() {
+        let hybrid_sig = HybridSignature::new();
+        let keypair = hybrid_sig.generate_keypair().unwrap();
+
+        let message = b"Original message";
+        let wrong_message = b"Wrong message";
+        let signature = hybrid_sig.sign(&keypair.secret, message).unwrap();
+        let valid = hybrid_sig
+            .verify(&keypair.public, wrong_message, &signature)
+            .unwrap();
+
+        assert!(!valid);
     }
 }

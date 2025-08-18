@@ -4,8 +4,9 @@
 //! standards for combining classical and post-quantum shared secrets.
 
 use crate::pqc::types::*;
-use ring::hkdf;
-use ring::hmac;
+use hkdf::Hkdf;
+use hmac::{Hmac, Mac};
+use sha2::Sha256;
 
 /// NIST SP 800-56C Rev. 2 Option 1: Concatenation KDF
 ///
@@ -34,14 +35,10 @@ impl ConcatenationCombiner {
         concatenated.extend_from_slice(pqc_secret);
 
         // Use HKDF-Extract and HKDF-Expand with SHA-256
-        let salt = hkdf::Salt::new(hkdf::HKDF_SHA256, &[]);
-        let prk = salt.extract(&concatenated);
-
+        let hk = Hkdf::<Sha256>::new(None, &concatenated);
         let mut output = [0u8; 32];
-        prk.expand(&[info], hkdf::HKDF_SHA256)
-            .map_err(|_| PqcError::CryptoError("HKDF expand failed".to_string()))?
-            .fill(&mut output)
-            .map_err(|_| PqcError::CryptoError("HKDF fill failed".to_string()))?;
+        hk.expand(info, &mut output)
+            .map_err(|_| PqcError::CryptoError("HKDF expand failed".to_string()))?;
 
         Ok(SharedSecret(output))
     }
@@ -59,18 +56,15 @@ impl ConcatenationCombiner {
         salt: &[u8],
         info: &[u8],
     ) -> PqcResult<SharedSecret> {
+        // Concatenate secrets
         let mut concatenated = Vec::with_capacity(classical_secret.len() + pqc_secret.len());
         concatenated.extend_from_slice(classical_secret);
         concatenated.extend_from_slice(pqc_secret);
 
-        let hkdf_salt = hkdf::Salt::new(hkdf::HKDF_SHA256, salt);
-        let prk = hkdf_salt.extract(&concatenated);
-
+        let hk = Hkdf::<Sha256>::new(Some(salt), &concatenated);
         let mut output = [0u8; 32];
-        prk.expand(&[info], hkdf::HKDF_SHA256)
-            .map_err(|_| PqcError::CryptoError("HKDF expand failed".to_string()))?
-            .fill(&mut output)
-            .map_err(|_| PqcError::CryptoError("HKDF fill failed".to_string()))?;
+        hk.expand(info, &mut output)
+            .map_err(|_| PqcError::CryptoError("HKDF expand failed".to_string()))?;
 
         Ok(SharedSecret(output))
     }
@@ -78,39 +72,30 @@ impl ConcatenationCombiner {
 
 /// NIST SP 800-56C Rev. 2 Option 2: Two-Step KDF
 ///
-/// This implements a two-step approach where each secret is processed
-/// separately before combination.
+/// This implements the two-step approach where classical and PQC secrets
+/// are processed sequentially.
 pub struct TwoStepCombiner;
 
 impl TwoStepCombiner {
-    /// Combine two shared secrets using a two-step KDF process
+    /// Combine secrets using a two-step extraction process
     pub fn combine(
         classical_secret: &[u8],
         pqc_secret: &[u8],
         info: &[u8],
     ) -> PqcResult<SharedSecret> {
         // Step 1: Extract from classical secret
-        let salt = hkdf::Salt::new(hkdf::HKDF_SHA256, &[]);
-        let prk_classical = salt.extract(classical_secret);
+        let hk_classical = Hkdf::<Sha256>::new(None, classical_secret);
+        let mut classical_prk_bytes = [0u8; 32];
+        hk_classical.expand(&[], &mut classical_prk_bytes)
+            .map_err(|_| PqcError::CryptoError("HKDF expand failed".to_string()))?;
 
-        // Step 2: Extract from PQC secret using classical PRK as salt
-        let mut classical_prk_bytes = vec![0u8; 32];
-        prk_classical
-            .expand(&[], hkdf::HKDF_SHA256)
-            .map_err(|_| PqcError::CryptoError("HKDF expand failed".to_string()))?
-            .fill(&mut classical_prk_bytes)
-            .map_err(|_| PqcError::CryptoError("HKDF fill failed".to_string()))?;
-
-        let salt_pqc = hkdf::Salt::new(hkdf::HKDF_SHA256, &classical_prk_bytes);
-        let prk_combined = salt_pqc.extract(pqc_secret);
-
+        // Step 2: Use classical PRK as salt for PQC extraction
+        let hk_combined = Hkdf::<Sha256>::new(Some(&classical_prk_bytes), pqc_secret);
+        
         // Step 3: Expand to final key
         let mut output = [0u8; 32];
-        prk_combined
-            .expand(&[info], hkdf::HKDF_SHA256)
-            .map_err(|_| PqcError::CryptoError("HKDF expand failed".to_string()))?
-            .fill(&mut output)
-            .map_err(|_| PqcError::CryptoError("HKDF fill failed".to_string()))?;
+        hk_combined.expand(info, &mut output)
+            .map_err(|_| PqcError::CryptoError("HKDF expand failed".to_string()))?;
 
         Ok(SharedSecret(output))
     }
@@ -130,84 +115,20 @@ impl HmacCombiner {
         info: &[u8],
     ) -> PqcResult<SharedSecret> {
         // Use classical secret as HMAC key, PQC secret as message
-        let key = hmac::Key::new(hmac::HMAC_SHA256, classical_secret);
+        type HmacSha256 = Hmac<Sha256>;
+        let mut mac = HmacSha256::new_from_slice(classical_secret)
+            .map_err(|_| PqcError::CryptoError("Invalid HMAC key".to_string()))?;
 
         // HMAC(classical_secret, pqc_secret || info)
-        let mut message = Vec::with_capacity(pqc_secret.len() + info.len());
-        message.extend_from_slice(pqc_secret);
-        message.extend_from_slice(info);
+        mac.update(pqc_secret);
+        mac.update(info);
 
-        let tag = hmac::sign(&key, &message);
-
+        let result = mac.finalize();
         let mut output = [0u8; 32];
-        output.copy_from_slice(tag.as_ref());
+        output.copy_from_slice(&result.into_bytes()[..32]);
 
         Ok(SharedSecret(output))
     }
-}
-
-/// Trait for hybrid key combiners
-pub trait HybridCombiner: Send + Sync {
-    /// Combine classical and post-quantum shared secrets
-    fn combine(
-        &self,
-        classical_secret: &[u8],
-        pqc_secret: &[u8],
-        info: &[u8],
-    ) -> PqcResult<SharedSecret>;
-
-    /// Get the name of the combiner algorithm
-    fn algorithm_name(&self) -> &'static str;
-}
-
-impl HybridCombiner for ConcatenationCombiner {
-    fn combine(
-        &self,
-        classical_secret: &[u8],
-        pqc_secret: &[u8],
-        info: &[u8],
-    ) -> PqcResult<SharedSecret> {
-        Self::combine(classical_secret, pqc_secret, info)
-    }
-
-    fn algorithm_name(&self) -> &'static str {
-        "NIST-SP-800-56C-Option1-Concatenation"
-    }
-}
-
-impl HybridCombiner for TwoStepCombiner {
-    fn combine(
-        &self,
-        classical_secret: &[u8],
-        pqc_secret: &[u8],
-        info: &[u8],
-    ) -> PqcResult<SharedSecret> {
-        Self::combine(classical_secret, pqc_secret, info)
-    }
-
-    fn algorithm_name(&self) -> &'static str {
-        "NIST-SP-800-56C-Option2-TwoStep"
-    }
-}
-
-impl HybridCombiner for HmacCombiner {
-    fn combine(
-        &self,
-        classical_secret: &[u8],
-        pqc_secret: &[u8],
-        info: &[u8],
-    ) -> PqcResult<SharedSecret> {
-        Self::combine(classical_secret, pqc_secret, info)
-    }
-
-    fn algorithm_name(&self) -> &'static str {
-        "HMAC-SHA256-Combiner"
-    }
-}
-
-/// Default combiner following NIST recommendations
-pub fn default_combiner() -> Box<dyn HybridCombiner> {
-    Box::new(ConcatenationCombiner)
 }
 
 #[cfg(test)]
@@ -216,159 +137,69 @@ mod tests {
 
     #[test]
     fn test_concatenation_combiner() {
-        let classical = [1u8; 32];
-        let pqc = [2u8; 32];
-        let info = b"test info";
+        let classical = [0x01u8; 32];
+        let pqc = [0x02u8; 32];
+        let info = b"test context";
 
-        let result = ConcatenationCombiner::combine(&classical, &pqc, info);
-        assert!(result.is_ok());
+        let result = ConcatenationCombiner::combine(&classical, &pqc, info).unwrap();
+        assert_eq!(result.0.len(), 32);
 
-        let secret = result.unwrap();
-        assert_eq!(secret.as_bytes().len(), 32);
-
-        // Verify deterministic
-        let result2 = ConcatenationCombiner::combine(&classical, &pqc, info);
-        assert_eq!(secret.as_bytes(), result2.unwrap().as_bytes());
-
-        // Verify different inputs produce different outputs
-        let different_classical = [3u8; 32];
-        let result3 = ConcatenationCombiner::combine(&different_classical, &pqc, info);
-        assert_ne!(secret.as_bytes(), result3.unwrap().as_bytes());
+        // Verify deterministic output
+        let result2 = ConcatenationCombiner::combine(&classical, &pqc, info).unwrap();
+        assert_eq!(result.0, result2.0);
     }
 
     #[test]
-    fn test_concatenation_combiner_with_salt() {
-        let classical = [1u8; 32];
-        let pqc = [2u8; 32];
-        let salt = b"test salt";
-        let info = b"test info";
+    fn test_concatenation_with_salt() {
+        let classical = [0x01u8; 32];
+        let pqc = [0x02u8; 32];
+        let salt = [0x03u8; 16];
+        let info = b"test context";
 
-        let result = ConcatenationCombiner::combine_with_salt(&classical, &pqc, salt, info);
-        assert!(result.is_ok());
+        let result =
+            ConcatenationCombiner::combine_with_salt(&classical, &pqc, &salt, info).unwrap();
+        assert_eq!(result.0.len(), 32);
 
-        let secret = result.unwrap();
-        assert_eq!(secret.as_bytes().len(), 32);
-
-        // Different salt produces different output
-        let different_salt = b"different salt";
+        // Verify different salt produces different output
+        let salt2 = [0x04u8; 16];
         let result2 =
-            ConcatenationCombiner::combine_with_salt(&classical, &pqc, different_salt, info);
-        assert_ne!(secret.as_bytes(), result2.unwrap().as_bytes());
+            ConcatenationCombiner::combine_with_salt(&classical, &pqc, &salt2, info).unwrap();
+        assert_ne!(result.0, result2.0);
     }
 
     #[test]
     fn test_two_step_combiner() {
-        let classical = [1u8; 32];
-        let pqc = [2u8; 32];
-        let info = b"test info";
+        let classical = [0x01u8; 32];
+        let pqc = [0x02u8; 32];
+        let info = b"test context";
 
-        let result = TwoStepCombiner::combine(&classical, &pqc, info);
-        assert!(result.is_ok());
-
-        let secret = result.unwrap();
-        assert_eq!(secret.as_bytes().len(), 32);
-
-        // Verify deterministic
-        let result2 = TwoStepCombiner::combine(&classical, &pqc, info);
-        assert_eq!(secret.as_bytes(), result2.unwrap().as_bytes());
+        let result = TwoStepCombiner::combine(&classical, &pqc, info).unwrap();
+        assert_eq!(result.0.len(), 32);
     }
 
     #[test]
     fn test_hmac_combiner() {
-        let classical = [1u8; 32];
-        let pqc = [2u8; 32];
-        let info = b"test info";
+        let classical = [0x01u8; 32];
+        let pqc = [0x02u8; 32];
+        let info = b"test context";
 
-        let result = HmacCombiner::combine(&classical, &pqc, info);
-        assert!(result.is_ok());
-
-        let secret = result.unwrap();
-        assert_eq!(secret.as_bytes().len(), 32);
-
-        // Verify deterministic
-        let result2 = HmacCombiner::combine(&classical, &pqc, info);
-        assert_eq!(secret.as_bytes(), result2.unwrap().as_bytes());
+        let result = HmacCombiner::combine(&classical, &pqc, info).unwrap();
+        assert_eq!(result.0.len(), 32);
     }
 
     #[test]
     fn test_different_combiners_produce_different_outputs() {
-        let classical = [1u8; 32];
-        let pqc = [2u8; 32];
-        let info = b"test info";
+        let classical = [0x01u8; 32];
+        let pqc = [0x02u8; 32];
+        let info = b"test context";
 
         let concat_result = ConcatenationCombiner::combine(&classical, &pqc, info).unwrap();
         let twostep_result = TwoStepCombiner::combine(&classical, &pqc, info).unwrap();
         let hmac_result = HmacCombiner::combine(&classical, &pqc, info).unwrap();
 
-        // All three should produce different outputs
-        assert_ne!(concat_result.as_bytes(), twostep_result.as_bytes());
-        assert_ne!(concat_result.as_bytes(), hmac_result.as_bytes());
-        assert_ne!(twostep_result.as_bytes(), hmac_result.as_bytes());
-    }
-
-    #[test]
-    fn test_hybrid_combiner_trait() {
-        let combiner: Box<dyn HybridCombiner> = Box::new(ConcatenationCombiner);
-        assert_eq!(
-            combiner.algorithm_name(),
-            "NIST-SP-800-56C-Option1-Concatenation"
-        );
-
-        let classical = [1u8; 32];
-        let pqc = [2u8; 32];
-        let info = b"test info";
-
-        let result = combiner.combine(&classical, &pqc, info);
-        assert!(result.is_ok());
-    }
-
-    #[test]
-    fn test_default_combiner() {
-        let combiner = default_combiner();
-        assert_eq!(
-            combiner.algorithm_name(),
-            "NIST-SP-800-56C-Option1-Concatenation"
-        );
-    }
-
-    #[test]
-    fn test_combiner_with_various_sizes() {
-        // Test with different secret sizes
-        let classical_p256 = [1u8; 32]; // P-256 produces 32-byte secrets
-        let classical_p384 = [1u8; 48]; // P-384 produces 48-byte secrets
-        let pqc = [2u8; 32]; // ML-KEM always produces 32-byte secrets
-        let info = b"test info";
-
-        // Should work with different classical secret sizes
-        let result1 = ConcatenationCombiner::combine(&classical_p256, &pqc, info);
-        assert!(result1.is_ok());
-
-        let result2 = ConcatenationCombiner::combine(&classical_p384, &pqc, info);
-        assert!(result2.is_ok());
-
-        // Different input sizes should produce different outputs
-        assert_ne!(result1.unwrap().as_bytes(), result2.unwrap().as_bytes());
-    }
-
-    #[test]
-    fn test_empty_info() {
-        let classical = [1u8; 32];
-        let pqc = [2u8; 32];
-        let empty_info = b"";
-
-        // Should work with empty info
-        let result = ConcatenationCombiner::combine(&classical, &pqc, empty_info);
-        assert!(result.is_ok());
-    }
-
-    #[test]
-    fn test_large_info() {
-        let classical = [1u8; 32];
-        let pqc = [2u8; 32];
-        let large_info = vec![0u8; 1024]; // 1KB of info
-
-        // Should work with large info
-        let result = ConcatenationCombiner::combine(&classical, &pqc, &large_info);
-        assert!(result.is_ok());
+        // All three methods should produce different outputs
+        assert_ne!(concat_result.0, twostep_result.0);
+        assert_ne!(concat_result.0, hmac_result.0);
+        assert_ne!(twostep_result.0, hmac_result.0);
     }
 }

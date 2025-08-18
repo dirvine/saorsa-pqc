@@ -186,12 +186,6 @@ pub use pqc::{
     MlKemOperations,
 };
 
-// Experimental ML-DSA implementation exports (disabled by default)
-#[cfg(feature = "experimental-impl")]
-pub use pqc::{
-    MlDsa65Config, MlDsa65ExtendedOps, MlDsa65Production, MlDsa65ProductionOps, PerformanceConfig,
-    SecurityConfig,
-};
 
 // Re-export symmetric encryption for convenience
 pub use symmetric::{
@@ -250,13 +244,10 @@ pub fn init() -> Result<(), Box<dyn std::error::Error>> {
         pqc::memory_pool::initialize_global_pool()?;
     }
 
-    // Validate algorithm availability
-    #[cfg(feature = "aws-lc-rs")]
-    {
-        // Test that we can create algorithm instances
-        let _ml_kem = pqc::MlKem768::new();
-        let _ml_dsa = pqc::MlDsa65::new();
-    }
+    // Validate algorithm availability - always available now
+    // Test that we can create algorithm instances
+    let _ml_kem = pqc::MlKem768::new();
+    let _ml_dsa = pqc::MlDsa65::new();
 
     Ok(())
 }
@@ -294,13 +285,7 @@ pub struct LibraryInfo {
 fn get_enabled_features() -> Vec<String> {
     let mut features = Vec::new();
 
-    #[cfg(feature = "aws-lc-rs")]
-    features.push("aws-lc-rs".to_string());
-
-    #[cfg(feature = "rustls-ring")]
-    features.push("rustls-ring".to_string());
-
-    #[cfg(feature = "pqc")]
+    // PQC is always enabled now (using FIPS crates)
     features.push("pqc".to_string());
 
     #[cfg(feature = "parallel")]
@@ -345,9 +330,6 @@ mod tests {
             "Should have at least one feature enabled"
         );
 
-        // Default feature should be present
-        #[cfg(feature = "aws-lc-rs")]
-        assert!(features.contains(&"aws-lc-rs".to_string()));
     }
 
     #[test]

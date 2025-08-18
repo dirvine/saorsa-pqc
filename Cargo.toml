@@ -21,8 +21,6 @@ path = "src/lib.rs"
 [features]
 # All security and performance features enabled by default
 default = [
-    "aws-lc-rs", 
-    "pqc", 
     "parallel", 
     "memory-pool", 
     "secure-memory", 
@@ -32,12 +30,6 @@ default = [
     "extended-crypto"
 ]
 
-# Crypto providers (aws-lc-rs is default and preferred)
-aws-lc-rs = ["dep:aws-lc-rs", "dep:ring"]
-rustls-ring = ["dep:ring"]
-
-# Post-Quantum Cryptography support (always enabled by default)
-pqc = ["aws-lc-rs"]
 
 # Performance features (enabled by default)
 parallel = []
@@ -57,7 +49,6 @@ cert_compression = []
 dangerous_configuration = []
 test-utils = []
 benchmarks = []
-experimental-impl = []  # Enable experimental internal implementations
 
 [dependencies]
 # NIST Post-Quantum Cryptography Standards
@@ -65,9 +56,6 @@ fips203 = { version = "0.4", features = ["default-rng"] }  # ML-KEM (Kyber)
 fips204 = { version = "0.4", features = ["default-rng"] }  # ML-DSA (Dilithium)
 fips205 = { version = "0.4", features = ["default-rng"] }  # SLH-DSA (SPHINCS+)
 
-# Core cryptography
-aws-lc-rs = { version = "1.8", optional = true, features = ["unstable"] }
-ring = { version = "0.17", optional = true }
 
 # Async and concurrency
 tokio = { version = "1.35", features = ["rt", "net", "sync", "time", "macros"] }
@@ -152,17 +140,15 @@ slh-dsa = "0.0.3"  # Alternative SLH-DSA implementation for cross-validation
 [[test]]
 name = "ml_kem_tests"
 path = "tests/ml_kem_tests.rs"
-required-features = ["aws-lc-rs"]
 
 [[test]]
 name = "ml_dsa_tests"
 path = "tests/ml_dsa_tests.rs"
-required-features = ["aws-lc-rs"]
 
 [[test]]
 name = "property_tests"
 path = "tests/property_tests.rs"
-required-features = ["test-utils", "aws-lc-rs"]
+required-features = ["test-utils"]
 
 
 # Benchmarks
@@ -170,13 +156,13 @@ required-features = ["test-utils", "aws-lc-rs"]
 name = "ml_kem_benchmarks"
 path = "benches/ml_kem_benchmarks.rs"
 harness = false
-required-features = ["aws-lc-rs", "benchmarks"]
+required-features = ["benchmarks"]
 
 [[bench]]
 name = "ml_dsa_benchmarks"
 path = "benches/ml_dsa_benchmarks.rs"
 harness = false
-required-features = ["aws-lc-rs", "benchmarks"]
+required-features = ["benchmarks"]
 
 [[bench]]
 name = "comprehensive_benchmarks"

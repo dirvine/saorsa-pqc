@@ -87,6 +87,14 @@ pub enum PqcError {
     #[error("Invalid secret key")]
     InvalidSecretKey,
 
+    /// Encryption failed
+    #[error("Encryption failed: {0}")]
+    EncryptionFailed(String),
+
+    /// Decryption failed
+    #[error("Decryption failed: {0}")]
+    DecryptionFailed(String),
+
     /// Invalid shared secret
     #[error("Invalid shared secret")]
     InvalidSharedSecret,
@@ -126,7 +134,7 @@ pub const ML_DSA_65_SECRET_KEY_SIZE: usize = 4032;
 pub const ML_DSA_65_SIGNATURE_SIZE: usize = 3309;
 
 /// ML-KEM-768 public key
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct MlKemPublicKey(
     /// The raw public key bytes
     pub Box<[u8; ML_KEM_768_PUBLIC_KEY_SIZE]>,
@@ -183,7 +191,7 @@ impl MlKemSecretKey {
 }
 
 /// ML-KEM-768 ciphertext
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct MlKemCiphertext(
     /// The raw ciphertext bytes
     pub Box<[u8; ML_KEM_768_CIPHERTEXT_SIZE]>,
@@ -210,7 +218,7 @@ impl MlKemCiphertext {
 }
 
 /// ML-DSA-65 public key
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct MlDsaPublicKey(
     /// The raw public key bytes
     pub Box<[u8; ML_DSA_65_PUBLIC_KEY_SIZE]>,
@@ -267,7 +275,7 @@ impl MlDsaSecretKey {
 }
 
 /// ML-DSA-65 signature
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct MlDsaSignature(
     /// The raw signature bytes
     pub Box<[u8; ML_DSA_65_SIGNATURE_SIZE]>,
@@ -324,7 +332,7 @@ impl SharedSecret {
 }
 
 /// Hybrid KEM public key
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct HybridKemPublicKey {
     /// Classical public key (e.g., X25519)
     pub classical: Box<[u8]>,
@@ -345,7 +353,7 @@ pub struct HybridKemSecretKey {
 }
 
 /// Hybrid KEM ciphertext
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct HybridKemCiphertext {
     /// Classical ciphertext (e.g., X25519 ephemeral key)
     pub classical: Box<[u8]>,
@@ -354,7 +362,7 @@ pub struct HybridKemCiphertext {
 }
 
 /// Hybrid signature public key
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct HybridSignaturePublicKey {
     /// Classical public key (e.g., Ed25519)
     pub classical: Box<[u8]>,
@@ -375,7 +383,7 @@ pub struct HybridSignatureSecretKey {
 }
 
 /// Hybrid signature value
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct HybridSignatureValue {
     /// Classical signature (e.g., Ed25519)
     pub classical: Box<[u8]>,
