@@ -98,8 +98,8 @@ const ML_DSA_65_KEYGEN: &str = include_str!("nist_vectors/ml_dsa/keygen_prompt.j
 const ML_DSA_65_KEYGEN_EXPECTED: &str = include_str!("nist_vectors/ml_dsa/keygen_expected.json");
 const ML_DSA_65_SIGGEN: &str = include_str!("nist_vectors/ml_dsa/siggen_prompt.json");
 const ML_DSA_65_SIGGEN_EXPECTED: &str = include_str!("nist_vectors/ml_dsa/siggen_expected.json");
-const ML_DSA_65_SIGVER: &str = include_str!("nist_vectors/ml_dsa/sigver_prompt.json");
-const ML_DSA_65_SIGVER_EXPECTED: &str = include_str!("nist_vectors/ml_dsa/sigver_expected.json");
+const _ML_DSA_65_SIGVER: &str = include_str!("nist_vectors/ml_dsa/sigver_prompt.json");
+const _ML_DSA_65_SIGVER_EXPECTED: &str = include_str!("nist_vectors/ml_dsa/sigver_expected.json");
 
 /// Helper function to decode hex strings
 fn decode_hex(hex: &str) -> Vec<u8> {
@@ -296,7 +296,7 @@ mod ml_dsa_tests {
             for (test, exp_test) in group.tests.iter().zip(exp_group.tests.iter()) {
                 let vector: MlDsaTestVector =
                     serde_json::from_value(test.clone()).expect("Failed to parse test vector");
-                let expected: MlDsaTestVector = serde_json::from_value(exp_test.clone())
+                let _expected: MlDsaTestVector = serde_json::from_value(exp_test.clone())
                     .expect("Failed to parse expected vector");
 
                 if !vector.parameter_set.contains("ML-DSA-65") {

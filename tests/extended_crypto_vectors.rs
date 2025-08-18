@@ -482,7 +482,7 @@ mod hpke_vectors {
 
     #[test]
     fn test_hpke_deterministic_with_seed() {
-        let config = HpkeConfig {
+        let _config = HpkeConfig {
             kem: MlKemVariant::MlKem768,
             kdf: KdfAlgorithm::HkdfSha3_256,
             aead: AeadCipher::Aes256Gcm,
@@ -514,7 +514,7 @@ mod hpke_vectors {
 
     #[test]
     fn test_hpke_wrong_key_fails() {
-        let config = HpkeConfig {
+        let _config = HpkeConfig {
             kem: MlKemVariant::MlKem768,
             kdf: KdfAlgorithm::HkdfSha3_256,
             aead: AeadCipher::Aes256Gcm,
