@@ -247,7 +247,7 @@ pub fn filter_by_parameter_set<'a>(
 ///
 /// # Returns
 /// * `Vec<&TestCase>` - All test cases for the parameter set
-pub fn extract_test_cases<'a>(
+pub fn _extract_test_cases<'a>(
     vectors: &'a AcvpTestVector,
     parameter_set: &str,
 ) -> Vec<&'a TestCase> {

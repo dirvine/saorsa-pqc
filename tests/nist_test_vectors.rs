@@ -140,7 +140,7 @@ mod ml_kem_tests {
                 println!("Testing vector {}", vector.tc_id);
 
                 // Test deterministic key generation with seed
-                if let (Some(seed), Some(exp_ek), Some(exp_dk)) =
+                if let (Some(seed), Some(_exp_ek), Some(_exp_dk)) =
                     (&vector.seed, &expected.ek, &expected.dk)
                 {
                     let seed_bytes = decode_hex(seed);

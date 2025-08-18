@@ -143,7 +143,6 @@ fn test_constant_time_secret_option() {
 #[test]
 fn test_memory_clearing() {
     use saorsa_pqc::pqc::constant_time::ct_clear;
-    use zeroize::Zeroize;
 
     let mut sensitive_data = vec![0xAAu8; 100];
 

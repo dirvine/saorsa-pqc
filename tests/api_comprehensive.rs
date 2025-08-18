@@ -223,7 +223,7 @@ fn test_api_comprehensive_workflow() {
     let (dsa_pk, dsa_sk) = dsa.generate_keypair().unwrap();
 
     // 5. Hybrid operation (KEM + DSA)
-    let message = b"Important data";
+    let _message = b"Important data";
 
     // Encapsulate shared secret
     let (shared_secret, ciphertext) = kem.encapsulate(&kem_pk).unwrap();
