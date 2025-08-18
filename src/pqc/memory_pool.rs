@@ -546,6 +546,7 @@ mod tests {
     }
 
     #[test]
+    #[allow(clippy::similar_names, clippy::unwrap_used)]
     fn test_all_buffer_types() {
         let pool = PqcMemoryPool::new(PoolConfig::default());
 

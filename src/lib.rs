@@ -338,6 +338,7 @@ mod tests {
     }
 
     #[test]
+    #[allow(clippy::const_is_empty)]
     fn test_constants() {
         assert!(!SUPPORTED_ML_KEM.is_empty());
         assert!(!SUPPORTED_ML_DSA.is_empty());

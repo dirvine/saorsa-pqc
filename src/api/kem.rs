@@ -1030,6 +1030,7 @@ mod tests {
     }
 
     #[test]
+    #[allow(clippy::similar_names, clippy::unwrap_used)]
     fn test_serialization() {
         let kem = ml_kem_768();
         let (pk, sk) = kem.generate_keypair().unwrap();
