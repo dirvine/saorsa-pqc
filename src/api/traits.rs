@@ -22,12 +22,27 @@ pub trait Kem {
     type SharedSecret: AsRef<[u8]> + ZeroizeOnDrop;
 
     /// Generate a new key pair
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if key generation fails due to insufficient randomness
+    /// or other cryptographic failures.
     fn generate_keypair() -> PqcResult<(Self::PublicKey, Self::SecretKey)>;
 
     /// Encapsulate a shared secret
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if encapsulation fails due to invalid public key
+    /// or other cryptographic failures.
     fn encapsulate(pk: &Self::PublicKey) -> PqcResult<(Self::SharedSecret, Self::Ciphertext)>;
 
     /// Decapsulate to recover the shared secret
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if decapsulation fails due to invalid ciphertext,
+    /// invalid secret key, or other cryptographic failures.
     fn decapsulate(sk: &Self::SecretKey, ct: &Self::Ciphertext) -> PqcResult<Self::SharedSecret>;
 
     /// Get the name of this KEM
@@ -46,12 +61,27 @@ pub trait SignatureScheme {
     type Signature: AsRef<[u8]> + Clone;
 
     /// Generate a new key pair
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if key generation fails due to insufficient randomness
+    /// or other cryptographic failures.
     fn generate_keypair() -> PqcResult<(Self::PublicKey, Self::SecretKey)>;
 
     /// Sign a message
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if signing fails due to invalid secret key
+    /// or other cryptographic failures.
     fn sign(sk: &Self::SecretKey, message: &[u8]) -> PqcResult<Self::Signature>;
 
     /// Verify a signature
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if verification fails due to invalid public key,
+    /// malformed signature, or other cryptographic failures.
     fn verify(pk: &Self::PublicKey, message: &[u8], signature: &Self::Signature)
         -> PqcResult<bool>;
 
@@ -100,12 +130,22 @@ pub trait Kdf {
     /// * `salt` - Optional salt value
     /// * `info` - Optional context/application specific info
     /// * `okm` - Output key material buffer
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if key derivation fails due to invalid parameters
+    /// or insufficient output buffer size.
     fn derive(ikm: &[u8], salt: Option<&[u8]>, info: &[u8], okm: &mut [u8]) -> PqcResult<()>;
 
     /// Extract pseudorandom key from input key material
     fn extract(salt: Option<&[u8]>, ikm: &[u8]) -> Vec<u8>;
 
     /// Expand pseudorandom key to desired length
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if expansion fails due to invalid pseudorandom key,
+    /// excessive output length, or other cryptographic failures.
     fn expand(prk: &[u8], info: &[u8], okm: &mut [u8]) -> PqcResult<()>;
 
     /// Get the name of this KDF
@@ -121,11 +161,20 @@ pub trait Aead {
     type Tag: AsRef<[u8]>;
 
     /// Create a new AEAD instance with a key
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the key length is invalid or key initialization fails.
     fn new(key: &[u8]) -> PqcResult<Self>
     where
         Self: Sized;
 
     /// Encrypt with associated data
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if encryption fails due to invalid nonce,
+    /// buffer size issues, or other cryptographic failures.
     fn encrypt_in_place_detached(
         &self,
         nonce: &Self::Nonce,
@@ -134,6 +183,11 @@ pub trait Aead {
     ) -> PqcResult<Self::Tag>;
 
     /// Decrypt with associated data
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if decryption fails due to authentication failure,
+    /// invalid nonce, buffer size issues, or other cryptographic failures.
     fn decrypt_in_place_detached(
         &self,
         nonce: &Self::Nonce,
@@ -143,6 +197,11 @@ pub trait Aead {
     ) -> PqcResult<()>;
 
     /// Encrypt and append tag
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if encryption fails due to invalid nonce
+    /// or other cryptographic failures.
     fn encrypt(
         &self,
         nonce: &Self::Nonce,
@@ -151,6 +210,11 @@ pub trait Aead {
     ) -> PqcResult<Vec<u8>>;
 
     /// Decrypt and verify tag
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if decryption fails due to authentication failure,
+    /// invalid nonce, insufficient ciphertext length, or other cryptographic failures.
     fn decrypt(
         &self,
         nonce: &Self::Nonce,
@@ -177,6 +241,10 @@ pub trait Mac {
     type Output: AsRef<[u8]> + Clone;
 
     /// Create a new MAC instance with a key
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the key length is invalid or MAC initialization fails.
     fn new(key: &[u8]) -> PqcResult<Self>
     where
         Self: Sized;
@@ -188,9 +256,19 @@ pub trait Mac {
     fn finalize(self) -> Self::Output;
 
     /// Verify a MAC value (constant-time)
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if verification fails due to tag mismatch,
+    /// invalid tag length, or other cryptographic failures.
     fn verify(&self, tag: &[u8]) -> PqcResult<()>;
 
     /// One-shot MAC computation
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if MAC computation fails due to invalid key
+    /// or MAC initialization failures.
     fn mac(key: &[u8], data: &[u8]) -> PqcResult<Self::Output>
     where
         Self: Sized,
