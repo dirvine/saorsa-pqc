@@ -11,9 +11,16 @@ use rand_core::OsRng;
 /// ML-DSA-65 implementation using FIPS-certified algorithm
 pub struct MlDsa65;
 
+impl Default for MlDsa65 {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl MlDsa65 {
     /// Create a new ML-DSA-65 instance
-    pub fn new() -> Self {
+    #[must_use]
+    pub const fn new() -> Self {
         Self
     }
 }
@@ -50,7 +57,7 @@ impl MlDsaOperations for MlDsa65 {
             .try_sign_with_rng(&mut OsRng, message, b"")
             .map_err(|e| crate::pqc::types::PqcError::SigningFailed(e.to_string()))?;
 
-        Ok(MlDsaSignature::from_bytes(&sig)?)
+        MlDsaSignature::from_bytes(&sig)
     }
 
     fn verify(

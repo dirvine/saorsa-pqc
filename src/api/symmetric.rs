@@ -29,6 +29,7 @@ pub struct ChaCha20Poly1305 {
 
 impl ChaCha20Poly1305 {
     /// Create a new ChaCha20-Poly1305 cipher from a 256-bit key
+    #[must_use]
     pub fn new(key: &Key) -> Self {
         Self {
             cipher: Cipher::new(key),
@@ -107,6 +108,7 @@ pub struct SecureKey {
 
 impl SecureKey {
     /// Create a new secure key from bytes
+    #[must_use]
     pub fn from_bytes(bytes: &[u8; 32]) -> Self {
         Self {
             key: *Key::from_slice(bytes),
@@ -114,6 +116,7 @@ impl SecureKey {
     }
 
     /// Generate a new random secure key
+    #[must_use]
     pub fn generate() -> Self {
         Self {
             key: ChaCha20Poly1305::generate_key(),
@@ -121,17 +124,20 @@ impl SecureKey {
     }
 
     /// Get a reference to the inner key
-    pub fn as_key(&self) -> &Key {
+    #[must_use]
+    pub const fn as_key(&self) -> &Key {
         &self.key
     }
 }
 
 /// Convenience function to generate a new 256-bit key
+#[must_use]
 pub fn generate_key() -> Key {
     ChaCha20Poly1305::generate_key()
 }
 
 /// Convenience function to generate a new 96-bit nonce
+#[must_use]
 pub fn generate_nonce() -> Nonce {
     ChaCha20Poly1305::generate_nonce()
 }

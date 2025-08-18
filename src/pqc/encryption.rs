@@ -23,14 +23,16 @@
 //! - HKDF-SHA256 for proper key derivation (NIST SP 800-56C Rev. 2)
 //! - Constant-time operations where possible
 
-use crate::pqc::types::*;
+use crate::pqc::types::{
+    MlKemCiphertext, MlKemPublicKey, MlKemSecretKey, PqcError, PqcResult, SharedSecret,
+};
 use crate::pqc::{ml_kem::MlKem768, MlKemOperations};
 use aes_gcm::{
     aead::{Aead, KeyInit},
     Aes256Gcm, Key, Nonce as AesNonce,
 };
 use hkdf::Hkdf;
-use rand::{RngCore, thread_rng};
+use rand::{thread_rng, RngCore};
 use sha2::{Digest, Sha256};
 use std::collections::HashMap;
 
@@ -66,7 +68,8 @@ pub struct HybridPublicKeyEncryption {
 
 impl HybridPublicKeyEncryption {
     /// Create a new hybrid encryption instance
-    pub fn new() -> Self {
+    #[must_use]
+    pub const fn new() -> Self {
         Self {
             ml_kem: MlKem768::new(),
         }
@@ -261,10 +264,7 @@ impl DecryptionSession {
     /// # Arguments
     /// * `secret_key` - Recipient's secret key
     /// * `kem_ciphertext` - KEM ciphertext from sender
-    pub fn new(
-        secret_key: &MlKemSecretKey,
-        kem_ciphertext: &MlKemCiphertext,
-    ) -> PqcResult<Self> {
+    pub fn new(secret_key: &MlKemSecretKey, kem_ciphertext: &MlKemCiphertext) -> PqcResult<Self> {
         let ml_kem = MlKem768::new();
         let shared_secret = ml_kem.decapsulate(secret_key, kem_ciphertext)?;
 

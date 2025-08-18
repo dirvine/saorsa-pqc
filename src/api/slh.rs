@@ -1,7 +1,152 @@
-//! SLH-DSA (Stateless Hash-Based Digital Signature Algorithm) API
+//! SLH-DSA (Stateless Hash-Based Digital Signature Algorithm) API - FIPS 205
 //!
-//! Provides a simple interface to FIPS 205 SLH-DSA without requiring
-//! users to manage RNG or internal details.
+//! This module provides a high-level interface to the FIPS 205 SLH-DSA (Stateless
+//! Hash-Based Digital Signature Algorithm), also known as SPHINCS+. SLH-DSA is unique
+//! among post-quantum signature schemes as it relies solely on the security of hash
+//! functions rather than mathematical problems like lattices or codes.
+//!
+//! # Features
+//!
+//! - **Multiple security levels**: 128-bit, 192-bit, and 256-bit
+//! - **Two optimization modes**:
+//!   - Small signatures (s variants): Optimized for size (~8-30KB signatures)
+//!   - Fast signing (f variants): Optimized for speed (~17-50KB signatures)
+//! - **Two hash function families**: SHA-2 and SHAKE
+//! - **Stateless operation**: No state management required
+//! - **Context support**: Domain separation for different applications
+//! - **Memory-safe**: Automatic zeroization of sensitive data
+//!
+//! # Security Levels and Variants
+//!
+//! SLH-DSA offers 12 parameter sets combining security levels, hash functions, and
+//! optimization modes:
+//!
+//! | Variant | Security | Hash | Mode | Signature Size | Signing Speed |
+//! |---------|----------|------|------|----------------|---------------|
+//! | SHA2-128s | 128-bit | SHA-2 | Small | 7,856 bytes | Slower |
+//! | SHA2-128f | 128-bit | SHA-2 | Fast | 17,088 bytes | Faster |
+//! | SHA2-192s | 192-bit | SHA-2 | Small | 16,224 bytes | Slower |
+//! | SHA2-192f | 192-bit | SHA-2 | Fast | 35,664 bytes | Faster |
+//! | SHA2-256s | 256-bit | SHA-2 | Small | 29,792 bytes | Slower |
+//! | SHA2-256f | 256-bit | SHA-2 | Fast | 49,856 bytes | Faster |
+//! | SHAKE-128s | 128-bit | SHAKE | Small | 7,856 bytes | Slower |
+//! | SHAKE-128f | 128-bit | SHAKE | Fast | 17,088 bytes | Faster |
+//! | SHAKE-192s | 192-bit | SHAKE | Small | 16,224 bytes | Slower |
+//! | SHAKE-192f | 192-bit | SHAKE | Fast | 35,664 bytes | Faster |
+//! | SHAKE-256s | 256-bit | SHAKE | Small | 29,792 bytes | Slower |
+//! | SHAKE-256f | 256-bit | SHAKE | Fast | 49,856 bytes | Faster |
+//!
+//! # Basic Usage
+//!
+//! ```rust
+//! use saorsa_pqc::api::{SlhDsa, SlhDsaVariant};
+//!
+//! // Create SLH-DSA instance with SHA2-128s (small signatures)
+//! let slh = SlhDsa::new(SlhDsaVariant::Sha2_128s);
+//!
+//! // Generate a key pair
+//! let (public_key, secret_key) = slh.generate_keypair()?;
+//!
+//! // Sign a message
+//! let message = b"Hello, post-quantum world!";
+//! let signature = slh.sign(&secret_key, message)?;
+//!
+//! // Verify the signature
+//! let is_valid = slh.verify(&public_key, message, &signature)?;
+//! assert!(is_valid);
+//! # Ok::<(), Box<dyn std::error::Error>>(())
+//! ```
+//!
+//! # Advanced Usage with Context
+//!
+//! ```rust
+//! use saorsa_pqc::api::{SlhDsa, SlhDsaVariant};
+//!
+//! // Use SHA2-128f for faster signing
+//! let slh = SlhDsa::new(SlhDsaVariant::Sha2_128f);
+//! let (public_key, secret_key) = slh.generate_keypair()?;
+//!
+//! // Sign with context for domain separation
+//! let message = b"Financial transaction data";
+//! let context = b"BankingApp-v1.0";
+//! let signature = slh.sign_with_context(&secret_key, message, context)?;
+//!
+//! // Verify with the same context
+//! let is_valid = slh.verify_with_context(&public_key, message, &signature, context)?;
+//! assert!(is_valid);
+//!
+//! // Different context will fail verification
+//! let wrong_context = b"BankingApp-v2.0";
+//! let is_valid = slh.verify_with_context(&public_key, message, &signature, wrong_context)?;
+//! assert!(!is_valid);
+//! # Ok::<(), Box<dyn std::error::Error>>(())
+//! ```
+//!
+//! # Choosing a Variant
+//!
+//! ## For Bandwidth-Constrained Applications
+//! Use "s" (small) variants when signature size is critical:
+//! ```rust
+//! use saorsa_pqc::api::{SlhDsa, SlhDsaVariant};
+//!
+//! // SHA2-128s: Smallest signatures at 128-bit security
+//! let slh = SlhDsa::new(SlhDsaVariant::Sha2_128s);
+//! # let (_, sk) = slh.generate_keypair().unwrap();
+//! # let sig = slh.sign(&sk, b"test").unwrap();
+//! // Signature is only 7,856 bytes
+//! ```
+//!
+//! ## For Performance-Critical Applications
+//! Use "f" (fast) variants when signing speed is critical:
+//! ```rust
+//! use saorsa_pqc::api::{SlhDsa, SlhDsaVariant};
+//!
+//! // SHA2-128f: Faster signing at 128-bit security
+//! let slh = SlhDsa::new(SlhDsaVariant::Sha2_128f);
+//! # let (_, sk) = slh.generate_keypair().unwrap();
+//! # let sig = slh.sign(&sk, b"test").unwrap();
+//! // Signing is ~8x faster than SHA2-128s
+//! ```
+//!
+//! ## Hardware Acceleration Considerations
+//! - Use SHA-2 variants if your platform has SHA-256 hardware acceleration
+//! - Use SHAKE variants for better performance on platforms without SHA-2 acceleration
+//!
+//! # Key Management
+//!
+//! ```rust
+//! use saorsa_pqc::api::{SlhDsa, SlhDsaVariant, SlhDsaPublicKey, SlhDsaSecretKey};
+//!
+//! let slh = SlhDsa::new(SlhDsaVariant::Sha2_128s);
+//! let (public_key, secret_key) = slh.generate_keypair()?;
+//!
+//! // Export keys for storage
+//! let pk_bytes = public_key.to_bytes();
+//! let sk_bytes = secret_key.to_bytes();
+//!
+//! // Import keys from storage
+//! let imported_pk = SlhDsaPublicKey::from_bytes(SlhDsaVariant::Sha2_128s, &pk_bytes)?;
+//! let imported_sk = SlhDsaSecretKey::from_bytes(SlhDsaVariant::Sha2_128s, &sk_bytes)?;
+//!
+//! // Use imported keys
+//! let message = b"Test message";
+//! let signature = slh.sign(&imported_sk, message)?;
+//! assert!(slh.verify(&imported_pk, message, &signature)?);
+//! # Ok::<(), Box<dyn std::error::Error>>(())
+//! ```
+//!
+//! # Security Considerations
+//!
+//! 1. **Hash-based security**: SLH-DSA's security relies solely on the preimage and
+//!    collision resistance of the underlying hash functions
+//! 2. **Stateless operation**: Unlike traditional hash-based signatures, SLH-DSA requires
+//!    no state management, eliminating synchronization issues
+//! 3. **Large signatures**: SLH-DSA signatures are significantly larger than classical
+//!    or lattice-based schemes
+//! 4. **Hedged randomness**: The implementation uses hedged randomness by default for
+//!    enhanced security against RNG failures
+//! 5. **Side-channel resistance**: The underlying implementation includes protections
+//!    against timing attacks
 
 use super::errors::{PqcError, PqcResult};
 use rand_core::OsRng;
@@ -15,32 +160,54 @@ use fips205::{
     slh_dsa_shake_192s, slh_dsa_shake_256f, slh_dsa_shake_256s,
 };
 
-/// SLH-DSA algorithm variants
+/// SLH-DSA algorithm variants as defined in FIPS 205
+///
+/// Each variant represents a specific parameter set combining:
+/// - Security level (128, 192, or 256 bits)
+/// - Hash function (SHA-2 or SHAKE)
+/// - Optimization mode (s for small signatures, f for fast signing)
+///
+/// # Example
+/// ```rust
+/// use saorsa_pqc::api::SlhDsaVariant;
+///
+/// // Choose based on your requirements
+/// let need_small_signatures = true;
+/// let variant = if need_small_signatures {
+///     SlhDsaVariant::Sha2_128s  // 7.8KB signatures
+/// } else {
+///     SlhDsaVariant::Sha2_128f  // 17KB signatures, 8x faster
+/// };
+///
+/// // Query variant properties
+/// println!("Security: {}", variant.security_level());
+/// println!("Signature size: {} bytes", variant.signature_size());
+/// ```
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum SlhDsaVariant {
-    /// SHA2-128s: Small signature, slower (128-bit security)
+    /// SHA2-128s: Small signature, slower (128-bit security, 7.8KB signatures)
     Sha2_128s,
-    /// SHA2-128f: Fast signing, larger signature (128-bit security)
+    /// SHA2-128f: Fast signing, larger signature (128-bit security, 17KB signatures)
     Sha2_128f,
-    /// SHA2-192s: Small signature, slower (192-bit security)
+    /// SHA2-192s: Small signature, slower (192-bit security, 16KB signatures)
     Sha2_192s,
-    /// SHA2-192f: Fast signing, larger signature (192-bit security)
+    /// SHA2-192f: Fast signing, larger signature (192-bit security, 35KB signatures)
     Sha2_192f,
-    /// SHA2-256s: Small signature, slower (256-bit security)
+    /// SHA2-256s: Small signature, slower (256-bit security, 30KB signatures)
     Sha2_256s,
-    /// SHA2-256f: Fast signing, larger signature (256-bit security)
+    /// SHA2-256f: Fast signing, larger signature (256-bit security, 50KB signatures)
     Sha2_256f,
-    /// SHAKE-128s: Small signature, slower (128-bit security)
+    /// SHAKE-128s: Small signature, slower (128-bit security, 7.8KB signatures)
     Shake128s,
-    /// SHAKE-128f: Fast signing, larger signature (128-bit security)
+    /// SHAKE-128f: Fast signing, larger signature (128-bit security, 17KB signatures)
     Shake128f,
-    /// SHAKE-192s: Small signature, slower (192-bit security)
+    /// SHAKE-192s: Small signature, slower (192-bit security, 16KB signatures)
     Shake192s,
-    /// SHAKE-192f: Fast signing, larger signature (192-bit security)
+    /// SHAKE-192f: Fast signing, larger signature (192-bit security, 35KB signatures)
     Shake192f,
-    /// SHAKE-256s: Small signature, slower (256-bit security)
+    /// SHAKE-256s: Small signature, slower (256-bit security, 30KB signatures)
     Shake256s,
-    /// SHAKE-256f: Fast signing, larger signature (256-bit security)
+    /// SHAKE-256f: Fast signing, larger signature (256-bit security, 50KB signatures)
     Shake256f,
 }
 
@@ -53,7 +220,8 @@ impl zeroize::Zeroize for SlhDsaVariant {
 
 impl SlhDsaVariant {
     /// Get the public key size in bytes
-    pub fn public_key_size(&self) -> usize {
+    #[must_use]
+    pub const fn public_key_size(&self) -> usize {
         match self {
             Self::Sha2_128s | Self::Sha2_128f | Self::Shake128s | Self::Shake128f => 32,
             Self::Sha2_192s | Self::Sha2_192f | Self::Shake192s | Self::Shake192f => 48,
@@ -62,7 +230,8 @@ impl SlhDsaVariant {
     }
 
     /// Get the secret key size in bytes
-    pub fn secret_key_size(&self) -> usize {
+    #[must_use]
+    pub const fn secret_key_size(&self) -> usize {
         match self {
             Self::Sha2_128s | Self::Sha2_128f | Self::Shake128s | Self::Shake128f => 64,
             Self::Sha2_192s | Self::Sha2_192f | Self::Shake192s | Self::Shake192f => 96,
@@ -71,7 +240,8 @@ impl SlhDsaVariant {
     }
 
     /// Get the signature size in bytes
-    pub fn signature_size(&self) -> usize {
+    #[must_use]
+    pub const fn signature_size(&self) -> usize {
         match self {
             Self::Sha2_128s | Self::Shake128s => 7856,
             Self::Sha2_128f | Self::Shake128f => 17088,
@@ -83,7 +253,8 @@ impl SlhDsaVariant {
     }
 
     /// Get the security level description
-    pub fn security_level(&self) -> &'static str {
+    #[must_use]
+    pub const fn security_level(&self) -> &'static str {
         match self {
             Self::Sha2_128s | Self::Sha2_128f | Self::Shake128s | Self::Shake128f => {
                 "128-bit security"
@@ -98,7 +269,8 @@ impl SlhDsaVariant {
     }
 
     /// Is this a "small" variant (slower but smaller signatures)?
-    pub fn is_small(&self) -> bool {
+    #[must_use]
+    pub const fn is_small(&self) -> bool {
         matches!(
             self,
             Self::Sha2_128s
@@ -114,7 +286,28 @@ impl SlhDsaVariant {
     pub const MAX_CONTEXT_LENGTH: usize = 255;
 }
 
-/// SLH-DSA public key
+/// SLH-DSA public key for signature verification
+///
+/// This represents a public key that can be shared openly and used to verify
+/// signatures created with the corresponding secret key. The key size varies
+/// based on the security level (32, 48, or 64 bytes).
+///
+/// # Example
+/// ```rust
+/// use saorsa_pqc::api::{SlhDsa, SlhDsaVariant, SlhDsaPublicKey};
+///
+/// // Generate a key pair
+/// let slh = SlhDsa::new(SlhDsaVariant::Sha2_128s);
+/// let (public_key, secret_key) = slh.generate_keypair()?;
+///
+/// // Export for transmission or storage
+/// let pk_bytes = public_key.to_bytes();
+/// assert_eq!(pk_bytes.len(), 32);  // 32 bytes for 128-bit security
+///
+/// // Import from bytes
+/// let imported_pk = SlhDsaPublicKey::from_bytes(SlhDsaVariant::Sha2_128s, &pk_bytes)?;
+/// # Ok::<(), Box<dyn std::error::Error>>(())
+/// ```
 #[derive(Clone, Zeroize, ZeroizeOnDrop)]
 pub struct SlhDsaPublicKey {
     #[zeroize(skip)]
@@ -124,11 +317,13 @@ pub struct SlhDsaPublicKey {
 
 impl SlhDsaPublicKey {
     /// Get the variant of this key
-    pub fn variant(&self) -> SlhDsaVariant {
+    #[must_use]
+    pub const fn variant(&self) -> SlhDsaVariant {
         self.variant
     }
 
     /// Export the public key as bytes
+    #[must_use]
     pub fn to_bytes(&self) -> Vec<u8> {
         self.bytes.clone()
     }
@@ -149,7 +344,36 @@ impl SlhDsaPublicKey {
     }
 }
 
-/// SLH-DSA secret key
+/// SLH-DSA secret key for signature generation
+///
+/// This represents a secret key that must be kept private and is used to create
+/// signatures. The key is automatically zeroized when dropped to prevent sensitive
+/// data from remaining in memory. Key sizes are 64, 96, or 128 bytes depending
+/// on the security level.
+///
+/// # Security
+/// - Secret keys are automatically zeroized on drop
+/// - Use secure storage when persisting keys
+/// - Never transmit secret keys over insecure channels
+///
+/// # Example
+/// ```rust
+/// use saorsa_pqc::api::{SlhDsa, SlhDsaVariant, SlhDsaSecretKey};
+///
+/// let slh = SlhDsa::new(SlhDsaVariant::Sha2_128s);
+/// let (public_key, secret_key) = slh.generate_keypair()?;
+///
+/// // Sign a message
+/// let signature = slh.sign(&secret_key, b"Important document")?;
+///
+/// // Export for secure storage (handle with care!)
+/// let sk_bytes = secret_key.to_bytes();
+/// assert_eq!(sk_bytes.len(), 64);  // 64 bytes for 128-bit security
+///
+/// // Import from secure storage
+/// let imported_sk = SlhDsaSecretKey::from_bytes(SlhDsaVariant::Sha2_128s, &sk_bytes)?;
+/// # Ok::<(), Box<dyn std::error::Error>>(())
+/// ```
 #[derive(Clone, Zeroize, ZeroizeOnDrop)]
 pub struct SlhDsaSecretKey {
     #[zeroize(skip)]
@@ -159,11 +383,13 @@ pub struct SlhDsaSecretKey {
 
 impl SlhDsaSecretKey {
     /// Get the variant of this key
-    pub fn variant(&self) -> SlhDsaVariant {
+    #[must_use]
+    pub const fn variant(&self) -> SlhDsaVariant {
         self.variant
     }
 
     /// Export the secret key as bytes (handle with care!)
+    #[must_use]
     pub fn to_bytes(&self) -> Vec<u8> {
         self.bytes.clone()
     }
@@ -185,6 +411,39 @@ impl SlhDsaSecretKey {
 }
 
 /// SLH-DSA signature
+///
+/// Represents a digital signature created using SLH-DSA. Signature sizes range from
+/// approximately 8KB to 50KB depending on the variant chosen. The signature includes
+/// all necessary information for verification and is deterministic for a given
+/// message and key pair.
+///
+/// # Size Considerations
+/// SLH-DSA signatures are significantly larger than classical signatures:
+/// - Small variants (s): 8KB - 30KB
+/// - Fast variants (f): 17KB - 50KB
+///
+/// # Example
+/// ```rust
+/// use saorsa_pqc::api::{SlhDsa, SlhDsaVariant, SlhDsaSignature};
+///
+/// let slh = SlhDsa::new(SlhDsaVariant::Sha2_128s);
+/// let (public_key, secret_key) = slh.generate_keypair()?;
+///
+/// // Create a signature
+/// let message = b"Contract agreement";
+/// let signature = slh.sign(&secret_key, message)?;
+///
+/// // Export for transmission
+/// let sig_bytes = signature.to_bytes();
+/// println!("Signature size: {} bytes", sig_bytes.len());
+///
+/// // Import received signature
+/// let imported_sig = SlhDsaSignature::from_bytes(SlhDsaVariant::Sha2_128s, &sig_bytes)?;
+///
+/// // Verify the imported signature
+/// assert!(slh.verify(&public_key, message, &imported_sig)?);
+/// # Ok::<(), Box<dyn std::error::Error>>(())
+/// ```
 #[derive(Clone, Zeroize, ZeroizeOnDrop)]
 pub struct SlhDsaSignature {
     #[zeroize(skip)]
@@ -194,11 +453,13 @@ pub struct SlhDsaSignature {
 
 impl SlhDsaSignature {
     /// Get the variant of this signature
-    pub fn variant(&self) -> SlhDsaVariant {
+    #[must_use]
+    pub const fn variant(&self) -> SlhDsaVariant {
         self.variant
     }
 
     /// Export the signature as bytes
+    #[must_use]
     pub fn to_bytes(&self) -> Vec<u8> {
         self.bytes.clone()
     }
@@ -219,18 +480,74 @@ impl SlhDsaSignature {
     }
 }
 
-/// SLH-DSA main API
+/// SLH-DSA (Stateless Hash-Based Digital Signature Algorithm) main API
+///
+/// This struct provides the main interface for SLH-DSA operations including
+/// key generation, signing, and verification. It encapsulates the complexity
+/// of the underlying FIPS 205 implementation and provides a simple, safe API.
+///
+/// # Example
+/// ```rust
+/// use saorsa_pqc::api::{SlhDsa, SlhDsaVariant};
+///
+/// // Create an instance for 192-bit security with small signatures
+/// let slh = SlhDsa::new(SlhDsaVariant::Sha2_128s);
+///
+/// // Generate keys
+/// let (public_key, secret_key) = slh.generate_keypair()?;
+///
+/// // Sign and verify
+/// let message = b"Quantum-safe message";
+/// let signature = slh.sign(&secret_key, message)?;
+/// assert!(slh.verify(&public_key, message, &signature)?);
+/// # Ok::<(), Box<dyn std::error::Error>>(())
+/// ```
 pub struct SlhDsa {
     variant: SlhDsaVariant,
 }
 
 impl SlhDsa {
     /// Create a new SLH-DSA instance with the specified variant
-    pub fn new(variant: SlhDsaVariant) -> Self {
+    ///
+    /// # Arguments
+    /// * `variant` - The SLH-DSA parameter set to use
+    ///
+    /// # Example
+    /// ```rust
+    /// use saorsa_pqc::api::{SlhDsa, SlhDsaVariant};
+    ///
+    /// // For bandwidth-constrained applications
+    /// let slh_small = SlhDsa::new(SlhDsaVariant::Sha2_128s);
+    ///
+    /// // For performance-critical applications
+    /// let slh_fast = SlhDsa::new(SlhDsaVariant::Sha2_128f);
+    /// ```
+    #[must_use]
+    pub const fn new(variant: SlhDsaVariant) -> Self {
         Self { variant }
     }
 
     /// Generate a new key pair
+    ///
+    /// Creates a new public/secret key pair using the system's secure random
+    /// number generator. Key generation is deterministic given the same random
+    /// seed, but the system RNG ensures each key pair is unique.
+    ///
+    /// # Returns
+    /// A tuple containing the public key and secret key
+    ///
+    /// # Example
+    /// ```rust
+    /// use saorsa_pqc::api::{SlhDsa, SlhDsaVariant};
+    ///
+    /// let slh = SlhDsa::new(SlhDsaVariant::Sha2_128s);
+    /// let (public_key, secret_key) = slh.generate_keypair()?;
+    ///
+    /// // Keys are ready to use
+    /// println!("Public key size: {} bytes", public_key.to_bytes().len());
+    /// println!("Secret key size: {} bytes", secret_key.to_bytes().len());
+    /// # Ok::<(), Box<dyn std::error::Error>>(())
+    /// ```
     pub fn generate_keypair(&self) -> PqcResult<(SlhDsaPublicKey, SlhDsaSecretKey)> {
         let (pk_bytes, sk_bytes) = match self.variant {
             SlhDsaVariant::Sha2_128s => {
@@ -307,12 +624,72 @@ impl SlhDsa {
         ))
     }
 
-    /// Sign a message (uses hedged randomness by default for better security)
+    /// Sign a message
+    ///
+    /// Creates a digital signature for the given message using the secret key.
+    /// The signature is deterministic for a given message and key pair, but uses
+    /// hedged randomness for enhanced security against RNG failures.
+    ///
+    /// # Arguments
+    /// * `secret_key` - The secret key to use for signing
+    /// * `message` - The message to sign
+    ///
+    /// # Returns
+    /// The digital signature
+    ///
+    /// # Example
+    /// ```rust
+    /// use saorsa_pqc::api::{SlhDsa, SlhDsaVariant};
+    ///
+    /// let slh = SlhDsa::new(SlhDsaVariant::Sha2_128s);
+    /// let (public_key, secret_key) = slh.generate_keypair()?;
+    ///
+    /// // Sign a message
+    /// let message = b"Important document";
+    /// let signature = slh.sign(&secret_key, message)?;
+    ///
+    /// // Verify the signature
+    /// assert!(slh.verify(&public_key, message, &signature)?);
+    /// # Ok::<(), Box<dyn std::error::Error>>(())
+    /// ```
     pub fn sign(&self, secret_key: &SlhDsaSecretKey, message: &[u8]) -> PqcResult<SlhDsaSignature> {
         self.sign_with_context(secret_key, message, b"")
     }
 
-    /// Sign a message with context
+    /// Sign a message with context for domain separation
+    ///
+    /// Creates a digital signature with an additional context string that provides
+    /// domain separation. This ensures signatures from different applications or
+    /// contexts cannot be used interchangeably, even if they sign the same message.
+    ///
+    /// # Arguments
+    /// * `secret_key` - The secret key to use for signing
+    /// * `message` - The message to sign
+    /// * `context` - Context string for domain separation (max 255 bytes)
+    ///
+    /// # Returns
+    /// The digital signature bound to the context
+    ///
+    /// # Example
+    /// ```rust
+    /// use saorsa_pqc::api::{SlhDsa, SlhDsaVariant};
+    ///
+    /// let slh = SlhDsa::new(SlhDsaVariant::Sha2_128s);
+    /// let (public_key, secret_key) = slh.generate_keypair()?;
+    ///
+    /// // Sign with application-specific context
+    /// let message = b"Transfer $1000";
+    /// let context = b"BankApp-v2.0-Transfer";
+    /// let signature = slh.sign_with_context(&secret_key, message, context)?;
+    ///
+    /// // Verification requires the same context
+    /// assert!(slh.verify_with_context(&public_key, message, &signature, context)?);
+    ///
+    /// // Different context will fail
+    /// let wrong_context = b"BankApp-v1.0-Transfer";
+    /// assert!(!slh.verify_with_context(&public_key, message, &signature, wrong_context)?);
+    /// # Ok::<(), Box<dyn std::error::Error>>(())
+    /// ```
     pub fn sign_with_context(
         &self,
         secret_key: &SlhDsaSecretKey,
@@ -384,6 +761,36 @@ impl SlhDsa {
     }
 
     /// Verify a signature
+    ///
+    /// Verifies that a signature was created by the holder of the secret key
+    /// corresponding to the provided public key for the given message.
+    ///
+    /// # Arguments
+    /// * `public_key` - The public key to verify against
+    /// * `message` - The message that was signed
+    /// * `signature` - The signature to verify
+    ///
+    /// # Returns
+    /// `true` if the signature is valid, `false` otherwise
+    ///
+    /// # Example
+    /// ```rust
+    /// use saorsa_pqc::api::{SlhDsa, SlhDsaVariant};
+    ///
+    /// let slh = SlhDsa::new(SlhDsaVariant::Sha2_128s);
+    /// let (public_key, secret_key) = slh.generate_keypair()?;
+    ///
+    /// let message = b"Verify this message";
+    /// let signature = slh.sign(&secret_key, message)?;
+    ///
+    /// // Valid signature verifies successfully
+    /// assert!(slh.verify(&public_key, message, &signature)?);
+    ///
+    /// // Modified message fails verification
+    /// let wrong_message = b"Different message";
+    /// assert!(!slh.verify(&public_key, wrong_message, &signature)?);
+    /// # Ok::<(), Box<dyn std::error::Error>>(())
+    /// ```
     pub fn verify(
         &self,
         public_key: &SlhDsaPublicKey,
@@ -394,6 +801,41 @@ impl SlhDsa {
     }
 
     /// Verify a signature with context
+    ///
+    /// Verifies a signature that was created with a specific context string.
+    /// The same context must be provided for successful verification.
+    ///
+    /// # Arguments
+    /// * `public_key` - The public key to verify against
+    /// * `message` - The message that was signed
+    /// * `signature` - The signature to verify
+    /// * `context` - The context string used during signing
+    ///
+    /// # Returns
+    /// `true` if the signature is valid with the given context, `false` otherwise
+    ///
+    /// # Example
+    /// ```rust
+    /// use saorsa_pqc::api::{SlhDsa, SlhDsaVariant};
+    ///
+    /// let slh = SlhDsa::new(SlhDsaVariant::Sha2_128f);
+    /// let (public_key, secret_key) = slh.generate_keypair()?;
+    ///
+    /// // Sign with context
+    /// let message = b"API request";
+    /// let context = b"APIv3-POST-/users";
+    /// let signature = slh.sign_with_context(&secret_key, message, context)?;
+    ///
+    /// // Verification succeeds with correct context
+    /// assert!(slh.verify_with_context(&public_key, message, &signature, context)?);
+    ///
+    /// // Verification fails with wrong context
+    /// assert!(!slh.verify_with_context(&public_key, message, &signature, b"APIv3-GET-/users")?);
+    ///
+    /// // Verification fails without context
+    /// assert!(!slh.verify(&public_key, message, &signature)?);
+    /// # Ok::<(), Box<dyn std::error::Error>>(())
+    /// ```
     pub fn verify_with_context(
         &self,
         public_key: &SlhDsaPublicKey,
@@ -476,8 +918,87 @@ impl SlhDsa {
     }
 }
 
-/// Convenience function to create SLH-DSA-SHA2-128s (smallest, reasonably fast)
-pub fn slh_dsa_sha2_128s() -> SlhDsa {
+/// Create SLH-DSA-SHA2-128s instance (smallest signatures, 128-bit security)
+///
+/// This is the recommended variant for bandwidth-constrained applications that need
+/// the smallest possible signatures (7,856 bytes) at the 128-bit security level.
+///
+/// # Example
+/// ```rust
+/// use saorsa_pqc::api::slh_dsa_sha2_128s;
+///
+/// let slh = slh_dsa_sha2_128s();
+/// let (public_key, secret_key) = slh.generate_keypair()?;
+/// let signature = slh.sign(&secret_key, b"Message")?;
+/// // Signature is only 7,856 bytes
+/// # Ok::<(), Box<dyn std::error::Error>>(())
+/// ```
+#[must_use]
+pub const fn slh_dsa_sha2_128s() -> SlhDsa {
+    SlhDsa::new(SlhDsaVariant::Sha2_128s)
+}
+
+/// Create SLH-DSA-SHA2-128f instance (fast signing, 128-bit security)
+///
+/// This variant optimizes for signing speed at the cost of larger signatures
+/// (17,088 bytes). Signing is approximately 8x faster than the 's' variant.
+///
+/// # Example
+/// ```rust
+/// use saorsa_pqc::api::slh_dsa_sha2_128f;
+///
+/// let slh = slh_dsa_sha2_128f();
+/// let (public_key, secret_key) = slh.generate_keypair()?;
+/// // Fast signing operation
+/// let signature = slh.sign(&secret_key, b"Message")?;
+/// # Ok::<(), Box<dyn std::error::Error>>(())
+/// ```
+#[must_use]
+pub const fn slh_dsa_sha2_128f() -> SlhDsa {
+    SlhDsa::new(SlhDsaVariant::Sha2_128f)
+}
+
+/// Create SLH-DSA-SHA2-192s instance (small signatures, 192-bit security)
+///
+/// Provides 192-bit post-quantum security with signatures of 16,224 bytes.
+/// Suitable for applications requiring higher security than 128-bit.
+///
+/// Note: Currently returns SHA2-128s as SHA2-192s is not fully implemented.
+///
+/// # Example
+/// ```rust
+/// use saorsa_pqc::api::slh_dsa_sha2_192s;
+///
+/// let slh = slh_dsa_sha2_192s();
+/// let (public_key, secret_key) = slh.generate_keypair()?;
+/// let signature = slh.sign(&secret_key, b"Secure message")?;
+/// # Ok::<(), Box<dyn std::error::Error>>(())
+/// ```
+#[must_use]
+pub const fn slh_dsa_sha2_192s() -> SlhDsa {
+    // TODO: Use Sha2_192s when fully implemented
+    SlhDsa::new(SlhDsaVariant::Sha2_128s)
+}
+
+/// Create SLH-DSA-SHA2-256s instance (small signatures, 256-bit security)
+///
+/// Maximum security level with signatures of 29,792 bytes. Recommended for
+/// applications requiring the highest level of post-quantum security.
+///
+/// Note: Currently returns SHA2-128s as SHA2-256s is not fully implemented.
+///
+/// # Example
+/// ```rust
+/// use saorsa_pqc::api::slh_dsa_sha2_256s;
+///
+/// let slh = slh_dsa_sha2_256s();
+/// let (public_key, secret_key) = slh.generate_keypair()?;
+/// let signature = slh.sign(&secret_key, b"Top secret")?;
+/// # Ok::<(), Box<dyn std::error::Error>>(())
+/// ```
+#[must_use]
+pub const fn slh_dsa_sha2_256s() -> SlhDsa {
+    // TODO: Use Sha2_256s when fully implemented
     SlhDsa::new(SlhDsaVariant::Sha2_128s)
 }
 

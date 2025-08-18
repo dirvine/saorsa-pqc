@@ -51,8 +51,8 @@ jobs:
         rust: [stable, beta]
         features: 
           - --all-features
-          - --no-default-features --features aws-lc-rs
-          - --no-default-features --features rustls-ring
+          - --no-default-features --features parallel,memory-pool
+          - --no-default-features --features hpke-support,extended-crypto
     
     steps:
     - name: Checkout code
@@ -117,7 +117,7 @@ jobs:
           ${{ runner.os }}-cargo-
     
     - name: Run property tests
-      run: cargo test --test property_tests --features test-utils,aws-lc-rs
+      run: cargo test --test property_tests --features test-utils
       env:
         PROPTEST_CASES: 1000  # More thorough property testing
 
@@ -149,10 +149,10 @@ jobs:
         ./scripts/download_test_vectors.sh
     
     - name: Run ML-KEM tests
-      run: cargo test --test ml_kem_tests --features aws-lc-rs -- --nocapture
+      run: cargo test --test ml_kem_tests -- --nocapture
     
     - name: Run ML-DSA tests  
-      run: cargo test --test ml_dsa_tests --features aws-lc-rs -- --nocapture
+      run: cargo test --test ml_dsa_tests -- --nocapture
 
   # Code coverage
   coverage:
@@ -263,7 +263,7 @@ jobs:
       run: |
         cargo miri setup
         # Run a subset of tests with miri (full test suite would be too slow)
-        cargo miri test --lib --features aws-lc-rs -- test_key_serialization
+        cargo miri test --lib -- test_key_serialization
       env:
         MIRIFLAGS: -Zmiri-strict-provenance
 
@@ -318,7 +318,7 @@ jobs:
         EOF
     
     - name: Run benchmarks
-      run: cargo bench --features benchmarks,aws-lc-rs
+      run: cargo bench --features benchmarks
     
     - name: Upload benchmark results
       uses: actions/upload-artifact@v4

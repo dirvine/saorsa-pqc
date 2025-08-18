@@ -39,11 +39,11 @@ pub struct TestGroup {
 
     /// Type of test (e.g., "AFT" - Algorithm Functional Test)
     #[serde(rename = "testType")]
-    pub test_type: String,
+    pub test_type: Option<String>,
 
     /// Parameter set (e.g., "ML-KEM-768", "ML-DSA-65")
     #[serde(rename = "parameterSet")]
-    pub parameter_set: String,
+    pub parameter_set: Option<String>,
 
     /// Individual test cases
     pub tests: Vec<TestCase>,
@@ -235,7 +235,7 @@ pub fn filter_by_parameter_set<'a>(
     vectors
         .test_groups
         .iter()
-        .filter(|group| group.parameter_set == parameter_set)
+        .filter(|group| group.parameter_set.as_deref() == Some(parameter_set))
         .collect()
 }
 
@@ -370,14 +370,14 @@ mod tests {
             test_groups: vec![
                 TestGroup {
                     tg_id: 1,
-                    test_type: "AFT".to_string(),
-                    parameter_set: "ML-KEM-768".to_string(),
+                    test_type: Some("AFT".to_string()),
+                    parameter_set: Some("ML-KEM-768".to_string()),
                     tests: vec![],
                 },
                 TestGroup {
                     tg_id: 2,
-                    test_type: "AFT".to_string(),
-                    parameter_set: "ML-KEM-1024".to_string(),
+                    test_type: Some("AFT".to_string()),
+                    parameter_set: Some("ML-KEM-1024".to_string()),
                     tests: vec![],
                 },
             ],
@@ -385,6 +385,6 @@ mod tests {
 
         let filtered = filter_by_parameter_set(&vectors, "ML-KEM-768");
         assert_eq!(filtered.len(), 1);
-        assert_eq!(filtered[0].parameter_set, "ML-KEM-768");
+        assert_eq!(filtered[0].parameter_set.as_deref(), Some("ML-KEM-768"));
     }
 }

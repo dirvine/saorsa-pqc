@@ -453,36 +453,25 @@ pub mod key_utils {
     pub fn derive_peer_id_from_public_key(
         public_key: &Ed25519PublicKey,
     ) -> crate::nat_traversal_api::PeerId {
-        #[cfg(feature = "ring")]
-        {
-            use ring::digest::{SHA256, digest};
+        // Use SHA2 crate for hashing
+        use sha2::{Digest, Sha256};
 
-            let key_bytes = public_key.as_bytes();
+        let key_bytes = public_key.as_bytes();
 
-            // Create the input data with domain separator
-            let mut input = Vec::with_capacity(20 + 32); // "AUTONOMI_PEER_ID_V1:" + key_bytes
-            input.extend_from_slice(b"AUTONOMI_PEER_ID_V1:");
-            input.extend_from_slice(key_bytes);
+        // Create the input data with domain separator
+        let mut input = Vec::with_capacity(20 + 32); // "AUTONOMI_PEER_ID_V1:" + key_bytes
+        input.extend_from_slice(b"AUTONOMI_PEER_ID_V1:");
+        input.extend_from_slice(key_bytes);
 
-            // Hash the input
-            let hash = digest(&SHA256, &input);
-            let hash_bytes = hash.as_ref();
+        // Hash the input
+        let mut hasher = Sha256::new();
+        hasher.update(&input);
+        let result = hasher.finalize();
 
-            let mut peer_id_bytes = [0u8; 32];
-            peer_id_bytes.copy_from_slice(hash_bytes);
+        let mut peer_id_bytes = [0u8; 32];
+        peer_id_bytes.copy_from_slice(&result);
 
-            crate::nat_traversal_api::PeerId(peer_id_bytes)
-        }
-        #[cfg(not(feature = "ring"))]
-        {
-            // Fallback implementation using direct key bytes (less secure but functional)
-            // In production, should always use ring or another crypto provider
-            let key_bytes = public_key.as_bytes();
-            let mut peer_id_bytes = [0u8; 32];
-            peer_id_bytes.copy_from_slice(key_bytes);
-
-            crate::nat_traversal_api::PeerId(peer_id_bytes)
-        }
+        crate::nat_traversal_api::PeerId(peer_id_bytes)
     }
 
     /// Derive a peer ID from raw public key bytes (32-byte Ed25519 key)
@@ -520,9 +509,8 @@ mod tests {
     // Ensure crypto provider is installed for tests
     fn ensure_crypto_provider() {
         INIT.call_once(|| {
-            // Install the crypto provider if not already installed
-            #[cfg(feature = "rustls-ring")]
-            let _ = rustls::crypto::ring::default_provider().install_default();
+            // Crypto provider initialization if needed
+            // Note: We use x25519-dalek/ed25519-dalek directly, no ring/rustls needed
         });
     }
 

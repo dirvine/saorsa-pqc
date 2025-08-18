@@ -17,7 +17,10 @@
 //! - Signatures: Concatenates both signatures, both must verify
 
 use crate::pqc::combiners::ConcatenationCombiner;
-use crate::pqc::types::*;
+use crate::pqc::types::{
+    MlDsaPublicKey, MlDsaSecretKey, MlDsaSignature, MlKemCiphertext, MlKemPublicKey,
+    MlKemSecretKey, PqcResult, SharedSecret,
+};
 use crate::pqc::{ml_dsa::MlDsa65, ml_kem::MlKem768, MlDsaOperations, MlKemOperations};
 use ed25519_dalek::{Signature as Ed25519Signature, Signer, SigningKey, Verifier, VerifyingKey};
 use rand::rngs::OsRng;
@@ -35,7 +38,8 @@ pub struct HybridKem {
 
 impl HybridKem {
     /// Create a new hybrid KEM instance
-    pub fn new() -> Self {
+    #[must_use]
+    pub const fn new() -> Self {
         Self {
             ml_kem: MlKem768::new(),
         }
@@ -103,7 +107,9 @@ impl HybridKem {
             .decapsulate(&secret_key.ml_kem, &ciphertext.ml_kem)?;
 
         // X25519 key agreement
-        let x25519_shared = secret_key.x25519.diffie_hellman(&ciphertext.x25519_ephemeral);
+        let x25519_shared = secret_key
+            .x25519
+            .diffie_hellman(&ciphertext.x25519_ephemeral);
 
         // Combine secrets
         ConcatenationCombiner::combine(
@@ -122,7 +128,8 @@ pub struct HybridSignature {
 
 impl HybridSignature {
     /// Create a new hybrid signature instance
-    pub fn new() -> Self {
+    #[must_use]
+    pub const fn new() -> Self {
         Self {
             ml_dsa: MlDsa65::new(),
         }

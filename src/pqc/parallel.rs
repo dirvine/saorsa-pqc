@@ -7,6 +7,12 @@
 /// operations like multiple key generations, signatures, or verifications.
 pub struct ParallelProcessor;
 
+impl Default for ParallelProcessor {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl ParallelProcessor {
     /// Create a new parallel processor instance
     ///
@@ -19,7 +25,8 @@ impl ParallelProcessor {
     ///
     /// let processor = ParallelProcessor::new();
     /// ```
-    pub fn new() -> Self {
+    #[must_use]
+    pub const fn new() -> Self {
         Self
     }
 }

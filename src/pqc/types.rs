@@ -178,6 +178,7 @@ pub struct MlKemPublicKey(
 
 impl MlKemPublicKey {
     /// Get the public key as bytes
+    #[must_use]
     pub fn as_bytes(&self) -> &[u8] {
         &self.0[..]
     }
@@ -208,6 +209,7 @@ pub struct MlKemSecretKey(
 
 impl MlKemSecretKey {
     /// Get the secret key as bytes
+    #[must_use]
     pub fn as_bytes(&self) -> &[u8] {
         &self.0[..]
     }
@@ -235,6 +237,7 @@ pub struct MlKemCiphertext(
 
 impl MlKemCiphertext {
     /// Get the ciphertext as bytes
+    #[must_use]
     pub fn as_bytes(&self) -> &[u8] {
         &self.0[..]
     }
@@ -262,6 +265,7 @@ pub struct MlDsaPublicKey(
 
 impl MlDsaPublicKey {
     /// Get the public key as bytes
+    #[must_use]
     pub fn as_bytes(&self) -> &[u8] {
         &self.0[..]
     }
@@ -292,6 +296,7 @@ pub struct MlDsaSecretKey(
 
 impl MlDsaSecretKey {
     /// Get the secret key as bytes
+    #[must_use]
     pub fn as_bytes(&self) -> &[u8] {
         &self.0[..]
     }
@@ -319,6 +324,7 @@ pub struct MlDsaSignature(
 
 impl MlDsaSignature {
     /// Get the signature as bytes
+    #[must_use]
     pub fn as_bytes(&self) -> &[u8] {
         &self.0[..]
     }
@@ -349,6 +355,7 @@ pub struct SharedSecret(
 
 impl SharedSecret {
     /// Get the shared secret as bytes
+    #[must_use]
     pub fn as_bytes(&self) -> &[u8] {
         &self.0[..]
     }
@@ -446,22 +453,22 @@ mod tests {
     #[test]
     fn test_constant_sizes() {
         // Verify constant sizes match NIST standards
-        
+
         // ML-KEM-512
         assert_eq!(ML_KEM_512_PUBLIC_KEY_SIZE, 800);
         assert_eq!(ML_KEM_512_SECRET_KEY_SIZE, 1632);
         assert_eq!(ML_KEM_512_CIPHERTEXT_SIZE, 768);
-        
+
         // ML-KEM-768
         assert_eq!(ML_KEM_768_PUBLIC_KEY_SIZE, 1184);
         assert_eq!(ML_KEM_768_SECRET_KEY_SIZE, 2400);
         assert_eq!(ML_KEM_768_CIPHERTEXT_SIZE, 1088);
-        
+
         // ML-KEM-1024
         assert_eq!(ML_KEM_1024_PUBLIC_KEY_SIZE, 1568);
         assert_eq!(ML_KEM_1024_SECRET_KEY_SIZE, 3168);
         assert_eq!(ML_KEM_1024_CIPHERTEXT_SIZE, 1568);
-        
+
         // Shared secret is same for all ML-KEM variants
         assert_eq!(ML_KEM_SHARED_SECRET_SIZE, 32);
 
@@ -469,12 +476,12 @@ mod tests {
         assert_eq!(ML_DSA_44_PUBLIC_KEY_SIZE, 1312);
         assert_eq!(ML_DSA_44_SECRET_KEY_SIZE, 2560);
         assert_eq!(ML_DSA_44_SIGNATURE_SIZE, 2420);
-        
+
         // ML-DSA-65
         assert_eq!(ML_DSA_65_PUBLIC_KEY_SIZE, 1952);
         assert_eq!(ML_DSA_65_SECRET_KEY_SIZE, 4032);
         assert_eq!(ML_DSA_65_SIGNATURE_SIZE, 3309);
-        
+
         // ML-DSA-87
         assert_eq!(ML_DSA_87_PUBLIC_KEY_SIZE, 2592);
         assert_eq!(ML_DSA_87_SECRET_KEY_SIZE, 4896);

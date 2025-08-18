@@ -17,7 +17,7 @@ mod ml_kem_tests {
     use hex;
 
     /// Test deterministic key generation with NIST ACVP seed values
-    /// 
+    ///
     /// This validates that our implementation produces consistent keys from the same seeds,
     /// which is the core requirement for ML-KEM deterministic generation.
     #[test]
@@ -31,7 +31,7 @@ mod ml_kem_tests {
                 .unwrap();
 
         let kem = MlKem::new(MlKemVariant::MlKem768);
-        
+
         // Generate keypair deterministically
         let (pk1, sk1) = kem.generate_keypair_from_seed(
             d_seed.as_slice().try_into().unwrap(),
@@ -66,8 +66,14 @@ mod ml_kem_tests {
         );
 
         // Verify public key has correct size
-        assert_eq!(pk1.to_bytes().len(), MlKemVariant::MlKem768.public_key_size());
-        assert_eq!(sk1.to_bytes().len(), MlKemVariant::MlKem768.secret_key_size());
+        assert_eq!(
+            pk1.to_bytes().len(),
+            MlKemVariant::MlKem768.public_key_size()
+        );
+        assert_eq!(
+            sk1.to_bytes().len(),
+            MlKemVariant::MlKem768.secret_key_size()
+        );
     }
 
     #[test]

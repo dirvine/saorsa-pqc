@@ -3,7 +3,7 @@
 //! This module implements secure key combination methods following NIST
 //! standards for combining classical and post-quantum shared secrets.
 
-use crate::pqc::types::*;
+use crate::pqc::types::{PqcError, PqcResult, SharedSecret};
 use hkdf::Hkdf;
 use hmac::{Hmac, Mac};
 use sha2::Sha256;
@@ -86,15 +86,17 @@ impl TwoStepCombiner {
         // Step 1: Extract from classical secret
         let hk_classical = Hkdf::<Sha256>::new(None, classical_secret);
         let mut classical_prk_bytes = [0u8; 32];
-        hk_classical.expand(&[], &mut classical_prk_bytes)
+        hk_classical
+            .expand(&[], &mut classical_prk_bytes)
             .map_err(|_| PqcError::CryptoError("HKDF expand failed".to_string()))?;
 
         // Step 2: Use classical PRK as salt for PQC extraction
         let hk_combined = Hkdf::<Sha256>::new(Some(&classical_prk_bytes), pqc_secret);
-        
+
         // Step 3: Expand to final key
         let mut output = [0u8; 32];
-        hk_combined.expand(info, &mut output)
+        hk_combined
+            .expand(info, &mut output)
             .map_err(|_| PqcError::CryptoError("HKDF expand failed".to_string()))?;
 
         Ok(SharedSecret(output))

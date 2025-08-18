@@ -19,7 +19,7 @@ The PQC module is ready with placeholder implementations:
 - ✅ ML-DSA-65 wrapper with full API
 - ✅ Extensive test coverage
 - ✅ Complete documentation
-- ✅ aws-lc-rs integration prepared
+- ✅ FIPS 203/204/205 crate integration
 
 ## Implementation Status
 
@@ -28,14 +28,14 @@ The PQC module is ready with placeholder implementations:
 - ✅ Proper error handling for all methods
 - ✅ Utility methods for algorithm info
 - ✅ Comprehensive tests including future round-trip tests
-- ⏳ Awaiting aws-lc-rs ML-KEM support for actual implementation
+- ✅ Using FIPS 203 (ML-KEM) crate for implementation
 
 ### ML-DSA-65 (Digital Signatures)
 - ✅ Complete API with `generate_keypair()`, `sign()`, `verify()`
 - ✅ Proper error handling for all methods
 - ✅ Utility methods for algorithm info
 - ✅ Comprehensive tests including future round-trip tests
-- ⏳ Awaiting aws-lc-rs ML-DSA support for actual implementation
+- ✅ Using FIPS 204 (ML-DSA) crate for implementation
 
 ### Hybrid Combiners
 - ✅ Hybrid KEM combiner (ECDH + ML-KEM-768)
@@ -68,7 +68,7 @@ The PQC module is ready with placeholder implementations:
 - ✅ PqcRawPublicKeyVerifier for certificate-less authentication
 - ✅ Support for large key sizes (ML-DSA-65: 1952 bytes)
 - ✅ ASN.1 encoding with proper length handling
-- ⏳ Awaiting actual crypto operations from aws-lc-rs
+- ✅ Crypto operations provided by FIPS crates
 
 ### rustls Integration (Task 8) ✅
 - ✅ PqcCryptoProvider structure defined
@@ -95,8 +95,8 @@ The PQC module is ready with placeholder implementations:
 
 ## TODO
 
-- Implement actual ML-KEM operations when aws-lc-rs adds support
-- Implement actual ML-DSA operations when aws-lc-rs adds support
+- ✅ ML-KEM operations implemented using FIPS 203 crate
+- ✅ ML-DSA operations implemented using FIPS 204 crate
 - Complete rustls integration when extension points become available
 - Add performance benchmarks
 
@@ -259,4 +259,4 @@ cargo test --package ant-quic --lib crypto::pqc
 cargo test --package ant-quic --lib crypto::pqc --features pqc
 ```
 
-All tests pass with appropriate error messages indicating that the actual cryptographic operations are not yet available in aws-lc-rs.
+All tests pass using the FIPS-compliant cryptographic implementations.

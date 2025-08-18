@@ -1,7 +1,56 @@
 //! ML-DSA (Module-Lattice-Based Digital Signature Algorithm) API
 //!
-//! Provides a simple interface to FIPS 204 ML-DSA without requiring
-//! users to manage RNG or internal details.
+//! Provides a simple interface to FIPS 204 ML-DSA for quantum-resistant digital signatures
+//! without requiring users to manage RNG or internal details.
+//!
+//! # Examples
+//!
+//! ## Basic Signature and Verification
+//! ```rust
+//! use saorsa_pqc::api::sig::{ml_dsa_65, MlDsaVariant};
+//!
+//! # fn main() -> Result<(), Box<dyn std::error::Error>> {
+//! // Create ML-DSA instance with 192-bit security
+//! let dsa = ml_dsa_65();
+//!
+//! // Generate a signing keypair
+//! let (public_key, secret_key) = dsa.generate_keypair()?;
+//!
+//! // Sign a message
+//! let message = b"Important document to sign";
+//! let signature = dsa.sign(&secret_key, message)?;
+//!
+//! // Verify the signature
+//! let is_valid = dsa.verify(&public_key, message, &signature)?;
+//! assert!(is_valid);
+//! # Ok(())
+//! # }
+//! ```
+//!
+//! ## Document Signing with Context
+//! ```rust
+//! use saorsa_pqc::api::sig::{MlDsa, MlDsaVariant};
+//!
+//! # fn main() -> Result<(), Box<dyn std::error::Error>> {
+//! let dsa = MlDsa::new(MlDsaVariant::MlDsa87); // Maximum security
+//! let (public_key, secret_key) = dsa.generate_keypair()?;
+//!
+//! // Sign with additional context for domain separation
+//! let document = b"Contract #12345";
+//! let context = b"legal-documents-v1";
+//! let signature = dsa.sign_with_context(&secret_key, document, context)?;
+//!
+//! // Verify with the same context
+//! let valid = dsa.verify_with_context(&public_key, document, &signature, context)?;
+//! assert!(valid);
+//! # Ok(())
+//! # }
+//! ```
+//!
+//! ## Security Levels
+//! - ML-DSA-44: NIST Level 2 (~128-bit classical, ~90-bit quantum)
+//! - ML-DSA-65: NIST Level 3 (~192-bit classical, ~128-bit quantum)
+//! - ML-DSA-87: NIST Level 5 (~256-bit classical, ~170-bit quantum)
 
 use super::errors::{PqcError, PqcResult};
 use rand_core::OsRng;
@@ -12,13 +61,39 @@ use fips204::traits::{SerDes, Signer, Verifier};
 use fips204::{ml_dsa_44, ml_dsa_65, ml_dsa_87};
 
 /// ML-DSA algorithm variants
+///
+/// Selects the security level and performance characteristics for ML-DSA operations.
+/// Higher security levels provide more protection but require larger keys and signatures.
+///
+/// # Examples
+/// ```rust
+/// use saorsa_pqc::api::sig::MlDsaVariant;
+///
+/// // Choose based on security requirements
+/// let standard = MlDsaVariant::MlDsa65;     // Recommended for most uses
+/// let lightweight = MlDsaVariant::MlDsa44;  // For constrained environments
+/// let maximum = MlDsaVariant::MlDsa87;      // For highest security needs
+///
+/// println!("Public key size: {} bytes", standard.public_key_size());
+/// println!("Signature size: {} bytes", standard.signature_size());
+/// println!("Security: {}", standard.security_level());
+/// ```
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum MlDsaVariant {
-    /// ML-DSA-44: NIST Level 2 security (~128-bit)
+    /// ML-DSA-44: NIST Level 2 security (~128-bit classical)
+    /// - Public key: 1312 bytes
+    /// - Secret key: 2560 bytes
+    /// - Signature: 2420 bytes
     MlDsa44,
-    /// ML-DSA-65: NIST Level 3 security (~192-bit)
+    /// ML-DSA-65: NIST Level 3 security (~192-bit classical) [RECOMMENDED]
+    /// - Public key: 1952 bytes
+    /// - Secret key: 4032 bytes
+    /// - Signature: 3309 bytes
     MlDsa65,
-    /// ML-DSA-87: NIST Level 5 security (~256-bit)
+    /// ML-DSA-87: NIST Level 5 security (~256-bit classical)
+    /// - Public key: 2592 bytes
+    /// - Secret key: 4896 bytes
+    /// - Signature: 4627 bytes
     MlDsa87,
 }
 
@@ -31,7 +106,8 @@ impl zeroize::Zeroize for MlDsaVariant {
 
 impl MlDsaVariant {
     /// Get the public key size in bytes
-    pub fn public_key_size(&self) -> usize {
+    #[must_use]
+    pub const fn public_key_size(&self) -> usize {
         match self {
             Self::MlDsa44 => 1312,
             Self::MlDsa65 => 1952,
@@ -40,7 +116,8 @@ impl MlDsaVariant {
     }
 
     /// Get the secret key size in bytes
-    pub fn secret_key_size(&self) -> usize {
+    #[must_use]
+    pub const fn secret_key_size(&self) -> usize {
         match self {
             Self::MlDsa44 => 2560,
             Self::MlDsa65 => 4032,
@@ -49,7 +126,8 @@ impl MlDsaVariant {
     }
 
     /// Get the signature size in bytes
-    pub fn signature_size(&self) -> usize {
+    #[must_use]
+    pub const fn signature_size(&self) -> usize {
         match self {
             Self::MlDsa44 => 2420,
             Self::MlDsa65 => 3309,
@@ -58,7 +136,8 @@ impl MlDsaVariant {
     }
 
     /// Get the security level description
-    pub fn security_level(&self) -> &'static str {
+    #[must_use]
+    pub const fn security_level(&self) -> &'static str {
         match self {
             Self::MlDsa44 => "NIST Level 2 (~128-bit)",
             Self::MlDsa65 => "NIST Level 3 (~192-bit)",
@@ -71,6 +150,28 @@ impl MlDsaVariant {
 }
 
 /// ML-DSA public key
+///
+/// Contains the public verification key for ML-DSA signatures.
+/// This key can be freely shared and is used to verify signatures.
+///
+/// # Examples
+/// ```rust
+/// use saorsa_pqc::api::sig::{ml_dsa_65, MlDsaPublicKey, MlDsaVariant};
+///
+/// # fn main() -> Result<(), Box<dyn std::error::Error>> {
+/// let dsa = ml_dsa_65();
+/// let (public_key, _) = dsa.generate_keypair()?;
+///
+/// // Export for distribution
+/// let key_bytes = public_key.to_bytes();
+/// println!("Public key size: {} bytes", key_bytes.len());
+///
+/// // Import from bytes
+/// let imported = MlDsaPublicKey::from_bytes(MlDsaVariant::MlDsa65, &key_bytes)?;
+/// assert_eq!(public_key.variant(), imported.variant());
+/// # Ok(())
+/// # }
+/// ```
 #[derive(Clone, Zeroize, ZeroizeOnDrop)]
 pub struct MlDsaPublicKey {
     #[zeroize(skip)]
@@ -80,11 +181,13 @@ pub struct MlDsaPublicKey {
 
 impl MlDsaPublicKey {
     /// Get the variant of this key
-    pub fn variant(&self) -> MlDsaVariant {
+    #[must_use]
+    pub const fn variant(&self) -> MlDsaVariant {
         self.variant
     }
 
     /// Export the public key as bytes
+    #[must_use]
     pub fn to_bytes(&self) -> Vec<u8> {
         self.bytes.clone()
     }
@@ -137,6 +240,33 @@ impl MlDsaPublicKey {
 }
 
 /// ML-DSA secret key
+///
+/// Contains the private signing key for ML-DSA signatures.
+/// This key must be kept secret and is automatically zeroized when dropped.
+///
+/// # Security Considerations
+/// - Never expose secret keys in logs or error messages
+/// - Store securely (encrypted at rest)
+/// - Use secure channels for transmission
+/// - Consider hardware security modules (HSMs) for production
+///
+/// # Examples
+/// ```rust
+/// use saorsa_pqc::api::sig::{ml_dsa_65, MlDsaSecretKey, MlDsaVariant};
+///
+/// # fn main() -> Result<(), Box<dyn std::error::Error>> {
+/// let dsa = ml_dsa_65();
+/// let (_, secret_key) = dsa.generate_keypair()?;
+///
+/// // Serialize for secure storage
+/// let key_bytes = secret_key.to_bytes();
+/// // Store key_bytes securely (encrypted)
+///
+/// // Later, restore from secure storage
+/// let restored = MlDsaSecretKey::from_bytes(MlDsaVariant::MlDsa65, &key_bytes)?;
+/// # Ok(())
+/// # }
+/// ```
 #[derive(Clone, Zeroize, ZeroizeOnDrop)]
 pub struct MlDsaSecretKey {
     #[zeroize(skip)]
@@ -146,11 +276,13 @@ pub struct MlDsaSecretKey {
 
 impl MlDsaSecretKey {
     /// Get the variant of this key
-    pub fn variant(&self) -> MlDsaVariant {
+    #[must_use]
+    pub const fn variant(&self) -> MlDsaVariant {
         self.variant
     }
 
     /// Export the secret key as bytes (handle with care!)
+    #[must_use]
     pub fn to_bytes(&self) -> Vec<u8> {
         self.bytes.clone()
     }
@@ -203,6 +335,39 @@ impl MlDsaSecretKey {
 }
 
 /// ML-DSA signature
+///
+/// A quantum-resistant digital signature produced by ML-DSA.
+/// Signatures are non-deterministic (include randomness) for enhanced security.
+///
+/// # Size Requirements
+/// - ML-DSA-44: 2420 bytes
+/// - ML-DSA-65: 3309 bytes
+/// - ML-DSA-87: 4627 bytes
+///
+/// # Examples
+/// ```rust
+/// use saorsa_pqc::api::sig::{ml_dsa_65, MlDsaSignature, MlDsaVariant};
+///
+/// # fn main() -> Result<(), Box<dyn std::error::Error>> {
+/// let dsa = ml_dsa_65();
+/// let (public_key, secret_key) = dsa.generate_keypair()?;
+///
+/// // Create signature
+/// let message = b"Document to sign";
+/// let signature = dsa.sign(&secret_key, message)?;
+///
+/// // Serialize for transmission
+/// let sig_bytes = signature.to_bytes();
+/// assert_eq!(sig_bytes.len(), 3309); // ML-DSA-65 signature size
+///
+/// // Deserialize received signature
+/// let received_sig = MlDsaSignature::from_bytes(MlDsaVariant::MlDsa65, &sig_bytes)?;
+///
+/// // Verify
+/// assert!(dsa.verify(&public_key, message, &received_sig)?);
+/// # Ok(())
+/// # }
+/// ```
 #[derive(Clone, Zeroize, ZeroizeOnDrop)]
 pub struct MlDsaSignature {
     #[zeroize(skip)]
@@ -212,11 +377,13 @@ pub struct MlDsaSignature {
 
 impl MlDsaSignature {
     /// Get the variant of this signature
-    pub fn variant(&self) -> MlDsaVariant {
+    #[must_use]
+    pub const fn variant(&self) -> MlDsaVariant {
         self.variant
     }
 
     /// Export the signature as bytes
+    #[must_use]
     pub fn to_bytes(&self) -> Vec<u8> {
         self.bytes.clone()
     }
@@ -238,17 +405,103 @@ impl MlDsaSignature {
 }
 
 /// ML-DSA main API
+///
+/// The main interface for ML-DSA digital signature operations.
+/// This struct provides methods for key generation, signing, and verification
+/// according to NIST FIPS 204 standard.
+///
+/// # Examples
+///
+/// ## Basic Usage
+/// ```rust
+/// use saorsa_pqc::api::sig::{MlDsa, MlDsaVariant};
+///
+/// # fn main() -> Result<(), Box<dyn std::error::Error>> {
+/// // Create instance with chosen security level
+/// let dsa = MlDsa::new(MlDsaVariant::MlDsa65);
+///
+/// // Generate keys
+/// let (public_key, secret_key) = dsa.generate_keypair()?;
+///
+/// // Sign and verify
+/// let message = b"Important message";
+/// let signature = dsa.sign(&secret_key, message)?;
+/// assert!(dsa.verify(&public_key, message, &signature)?);
+/// # Ok(())
+/// # }
+/// ```
+///
+/// ## With Context for Domain Separation
+/// ```rust
+/// use saorsa_pqc::api::sig::{MlDsa, MlDsaVariant};
+///
+/// # fn main() -> Result<(), Box<dyn std::error::Error>> {
+/// let dsa = MlDsa::new(MlDsaVariant::MlDsa87);
+/// let (public_key, secret_key) = dsa.generate_keypair()?;
+///
+/// // Use context to prevent cross-protocol attacks
+/// let message = b"Transaction #42";
+/// let context = b"blockchain-v2";
+///
+/// let signature = dsa.sign_with_context(&secret_key, message, context)?;
+/// let valid = dsa.verify_with_context(&public_key, message, &signature, context)?;
+/// assert!(valid);
+///
+/// // Different context will fail verification
+/// let wrong_context = b"blockchain-v1";
+/// let invalid = dsa.verify_with_context(&public_key, message, &signature, wrong_context)?;
+/// assert!(!invalid);
+/// # Ok(())
+/// # }
+/// ```
 pub struct MlDsa {
     variant: MlDsaVariant,
 }
 
 impl MlDsa {
     /// Create a new ML-DSA instance with the specified variant
-    pub fn new(variant: MlDsaVariant) -> Self {
+    ///
+    /// # Arguments
+    /// * `variant` - The ML-DSA parameter set to use (44, 65, or 87)
+    ///
+    /// # Example
+    /// ```rust
+    /// use saorsa_pqc::api::sig::{MlDsa, MlDsaVariant};
+    ///
+    /// let dsa_44 = MlDsa::new(MlDsaVariant::MlDsa44);   // NIST Level 2
+    /// let dsa_65 = MlDsa::new(MlDsaVariant::MlDsa65);   // NIST Level 3
+    /// let dsa_87 = MlDsa::new(MlDsaVariant::MlDsa87);   // NIST Level 5
+    /// ```
+    #[must_use]
+    pub const fn new(variant: MlDsaVariant) -> Self {
         Self { variant }
     }
 
     /// Generate a new key pair
+    ///
+    /// Creates a new ML-DSA key pair using the system's secure random number generator.
+    ///
+    /// # Returns
+    /// A tuple containing:
+    /// - `MlDsaPublicKey`: The public key for signature verification
+    /// - `MlDsaSecretKey`: The secret key for signing
+    ///
+    /// # Errors
+    /// Returns an error if key generation fails (extremely rare with proper RNG).
+    ///
+    /// # Example
+    /// ```rust
+    /// use saorsa_pqc::api::sig::ml_dsa_65;
+    ///
+    /// # fn main() -> Result<(), Box<dyn std::error::Error>> {
+    /// let dsa = ml_dsa_65();
+    /// let (public_key, secret_key) = dsa.generate_keypair()?;
+    ///
+    /// println!("Public key: {} bytes", public_key.to_bytes().len());
+    /// println!("Secret key: {} bytes", secret_key.to_bytes().len());
+    /// # Ok(())
+    /// # }
+    /// ```
     pub fn generate_keypair(&self) -> PqcResult<(MlDsaPublicKey, MlDsaSecretKey)> {
         match self.variant {
             MlDsaVariant::MlDsa44 => {
@@ -297,11 +550,79 @@ impl MlDsa {
     }
 
     /// Sign a message
+    ///
+    /// Creates a digital signature for the given message using the secret key.
+    /// The signature includes randomness for enhanced security against side-channel attacks.
+    ///
+    /// # Arguments
+    /// * `secret_key` - The secret signing key
+    /// * `message` - The message to sign (can be any length)
+    ///
+    /// # Returns
+    /// A signature that can be verified with the corresponding public key
+    ///
+    /// # Errors
+    /// - `InvalidInput`: If the secret key variant doesn't match
+    /// - `SigningFailed`: If the signing operation fails
+    ///
+    /// # Example
+    /// ```rust
+    /// use saorsa_pqc::api::sig::ml_dsa_65;
+    ///
+    /// # fn main() -> Result<(), Box<dyn std::error::Error>> {
+    /// let dsa = ml_dsa_65();
+    /// let (public_key, secret_key) = dsa.generate_keypair()?;
+    ///
+    /// // Sign any size message
+    /// let message = b"This message can be any length";
+    /// let signature = dsa.sign(&secret_key, message)?;
+    ///
+    /// // Verify the signature
+    /// assert!(dsa.verify(&public_key, message, &signature)?);
+    /// # Ok(())
+    /// # }
+    /// ```
     pub fn sign(&self, secret_key: &MlDsaSecretKey, message: &[u8]) -> PqcResult<MlDsaSignature> {
         self.sign_with_context(secret_key, message, b"")
     }
 
     /// Sign a message with context
+    ///
+    /// Creates a signature with an additional context string for domain separation.
+    /// This prevents signatures from being valid across different protocols or applications.
+    ///
+    /// # Arguments
+    /// * `secret_key` - The secret signing key
+    /// * `message` - The message to sign
+    /// * `context` - Domain separation context (max 255 bytes)
+    ///
+    /// # Security Note
+    /// Using context strings is recommended when the same keys are used in multiple
+    /// protocols to prevent cross-protocol signature attacks.
+    ///
+    /// # Errors
+    /// - `InvalidInput`: If the secret key variant doesn't match
+    /// - `ContextTooLong`: If context exceeds 255 bytes
+    /// - `SigningFailed`: If the signing operation fails
+    ///
+    /// # Example
+    /// ```rust
+    /// use saorsa_pqc::api::sig::ml_dsa_65;
+    ///
+    /// # fn main() -> Result<(), Box<dyn std::error::Error>> {
+    /// let dsa = ml_dsa_65();
+    /// let (public_key, secret_key) = dsa.generate_keypair()?;
+    ///
+    /// // Sign with application-specific context
+    /// let invoice = b"Invoice #2024-001";
+    /// let context = b"accounting-system-v3";
+    /// let signature = dsa.sign_with_context(&secret_key, invoice, context)?;
+    ///
+    /// // Must verify with same context
+    /// assert!(dsa.verify_with_context(&public_key, invoice, &signature, context)?);
+    /// # Ok(())
+    /// # }
+    /// ```
     pub fn sign_with_context(
         &self,
         secret_key: &MlDsaSecretKey,
@@ -387,6 +708,40 @@ impl MlDsa {
     }
 
     /// Verify a signature
+    ///
+    /// Verifies that a signature was created by the holder of the secret key
+    /// corresponding to the provided public key.
+    ///
+    /// # Arguments
+    /// * `public_key` - The public verification key
+    /// * `message` - The original message that was signed
+    /// * `signature` - The signature to verify
+    ///
+    /// # Returns
+    /// - `Ok(true)` if the signature is valid
+    /// - `Ok(false)` if the signature is invalid
+    /// - `Err(_)` if verification cannot be performed (wrong key type, etc.)
+    ///
+    /// # Example
+    /// ```rust
+    /// use saorsa_pqc::api::sig::ml_dsa_65;
+    ///
+    /// # fn main() -> Result<(), Box<dyn std::error::Error>> {
+    /// let dsa = ml_dsa_65();
+    /// let (public_key, secret_key) = dsa.generate_keypair()?;
+    ///
+    /// let message = b"Authenticate this";
+    /// let signature = dsa.sign(&secret_key, message)?;
+    ///
+    /// // Valid signature
+    /// assert!(dsa.verify(&public_key, message, &signature)?);
+    ///
+    /// // Modified message fails
+    /// let wrong_message = b"Authenticate that";
+    /// assert!(!dsa.verify(&public_key, wrong_message, &signature)?);
+    /// # Ok(())
+    /// # }
+    /// ```
     pub fn verify(
         &self,
         public_key: &MlDsaPublicKey,
@@ -397,6 +752,42 @@ impl MlDsa {
     }
 
     /// Verify a signature with context
+    ///
+    /// Verifies a signature that was created with a context string.
+    /// The same context must be provided for successful verification.
+    ///
+    /// # Arguments
+    /// * `public_key` - The public verification key
+    /// * `message` - The original message
+    /// * `signature` - The signature to verify
+    /// * `context` - The context string used during signing
+    ///
+    /// # Returns
+    /// - `Ok(true)` if the signature is valid with the given context
+    /// - `Ok(false)` if the signature is invalid or context doesn't match
+    /// - `Err(_)` if verification cannot be performed
+    ///
+    /// # Example
+    /// ```rust
+    /// use saorsa_pqc::api::sig::ml_dsa_65;
+    ///
+    /// # fn main() -> Result<(), Box<dyn std::error::Error>> {
+    /// let dsa = ml_dsa_65();
+    /// let (public_key, secret_key) = dsa.generate_keypair()?;
+    ///
+    /// let message = b"Protocol message";
+    /// let context = b"protocol-v1";
+    /// let signature = dsa.sign_with_context(&secret_key, message, context)?;
+    ///
+    /// // Correct context succeeds
+    /// assert!(dsa.verify_with_context(&public_key, message, &signature, context)?);
+    ///
+    /// // Wrong context fails
+    /// let wrong_context = b"protocol-v2";
+    /// assert!(!dsa.verify_with_context(&public_key, message, &signature, wrong_context)?);
+    /// # Ok(())
+    /// # }
+    /// ```
     pub fn verify_with_context(
         &self,
         public_key: &MlDsaPublicKey,
@@ -494,8 +885,80 @@ impl MlDsa {
 }
 
 /// Convenience function to create ML-DSA-65 (recommended default)
-pub fn ml_dsa_65() -> MlDsa {
+///
+/// ML-DSA-65 provides NIST Level 3 security (~192-bit classical security),
+/// which is suitable for most applications and offers a good balance
+/// between security and performance.
+///
+/// # Why ML-DSA-65?
+/// - Quantum resistance equivalent to 128-bit quantum security
+/// - Moderate key and signature sizes
+/// - Good performance on modern hardware
+/// - Recommended by NIST for general use
+///
+/// # Example
+/// ```rust
+/// use saorsa_pqc::api::sig::ml_dsa_65;
+///
+/// # fn main() -> Result<(), Box<dyn std::error::Error>> {
+/// // Quick setup with recommended parameters
+/// let dsa = ml_dsa_65();
+///
+/// // Use just like any MlDsa instance
+/// let (public_key, secret_key) = dsa.generate_keypair()?;
+/// let message = b"Sign this";
+/// let signature = dsa.sign(&secret_key, message)?;
+/// assert!(dsa.verify(&public_key, message, &signature)?);
+/// # Ok(())
+/// # }
+/// ```
+///
+/// For other security levels, use:
+/// - `MlDsa::new(MlDsaVariant::MlDsa44)` for NIST Level 2 (128-bit classical)
+/// - `MlDsa::new(MlDsaVariant::MlDsa87)` for NIST Level 5 (256-bit classical)
+#[must_use]
+pub const fn ml_dsa_65() -> MlDsa {
     MlDsa::new(MlDsaVariant::MlDsa65)
+}
+
+/// Convenience function to create ML-DSA-44 (lightweight option)
+///
+/// ML-DSA-44 provides NIST Level 2 security (~128-bit classical security),
+/// suitable for applications with strict size or performance constraints.
+///
+/// # Example
+/// ```rust
+/// use saorsa_pqc::api::sig::ml_dsa_44;
+///
+/// # fn main() -> Result<(), Box<dyn std::error::Error>> {
+/// let dsa = ml_dsa_44();
+/// let (public_key, secret_key) = dsa.generate_keypair()?;
+/// # Ok(())
+/// # }
+/// ```
+#[must_use]
+pub const fn ml_dsa_44() -> MlDsa {
+    MlDsa::new(MlDsaVariant::MlDsa44)
+}
+
+/// Convenience function to create ML-DSA-87 (maximum security)
+///
+/// ML-DSA-87 provides NIST Level 5 security (~256-bit classical security),
+/// suitable for applications requiring the highest level of security.
+///
+/// # Example
+/// ```rust
+/// use saorsa_pqc::api::sig::ml_dsa_87;
+///
+/// # fn main() -> Result<(), Box<dyn std::error::Error>> {
+/// let dsa = ml_dsa_87();
+/// let (public_key, secret_key) = dsa.generate_keypair()?;
+/// # Ok(())
+/// # }
+/// ```
+#[must_use]
+pub const fn ml_dsa_87() -> MlDsa {
+    MlDsa::new(MlDsaVariant::MlDsa87)
 }
 
 #[cfg(test)]

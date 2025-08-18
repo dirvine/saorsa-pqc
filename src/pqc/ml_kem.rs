@@ -11,9 +11,16 @@ use rand_core::OsRng;
 /// ML-KEM-768 implementation using FIPS-certified algorithm
 pub struct MlKem768;
 
+impl Default for MlKem768 {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl MlKem768 {
     /// Create a new ML-KEM-768 instance
-    pub fn new() -> Self {
+    #[must_use]
+    pub const fn new() -> Self {
         Self
     }
 }
@@ -88,6 +95,6 @@ impl MlKemOperations for MlKem768 {
             .try_decaps(&ct)
             .map_err(|e| crate::pqc::types::PqcError::DecapsulationFailed(e.to_string()))?;
 
-        Ok(SharedSecret::from_bytes(&ss.into_bytes())?)
+        SharedSecret::from_bytes(&ss.into_bytes())
     }
 }

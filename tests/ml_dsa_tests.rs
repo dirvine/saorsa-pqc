@@ -34,7 +34,7 @@ fn test_ml_dsa_keygen_nist_vectors() -> Result<(), Box<dyn std::error::Error>> {
     for (test_group, expected_group) in vectors.test_groups.iter().zip(expected.test_groups.iter())
     {
         // Focus on ML-DSA-65 parameter set
-        if test_group.parameter_set != "ML-DSA-65" {
+        if test_group.parameter_set.as_deref() != Some("ML-DSA-65") {
             continue;
         }
 
@@ -120,7 +120,7 @@ fn test_ml_dsa_siggen_nist_vectors() -> Result<(), Box<dyn std::error::Error>> {
 
     for (test_group, expected_group) in vectors.test_groups.iter().zip(expected.test_groups.iter())
     {
-        if test_group.parameter_set != "ML-DSA-65" {
+        if test_group.parameter_set.as_deref() != Some("ML-DSA-65") {
             continue;
         }
 
@@ -179,7 +179,7 @@ fn test_ml_dsa_sigver_nist_vectors() -> Result<(), Box<dyn std::error::Error>> {
 
     for (test_group, expected_group) in vectors.test_groups.iter().zip(expected.test_groups.iter())
     {
-        if test_group.parameter_set != "ML-DSA-65" {
+        if test_group.parameter_set.as_deref() != Some("ML-DSA-65") {
             continue;
         }
 

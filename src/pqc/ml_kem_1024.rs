@@ -1,7 +1,8 @@
 //! ML-KEM-1024 implementation
 
-use crate::pqc::{
-    types::{PqcResult, SharedSecret, ML_KEM_1024_PUBLIC_KEY_SIZE, ML_KEM_1024_SECRET_KEY_SIZE, ML_KEM_1024_CIPHERTEXT_SIZE, PqcError},
+use crate::pqc::types::{
+    PqcError, PqcResult, SharedSecret, ML_KEM_1024_CIPHERTEXT_SIZE, ML_KEM_1024_PUBLIC_KEY_SIZE,
+    ML_KEM_1024_SECRET_KEY_SIZE,
 };
 use fips203::ml_kem_1024;
 use fips203::traits::{Decaps, Encaps, KeyGen, SerDes};
@@ -17,6 +18,7 @@ pub struct MlKem1024PublicKey(
 
 impl MlKem1024PublicKey {
     /// Get the public key as bytes
+    #[must_use]
     pub fn as_bytes(&self) -> &[u8] {
         &self.0[..]
     }
@@ -47,6 +49,7 @@ pub struct MlKem1024SecretKey(
 
 impl MlKem1024SecretKey {
     /// Get the secret key as bytes
+    #[must_use]
     pub fn as_bytes(&self) -> &[u8] {
         &self.0[..]
     }
@@ -74,6 +77,7 @@ pub struct MlKem1024Ciphertext(
 
 impl MlKem1024Ciphertext {
     /// Get the ciphertext as bytes
+    #[must_use]
     pub fn as_bytes(&self) -> &[u8] {
         &self.0[..]
     }
@@ -98,10 +102,17 @@ pub trait MlKem1024Operations {
     fn generate_keypair(&self) -> PqcResult<(MlKem1024PublicKey, MlKem1024SecretKey)>;
 
     /// Encapsulate a shared secret using the public key
-    fn encapsulate(&self, public_key: &MlKem1024PublicKey) -> PqcResult<(MlKem1024Ciphertext, SharedSecret)>;
+    fn encapsulate(
+        &self,
+        public_key: &MlKem1024PublicKey,
+    ) -> PqcResult<(MlKem1024Ciphertext, SharedSecret)>;
 
     /// Decapsulate a shared secret using the secret key and ciphertext
-    fn decapsulate(&self, secret_key: &MlKem1024SecretKey, ciphertext: &MlKem1024Ciphertext) -> PqcResult<SharedSecret>;
+    fn decapsulate(
+        &self,
+        secret_key: &MlKem1024SecretKey,
+        ciphertext: &MlKem1024Ciphertext,
+    ) -> PqcResult<SharedSecret>;
 }
 
 /// ML-KEM-1024 implementation using FIPS-certified algorithm
@@ -109,7 +120,8 @@ pub struct MlKem1024;
 
 impl MlKem1024 {
     /// Create a new ML-KEM-1024 instance
-    pub fn new() -> Self {
+    #[must_use]
+    pub const fn new() -> Self {
         Self
     }
 }
@@ -141,12 +153,13 @@ impl MlKem1024Operations for MlKem1024 {
         &self,
         public_key: &MlKem1024PublicKey,
     ) -> PqcResult<(MlKem1024Ciphertext, SharedSecret)> {
-        let pk_bytes: [u8; ML_KEM_1024_PUBLIC_KEY_SIZE] = public_key.as_bytes().try_into().map_err(|_| {
-            PqcError::InvalidKeySize {
+        let pk_bytes: [u8; ML_KEM_1024_PUBLIC_KEY_SIZE] = public_key
+            .as_bytes()
+            .try_into()
+            .map_err(|_| PqcError::InvalidKeySize {
                 expected: ML_KEM_1024_PUBLIC_KEY_SIZE,
                 actual: public_key.as_bytes().len(),
-            }
-        })?;
+            })?;
 
         let pk = ml_kem_1024::EncapsKey::try_from_bytes(pk_bytes)
             .map_err(|e| PqcError::CryptoError(e.to_string()))?;
@@ -166,19 +179,21 @@ impl MlKem1024Operations for MlKem1024 {
         secret_key: &MlKem1024SecretKey,
         ciphertext: &MlKem1024Ciphertext,
     ) -> PqcResult<SharedSecret> {
-        let sk_bytes: [u8; ML_KEM_1024_SECRET_KEY_SIZE] = secret_key.as_bytes().try_into().map_err(|_| {
-            PqcError::InvalidKeySize {
+        let sk_bytes: [u8; ML_KEM_1024_SECRET_KEY_SIZE] = secret_key
+            .as_bytes()
+            .try_into()
+            .map_err(|_| PqcError::InvalidKeySize {
                 expected: ML_KEM_1024_SECRET_KEY_SIZE,
                 actual: secret_key.as_bytes().len(),
-            }
-        })?;
+            })?;
 
-        let ct_bytes: [u8; ML_KEM_1024_CIPHERTEXT_SIZE] = ciphertext.as_bytes().try_into().map_err(|_| {
-            PqcError::InvalidCiphertextSize {
+        let ct_bytes: [u8; ML_KEM_1024_CIPHERTEXT_SIZE] = ciphertext
+            .as_bytes()
+            .try_into()
+            .map_err(|_| PqcError::InvalidCiphertextSize {
                 expected: ML_KEM_1024_CIPHERTEXT_SIZE,
                 actual: ciphertext.as_bytes().len(),
-            }
-        })?;
+            })?;
 
         let sk = ml_kem_1024::DecapsKey::try_from_bytes(sk_bytes)
             .map_err(|e| PqcError::CryptoError(e.to_string()))?;
@@ -190,7 +205,7 @@ impl MlKem1024Operations for MlKem1024 {
             .try_decaps(&ct)
             .map_err(|e| PqcError::DecapsulationFailed(e.to_string()))?;
 
-        Ok(SharedSecret::from_bytes(&ss.into_bytes())?)
+        SharedSecret::from_bytes(&ss.into_bytes())
     }
 }
 
@@ -201,16 +216,20 @@ mod tests {
     #[test]
     fn test_ml_kem_1024_basic_operations() {
         let kem = MlKem1024::new();
-        
+
         // Test key generation
-        let (pk, sk) = kem.generate_keypair().expect("Key generation should succeed");
-        
+        let (pk, sk) = kem
+            .generate_keypair()
+            .expect("Key generation should succeed");
+
         // Test encapsulation
         let (ct, ss1) = kem.encapsulate(&pk).expect("Encapsulation should succeed");
-        
+
         // Test decapsulation
-        let ss2 = kem.decapsulate(&sk, &ct).expect("Decapsulation should succeed");
-        
+        let ss2 = kem
+            .decapsulate(&sk, &ct)
+            .expect("Decapsulation should succeed");
+
         // Shared secrets should match
         assert_eq!(ss1.as_bytes(), ss2.as_bytes());
     }
@@ -218,8 +237,10 @@ mod tests {
     #[test]
     fn test_ml_kem_1024_key_sizes() {
         let kem = MlKem1024::new();
-        let (pk, sk) = kem.generate_keypair().expect("Key generation should succeed");
-        
+        let (pk, sk) = kem
+            .generate_keypair()
+            .expect("Key generation should succeed");
+
         assert_eq!(pk.as_bytes().len(), ML_KEM_1024_PUBLIC_KEY_SIZE);
         assert_eq!(sk.as_bytes().len(), ML_KEM_1024_SECRET_KEY_SIZE);
     }
@@ -227,9 +248,11 @@ mod tests {
     #[test]
     fn test_ml_kem_1024_ciphertext_size() {
         let kem = MlKem1024::new();
-        let (pk, _) = kem.generate_keypair().expect("Key generation should succeed");
+        let (pk, _) = kem
+            .generate_keypair()
+            .expect("Key generation should succeed");
         let (ct, _) = kem.encapsulate(&pk).expect("Encapsulation should succeed");
-        
+
         assert_eq!(ct.as_bytes().len(), ML_KEM_1024_CIPHERTEXT_SIZE);
     }
 }

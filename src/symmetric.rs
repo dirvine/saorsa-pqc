@@ -11,7 +11,7 @@
 //! - 256-bit key support
 //! - Secure random nonce generation
 //! - Memory-safe operations with zeroization
-//! - High performance ChaCha20 stream cipher with Poly1305 MAC
+//! - High performance `ChaCha20` stream cipher with Poly1305 MAC
 //!
 //! # Example
 //! ```rust
@@ -50,7 +50,7 @@ pub enum SymmetricError {
     #[error("Decryption failed")]
     DecryptionFailed,
 
-    /// Key has invalid length (must be 32 bytes for ChaCha20)
+    /// Key has invalid length (must be 32 bytes for `ChaCha20`)
     #[error("Invalid key length: expected 32 bytes, got {0}")]
     InvalidKeyLength(usize),
 
@@ -70,7 +70,7 @@ pub enum SymmetricError {
 /// A 256-bit symmetric encryption key for ChaCha20-Poly1305
 #[derive(Clone, Serialize, Deserialize, Zeroize, ZeroizeOnDrop)]
 pub struct SymmetricKey {
-    /// The raw key bytes (32 bytes for ChaCha20)
+    /// The raw key bytes (32 bytes for `ChaCha20`)
     key: [u8; 32],
 }
 
@@ -104,7 +104,8 @@ impl SymmetricKey {
     /// let key_bytes = [0u8; 32]; // Not recommended for production!
     /// let key = SymmetricKey::from_bytes(key_bytes);
     /// ```
-    pub fn from_bytes(key_bytes: [u8; 32]) -> Self {
+    #[must_use]
+    pub const fn from_bytes(key_bytes: [u8; 32]) -> Self {
         Self { key: key_bytes }
     }
 
@@ -139,7 +140,8 @@ impl SymmetricKey {
     /// # Security Note
     /// Be careful when using this method as it exposes the raw key material.
     /// Ensure the returned bytes are properly zeroized after use.
-    pub fn as_bytes(&self) -> &[u8; 32] {
+    #[must_use]
+    pub const fn as_bytes(&self) -> &[u8; 32] {
         &self.key
     }
 
@@ -147,6 +149,7 @@ impl SymmetricKey {
     ///
     /// This creates a copy of the key bytes. The caller is responsible for
     /// securely handling and zeroizing the returned vector.
+    #[must_use]
     pub fn to_bytes(&self) -> Vec<u8> {
         self.key.to_vec()
     }
@@ -163,13 +166,13 @@ impl std::fmt::Debug for SymmetricKey {
 /// ChaCha20-Poly1305 AEAD cipher for quantum-resistant symmetric encryption
 ///
 /// This struct provides authenticated encryption with associated data using
-/// the ChaCha20 stream cipher for encryption and Poly1305 for authentication.
+/// the `ChaCha20` stream cipher for encryption and Poly1305 for authentication.
 ///
 /// ChaCha20-Poly1305 is considered quantum-resistant because:
 /// - It relies on symmetric cryptography rather than mathematical problems
-/// - ChaCha20 uses a 256-bit key with a large keyspace (2^256)
+/// - `ChaCha20` uses a 256-bit key with a large keyspace (2^256)
 /// - Quantum attacks on symmetric ciphers require approximately 2^(n/2) operations
-/// - This means ~2^128 operations for ChaCha20, which is still computationally infeasible
+/// - This means ~2^128 operations for `ChaCha20`, which is still computationally infeasible
 pub struct ChaCha20Poly1305Cipher {
     /// The ChaCha20-Poly1305 cipher instance
     cipher: ChaCha20Poly1305,
@@ -188,6 +191,7 @@ impl ChaCha20Poly1305Cipher {
     /// let key = SymmetricKey::generate();
     /// let cipher = ChaCha20Poly1305Cipher::new(&key);
     /// ```
+    #[must_use]
     pub fn new(key: &SymmetricKey) -> Self {
         let cipher_key = Key::from_slice(key.as_bytes());
         let cipher = ChaCha20Poly1305::new(cipher_key);
@@ -378,7 +382,12 @@ impl EncryptedMessage {
     /// * `ciphertext` - The encrypted data
     /// * `nonce` - The nonce used for encryption
     /// * `associated_data` - Optional associated data
-    pub fn new(ciphertext: Vec<u8>, nonce: [u8; 12], associated_data: Option<Vec<u8>>) -> Self {
+    #[must_use]
+    pub const fn new(
+        ciphertext: Vec<u8>,
+        nonce: [u8; 12],
+        associated_data: Option<Vec<u8>>,
+    ) -> Self {
         Self {
             ciphertext,
             nonce,
@@ -405,16 +414,19 @@ impl EncryptedMessage {
     }
 
     /// Get the size of the encrypted message in bytes
+    #[must_use]
     pub fn size(&self) -> usize {
-        self.ciphertext.len() + 12 + self.associated_data.as_ref().map_or(0, |data| data.len())
+        self.ciphertext.len() + 12 + self.associated_data.as_ref().map_or(0, std::vec::Vec::len)
     }
 }
 
 /// Utility functions for symmetric encryption
 pub mod utils {
-    use super::*;
+    use super::{
+        Aead, ChaCha20Poly1305Cipher, EncryptedMessage, KeyInit, SymmetricError, SymmetricKey,
+    };
 
-    /// Encrypt data and return a complete EncryptedMessage
+    /// Encrypt data and return a complete `EncryptedMessage`
     ///
     /// # Arguments
     /// * `key` - The symmetric encryption key
@@ -422,7 +434,7 @@ pub mod utils {
     /// * `associated_data` - Optional associated data
     ///
     /// # Returns
-    /// An EncryptedMessage containing the ciphertext, nonce, and associated data
+    /// An `EncryptedMessage` containing the ciphertext, nonce, and associated data
     ///
     /// # Example
     /// ```rust
@@ -443,11 +455,11 @@ pub mod utils {
         Ok(EncryptedMessage::new(
             ciphertext,
             nonce,
-            associated_data.map(|data| data.to_vec()),
+            associated_data.map(<[u8]>::to_vec),
         ))
     }
 
-    /// Decrypt an EncryptedMessage
+    /// Decrypt an `EncryptedMessage`
     ///
     /// # Arguments
     /// * `key` - The symmetric encryption key

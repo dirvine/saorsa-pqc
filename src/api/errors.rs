@@ -75,19 +75,19 @@ pub enum PqcError {
 
     /// Feature not available
     FeatureNotAvailable,
-    
+
     /// Invalid nonce length
     InvalidNonceLength,
-    
+
     /// Invalid key length
     InvalidKeyLength,
-    
+
     /// Invalid signature (for HMAC/MAC verification)
     InvalidSignature,
-    
+
     /// Generic encryption error (for AEAD)
     EncryptionError,
-    
+
     /// Generic decryption error (for AEAD)
     DecryptionError,
 }
@@ -95,41 +95,35 @@ pub enum PqcError {
 impl fmt::Display for PqcError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Self::KeyGenerationFailed(msg) => write!(f, "Key generation failed: {}", msg),
-            Self::EncapsulationFailed(msg) => write!(f, "Encapsulation failed: {}", msg),
-            Self::DecapsulationFailed(msg) => write!(f, "Decapsulation failed: {}", msg),
-            Self::SigningFailed(msg) => write!(f, "Signing failed: {}", msg),
+            Self::KeyGenerationFailed(msg) => write!(f, "Key generation failed: {msg}"),
+            Self::EncapsulationFailed(msg) => write!(f, "Encapsulation failed: {msg}"),
+            Self::DecapsulationFailed(msg) => write!(f, "Decapsulation failed: {msg}"),
+            Self::SigningFailed(msg) => write!(f, "Signing failed: {msg}"),
             Self::VerificationFailed => write!(f, "Signature verification failed"),
-            Self::SerializationError(msg) => write!(f, "Serialization error: {}", msg),
-            Self::InvalidInput(msg) => write!(f, "Invalid input: {}", msg),
-            Self::RngError(msg) => write!(f, "RNG error: {}", msg),
-            Self::UnsupportedVariant(msg) => write!(f, "Unsupported variant: {}", msg),
+            Self::SerializationError(msg) => write!(f, "Serialization error: {msg}"),
+            Self::InvalidInput(msg) => write!(f, "Invalid input: {msg}"),
+            Self::RngError(msg) => write!(f, "RNG error: {msg}"),
+            Self::UnsupportedVariant(msg) => write!(f, "Unsupported variant: {msg}"),
             Self::InvalidKeySize { expected, got } => {
-                write!(
-                    f,
-                    "Invalid key size: expected {} bytes, got {}",
-                    expected, got
-                )
+                write!(f, "Invalid key size: expected {expected} bytes, got {got}")
             }
             Self::InvalidSignatureSize { expected, got } => {
                 write!(
                     f,
-                    "Invalid signature size: expected {} bytes, got {}",
-                    expected, got
+                    "Invalid signature size: expected {expected} bytes, got {got}"
                 )
             }
             Self::InvalidCiphertextSize { expected, got } => {
                 write!(
                     f,
-                    "Invalid ciphertext size: expected {} bytes, got {}",
-                    expected, got
+                    "Invalid ciphertext size: expected {expected} bytes, got {got}"
                 )
             }
             Self::ContextTooLong { max, got } => {
-                write!(f, "Context too long: maximum {} bytes, got {}", max, got)
+                write!(f, "Context too long: maximum {max} bytes, got {got}")
             }
-            Self::EncryptionFailed(msg) => write!(f, "Encryption failed: {}", msg),
-            Self::DecryptionFailed(msg) => write!(f, "Decryption failed: {}", msg),
+            Self::EncryptionFailed(msg) => write!(f, "Encryption failed: {msg}"),
+            Self::DecryptionFailed(msg) => write!(f, "Decryption failed: {msg}"),
             Self::FeatureNotAvailable => write!(f, "Feature not available"),
             Self::InvalidNonceLength => write!(f, "Invalid nonce length"),
             Self::InvalidKeyLength => write!(f, "Invalid key length"),

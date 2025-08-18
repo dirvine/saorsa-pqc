@@ -48,7 +48,7 @@ pub enum HybridPreference {
 /// Error type for PQC configuration
 #[derive(Debug, Clone, PartialEq)]
 pub enum ConfigError {
-    /// No PQC algorithms enabled in PqcOnly mode
+    /// No PQC algorithms enabled in `PqcOnly` mode
     NoPqcAlgorithmsEnabled,
     /// Invalid memory pool size
     InvalidMemoryPoolSize(usize),
@@ -61,28 +61,26 @@ pub enum ConfigError {
 impl fmt::Display for ConfigError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            ConfigError::NoPqcAlgorithmsEnabled => {
+            Self::NoPqcAlgorithmsEnabled => {
                 write!(
                     f,
                     "PqcOnly mode requires at least one PQC algorithm enabled"
                 )
             }
-            ConfigError::InvalidMemoryPoolSize(size) => {
+            Self::InvalidMemoryPoolSize(size) => {
                 write!(
                     f,
-                    "Invalid memory pool size {}: must be between 1 and 1000",
-                    size
+                    "Invalid memory pool size {size}: must be between 1 and 1000"
                 )
             }
-            ConfigError::InvalidTimeoutMultiplier(mult) => {
+            Self::InvalidTimeoutMultiplier(mult) => {
                 write!(
                     f,
-                    "Invalid timeout multiplier {}: must be between 1.0 and 10.0",
-                    mult
+                    "Invalid timeout multiplier {mult}: must be between 1.0 and 10.0"
                 )
             }
-            ConfigError::ConflictingOptions(msg) => {
-                write!(f, "Conflicting configuration options: {}", msg)
+            Self::ConflictingOptions(msg) => {
+                write!(f, "Conflicting configuration options: {msg}")
             }
         }
     }
@@ -104,12 +102,14 @@ impl Default for PqcConfig {
 }
 
 impl PqcConfig {
-    /// Create a new PqcConfig with default values
+    /// Create a new `PqcConfig` with default values
+    #[must_use]
     pub fn new() -> Self {
         Self::default()
     }
 
-    /// Create a builder for constructing PqcConfig
+    /// Create a builder for constructing `PqcConfig`
+    #[must_use]
     pub fn builder() -> PqcConfigBuilder {
         PqcConfigBuilder::new()
     }
@@ -137,7 +137,7 @@ impl PqcConfig {
     }
 }
 
-/// Builder for PqcConfig
+/// Builder for `PqcConfig`
 #[derive(Debug, Clone)]
 pub struct PqcConfigBuilder {
     mode: PqcMode,
@@ -156,6 +156,7 @@ impl Default for PqcConfigBuilder {
 
 impl PqcConfigBuilder {
     /// Create a new builder with default values
+    #[must_use]
     pub fn new() -> Self {
         let default = PqcConfig::default();
         Self {
@@ -169,42 +170,48 @@ impl PqcConfigBuilder {
     }
 
     /// Set the PQC operation mode
-    pub fn mode(mut self, mode: PqcMode) -> Self {
+    #[must_use]
+    pub const fn mode(mut self, mode: PqcMode) -> Self {
         self.mode = mode;
         self
     }
 
     /// Enable or disable ML-KEM-768
-    pub fn ml_kem(mut self, enabled: bool) -> Self {
+    #[must_use]
+    pub const fn ml_kem(mut self, enabled: bool) -> Self {
         self.ml_kem_enabled = enabled;
         self
     }
 
     /// Enable or disable ML-DSA-65
-    pub fn ml_dsa(mut self, enabled: bool) -> Self {
+    #[must_use]
+    pub const fn ml_dsa(mut self, enabled: bool) -> Self {
         self.ml_dsa_enabled = enabled;
         self
     }
 
     /// Set the hybrid algorithm preference
-    pub fn hybrid_preference(mut self, preference: HybridPreference) -> Self {
+    #[must_use]
+    pub const fn hybrid_preference(mut self, preference: HybridPreference) -> Self {
         self.hybrid_preference = preference;
         self
     }
 
     /// Set the memory pool size
-    pub fn memory_pool_size(mut self, size: usize) -> Self {
+    #[must_use]
+    pub const fn memory_pool_size(mut self, size: usize) -> Self {
         self.memory_pool_size = size;
         self
     }
 
     /// Set the handshake timeout multiplier
-    pub fn handshake_timeout_multiplier(mut self, multiplier: f32) -> Self {
+    #[must_use]
+    pub const fn handshake_timeout_multiplier(mut self, multiplier: f32) -> Self {
         self.handshake_timeout_multiplier = multiplier;
         self
     }
 
-    /// Build the PqcConfig, validating all settings
+    /// Build the `PqcConfig`, validating all settings
     pub fn build(self) -> Result<PqcConfig, ConfigError> {
         let config = PqcConfig {
             mode: self.mode,

@@ -105,7 +105,7 @@ pub struct TimingAnalysis {
     pub mean_duration: Duration,
     /// Standard deviation of execution times
     pub std_deviation: Duration,
-    /// Coefficient of variation (std_dev / mean) as a percentage
+    /// Coefficient of variation (`std_dev` / mean) as a percentage
     pub coefficient_of_variation: f64,
     /// Whether the operation appears to run in constant time
     pub constant_time: bool,
@@ -136,7 +136,8 @@ pub struct SecurityValidator {
 
 impl SecurityValidator {
     /// Create a new security validator
-    pub fn new() -> Self {
+    #[must_use]
+    pub const fn new() -> Self {
         Self {
             timing_samples: Vec::new(),
             entropy_samples: Vec::new(),
@@ -154,6 +155,7 @@ impl SecurityValidator {
     }
 
     /// Analyze timing for constant-time behavior
+    #[must_use]
     pub fn analyze_timing(&self) -> TimingAnalysis {
         if self.timing_samples.is_empty() {
             return TimingAnalysis {
@@ -197,6 +199,7 @@ impl SecurityValidator {
     }
 
     /// Analyze entropy quality
+    #[must_use]
     pub fn analyze_entropy(&self) -> EntropyQuality {
         if self.entropy_samples.is_empty() {
             return EntropyQuality::VeryLow;
@@ -213,7 +216,7 @@ impl SecurityValidator {
 
         for &count in &frequency {
             if count > 0 {
-                let p = count as f64 / total;
+                let p = f64::from(count) / total;
                 entropy -= p * p.log2();
             }
         }
@@ -229,6 +232,7 @@ impl SecurityValidator {
     }
 
     /// Generate a security report
+    #[must_use]
     pub fn generate_report(&self) -> SecurityReport {
         let timing = self.analyze_timing();
         let entropy = self.analyze_entropy();
@@ -257,7 +261,7 @@ impl SecurityValidator {
                 issues.push(SecurityIssue {
                     severity: Severity::Critical,
                     category: "Entropy".to_string(),
-                    description: format!("Insufficient entropy detected: {:?}", entropy),
+                    description: format!("Insufficient entropy detected: {entropy:?}"),
                     recommendation: "Use a cryptographically secure random number generator"
                         .to_string(),
                 });
@@ -292,6 +296,7 @@ impl Default for SecurityValidator {
 }
 
 /// Run a basic security validation
+#[must_use]
 pub fn run_security_validation() -> SecurityReport {
     let _validator = SecurityValidator::new();
     // Basic validation that returns a passing report

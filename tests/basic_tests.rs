@@ -159,10 +159,7 @@ fn test_feature_flag_compilation() {
     // This test verifies that the library compiles correctly
     // with the current feature configuration
 
-    #[cfg(feature = "aws-lc-rs")]
-    {
-        println!("aws-lc-rs feature is enabled");
-    }
+    // No longer using aws-lc-rs - using FIPS crates directly
 
     #[cfg(feature = "parallel")]
     {

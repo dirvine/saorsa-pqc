@@ -21,7 +21,10 @@ use std::sync::atomic::{AtomicU64, AtomicUsize, Ordering};
 use std::sync::{Arc, Mutex, OnceLock};
 use std::time::Duration;
 
-use crate::pqc::types::*;
+use crate::pqc::types::{
+    PqcError, ML_DSA_65_PUBLIC_KEY_SIZE, ML_DSA_65_SECRET_KEY_SIZE, ML_DSA_65_SIGNATURE_SIZE,
+    ML_KEM_768_CIPHERTEXT_SIZE, ML_KEM_768_PUBLIC_KEY_SIZE, ML_KEM_768_SECRET_KEY_SIZE,
+};
 
 /// Configuration for memory pool behavior
 #[derive(Debug, Clone)]
@@ -178,24 +181,21 @@ impl<T: BufferCleanup> ObjectPool<T> {
 
         self.stats.allocations.fetch_add(1, Ordering::Relaxed);
 
-        let object = match available.pop() {
-            Some(obj) => {
-                self.stats.hits.fetch_add(1, Ordering::Relaxed);
-                obj
-            }
-            _ => {
-                self.stats.misses.fetch_add(1, Ordering::Relaxed);
+        let object = if let Some(obj) = available.pop() {
+            self.stats.hits.fetch_add(1, Ordering::Relaxed);
+            obj
+        } else {
+            self.stats.misses.fetch_add(1, Ordering::Relaxed);
 
-                // Check if we can grow the pool
-                let current_size = self.stats.current_size.load(Ordering::Relaxed);
-                if current_size >= self.config.max_size {
-                    return Err(PqcError::PoolError("Pool at maximum capacity".to_string()));
-                }
-
-                // Allocate new object
-                self.stats.current_size.fetch_add(1, Ordering::Relaxed);
-                (self.factory)()
+            // Check if we can grow the pool
+            let current_size = self.stats.current_size.load(Ordering::Relaxed);
+            if current_size >= self.config.max_size {
+                return Err(PqcError::PoolError("Pool at maximum capacity".to_string()));
             }
+
+            // Allocate new object
+            self.stats.current_size.fetch_add(1, Ordering::Relaxed);
+            (self.factory)()
         };
 
         Ok(PoolGuard {
@@ -219,7 +219,7 @@ pub struct PoolGuard<T: BufferCleanup> {
 
 impl<T: BufferCleanup> PoolGuard<T> {
     /// Get a reference to the pooled object
-    pub fn as_ref(&self) -> &T {
+    pub const fn as_ref(&self) -> &T {
         // SAFETY: PoolGuard is constructed with Some(object) and only consumed on drop
         // The object is guaranteed to exist until drop
         self.object
@@ -228,7 +228,7 @@ impl<T: BufferCleanup> PoolGuard<T> {
     }
 
     /// Get a mutable reference to the pooled object
-    pub fn as_mut(&mut self) -> &mut T {
+    pub const fn as_mut(&mut self) -> &mut T {
         // SAFETY: PoolGuard is constructed with Some(object) and only consumed on drop
         // The object is guaranteed to exist until drop
         self.object
@@ -279,6 +279,7 @@ pub struct PqcMemoryPool {
 
 impl PqcMemoryPool {
     /// Create a new PQC memory pool with the given configuration
+    #[must_use]
     pub fn new(config: PoolConfig) -> Self {
         let stats = Arc::new(PoolStats::default());
 
@@ -336,6 +337,7 @@ impl PqcMemoryPool {
     }
 
     /// Get pool statistics
+    #[must_use]
     pub fn stats(&self) -> &PoolStats {
         &self.stats
     }
@@ -347,7 +349,7 @@ impl PqcMemoryPool {
     }
 }
 
-/// Global memory pool instance using safe OnceLock
+/// Global memory pool instance using safe `OnceLock`
 static GLOBAL_POOL: OnceLock<PqcMemoryPool> = OnceLock::new();
 
 /// Initialize the global memory pool

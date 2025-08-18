@@ -47,7 +47,7 @@ fn test_ml_kem_keygen_nist_vectors() -> Result<(), Box<dyn std::error::Error>> {
     for (test_group, expected_group) in vectors.test_groups.iter().zip(expected.test_groups.iter())
     {
         // Focus on ML-KEM-768 for now
-        if test_group.parameter_set != "ML-KEM-768" {
+        if test_group.parameter_set.as_deref() != Some("ML-KEM-768") {
             continue;
         }
 
@@ -149,7 +149,7 @@ fn test_ml_kem_encap_decap_nist_vectors() -> Result<(), Box<dyn std::error::Erro
 
     for (test_group, expected_group) in vectors.test_groups.iter().zip(expected.test_groups.iter())
     {
-        if test_group.parameter_set != "ML-KEM-768" {
+        if test_group.parameter_set.as_deref() != Some("ML-KEM-768") {
             continue;
         }
 
@@ -456,10 +456,8 @@ fn test_ml_kem_thread_safety() -> Result<(), Box<dyn std::error::Error>> {
             move || -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
                 for _ in 0..10 {
                     let (public_key, secret_key) = ml_kem_clone.generate_keypair()?;
-                    let (ciphertext, shared_secret1) =
-                        ml_kem_clone.encapsulate(&public_key)?;
-                    let shared_secret2 =
-                        ml_kem_clone.decapsulate(&secret_key, &ciphertext)?;
+                    let (ciphertext, shared_secret1) = ml_kem_clone.encapsulate(&public_key)?;
+                    let shared_secret2 = ml_kem_clone.decapsulate(&secret_key, &ciphertext)?;
                     assert_eq!(shared_secret1.as_bytes(), shared_secret2.as_bytes());
                 }
                 println!("Thread {} completed successfully", i);
@@ -472,7 +470,7 @@ fn test_ml_kem_thread_safety() -> Result<(), Box<dyn std::error::Error>> {
     // Wait for all threads to complete
     for handle in handles {
         match handle.join().expect("Thread panicked") {
-            Ok(()) => {},
+            Ok(()) => {}
             Err(e) => return Err(e),
         }
     }

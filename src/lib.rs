@@ -83,16 +83,15 @@
 //!
 //! The library is optimized for both security and performance:
 //!
-//! - **AWS-LC Integration**: Uses AWS-LC for optimized PQC implementations
+//! - **FIPS-Compliant Implementations**: Uses FIPS 203/204/205 certified crates
 //! - **Memory Pooling**: Reduces allocation overhead for frequent operations
 //! - **Parallel Processing**: Optional multi-threading for batch operations
 //! - **Zero-Copy**: Minimal data copying in critical paths
 //!
 //! ## Feature Flags
 //!
-//! - `aws-lc-rs` (default): Use AWS-LC for PQC implementations
-//! - `rustls-ring`: Alternative using Ring for classical crypto
-//! - `pqc`: Enable post-quantum cryptography features
+//! - `pqc`: Enable post-quantum cryptography features (using FIPS crates)
+//! - `extended-crypto`: Extended cryptographic primitives (Hash, KDF, HMAC, AES-GCM)
 //! - `parallel`: Enable parallel processing capabilities
 //! - `memory-pool`: Enable memory pool optimizations
 //!
@@ -127,11 +126,11 @@ pub mod api;
 
 // Re-export the comprehensive API for easy access
 pub use api::{
-    sig::ml_dsa_65,
     // Utils
     init as api_init,
     // Convenience functions
     kem::ml_kem_768,
+    sig::ml_dsa_65,
     slh::slh_dsa_sha2_128s,
 
     supported_algorithms,
@@ -185,7 +184,6 @@ pub use pqc::{
     // Core traits
     MlKemOperations,
 };
-
 
 // Re-export symmetric encryption for convenience
 pub use symmetric::{
@@ -256,11 +254,12 @@ pub fn init() -> Result<(), Box<dyn std::error::Error>> {
 ///
 /// Returns information about the library version, supported algorithms,
 /// and available features.
+#[must_use]
 pub fn get_info() -> LibraryInfo {
     LibraryInfo {
         version: VERSION.to_string(),
-        supported_ml_kem: SUPPORTED_ML_KEM.iter().map(|s| s.to_string()).collect(),
-        supported_ml_dsa: SUPPORTED_ML_DSA.iter().map(|s| s.to_string()).collect(),
+        supported_ml_kem: SUPPORTED_ML_KEM.iter().map(|s| (*s).to_string()).collect(),
+        supported_ml_dsa: SUPPORTED_ML_DSA.iter().map(|s| (*s).to_string()).collect(),
         features: get_enabled_features(),
         security_level: DEFAULT_SECURITY_LEVEL.to_string(),
     }
@@ -329,7 +328,6 @@ mod tests {
             !features.is_empty(),
             "Should have at least one feature enabled"
         );
-
     }
 
     #[test]

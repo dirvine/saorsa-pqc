@@ -1,10 +1,10 @@
 //! Post-Quantum Cryptography module for Saorsa Labs projects
 //!
 //! This module implements NIST-standardized post-quantum algorithms with multiple parameter sets:
-//! 
+//!
 //! ## Key Encapsulation Mechanisms (ML-KEM) - FIPS 203
 //! - ML-KEM-512 (Security Category 1)
-//! - ML-KEM-768 (Security Category 3) 
+//! - ML-KEM-768 (Security Category 3)
 //! - ML-KEM-1024 (Security Category 5)
 //!
 //! ## Digital Signature Algorithms (ML-DSA) - FIPS 204
@@ -12,7 +12,7 @@
 //! - ML-DSA-65 (Security Category 3)
 //! - ML-DSA-87 (Security Category 5)
 //!
-//! All implementations use constant-time algorithms from the FIPS-certified 
+//! All implementations use constant-time algorithms from the FIPS-certified
 //! reference implementations for protection against timing attacks.
 //!
 //! The implementation provides both pure PQC and hybrid modes combining classical
@@ -23,8 +23,8 @@ pub mod ml_dsa;
 pub mod ml_dsa_44;
 pub mod ml_dsa_87;
 pub mod ml_kem;
-pub mod ml_kem_512;
 pub mod ml_kem_1024;
+pub mod ml_kem_512;
 pub mod types;
 
 // Hybrid cryptography
@@ -53,11 +53,19 @@ pub use encryption::{EncryptedMessage, HybridPublicKeyEncryption};
 pub use hybrid::{HybridKem, HybridSignature};
 pub use memory_pool::{PoolConfig, PqcMemoryPool};
 pub use ml_dsa::MlDsa65;
-pub use ml_dsa_44::{MlDsa44, MlDsa44Operations, MlDsa44PublicKey, MlDsa44SecretKey, MlDsa44Signature};
-pub use ml_dsa_87::{MlDsa87, MlDsa87Operations, MlDsa87PublicKey, MlDsa87SecretKey, MlDsa87Signature};
+pub use ml_dsa_44::{
+    MlDsa44, MlDsa44Operations, MlDsa44PublicKey, MlDsa44SecretKey, MlDsa44Signature,
+};
+pub use ml_dsa_87::{
+    MlDsa87, MlDsa87Operations, MlDsa87PublicKey, MlDsa87SecretKey, MlDsa87Signature,
+};
 pub use ml_kem::MlKem768;
-pub use ml_kem_512::{MlKem512, MlKem512Operations, MlKem512PublicKey, MlKem512SecretKey, MlKem512Ciphertext};
-pub use ml_kem_1024::{MlKem1024, MlKem1024Operations, MlKem1024PublicKey, MlKem1024SecretKey, MlKem1024Ciphertext};
+pub use ml_kem_1024::{
+    MlKem1024, MlKem1024Ciphertext, MlKem1024Operations, MlKem1024PublicKey, MlKem1024SecretKey,
+};
+pub use ml_kem_512::{
+    MlKem512, MlKem512Ciphertext, MlKem512Operations, MlKem512PublicKey, MlKem512SecretKey,
+};
 // TLS extensions are not part of core PQC - use saorsa-pqc-tls crate if needed
 
 /// Post-Quantum Cryptography provider trait
@@ -126,9 +134,9 @@ mod tests {
     }
 
     #[test]
-    fn test_aws_lc_pqc_available() {
-        // Verify aws-lc-rs PQC APIs are always available
-        // Note: aws-lc-rs may not export these directly, we'll verify in implementation
+    fn test_fips_pqc_available() {
+        // Verify FIPS 203/204/205 crates are available
+        // These provide the actual cryptographic implementations
     }
 }
 

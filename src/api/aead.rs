@@ -29,8 +29,9 @@ impl GcmNonce {
         nonce.copy_from_slice(slice);
         Ok(Self(nonce))
     }
-    
+
     /// Generate a random nonce
+    #[must_use]
     pub fn generate() -> Self {
         use rand_core::{OsRng, RngCore};
         let mut nonce = [0u8; 12];
@@ -58,16 +59,15 @@ impl AsRef<[u8]> for GcmTag {
 impl Aead for Aes256GcmAead {
     type Nonce = GcmNonce;
     type Tag = GcmTag;
-    
+
     fn new(key: &[u8]) -> PqcResult<Self> {
         if key.len() != 32 {
             return Err(PqcError::InvalidKeyLength);
         }
-        let cipher = Aes256Gcm::new_from_slice(key)
-            .map_err(|_| PqcError::InvalidKeyLength)?;
+        let cipher = Aes256Gcm::new_from_slice(key).map_err(|_| PqcError::InvalidKeyLength)?;
         Ok(Self { cipher })
     }
-    
+
     fn encrypt_in_place_detached(
         &self,
         nonce: &Self::Nonce,
@@ -79,12 +79,12 @@ impl Aead for Aes256GcmAead {
             .cipher
             .encrypt_in_place_detached(nonce, associated_data, buffer)
             .map_err(|_| PqcError::EncryptionError)?;
-        
+
         let mut tag_bytes = [0u8; 16];
         tag_bytes.copy_from_slice(&tag);
         Ok(GcmTag(tag_bytes))
     }
-    
+
     fn decrypt_in_place_detached(
         &self,
         nonce: &Self::Nonce,
@@ -94,12 +94,12 @@ impl Aead for Aes256GcmAead {
     ) -> PqcResult<()> {
         let nonce = AesNonce::from_slice(nonce.as_ref());
         let tag = aes_gcm::Tag::from_slice(tag.as_ref());
-        
+
         self.cipher
             .decrypt_in_place_detached(nonce, associated_data, buffer, tag)
             .map_err(|_| PqcError::DecryptionError)
     }
-    
+
     fn encrypt(
         &self,
         nonce: &Self::Nonce,
@@ -111,7 +111,7 @@ impl Aead for Aes256GcmAead {
         ciphertext.extend_from_slice(tag.as_ref());
         Ok(ciphertext)
     }
-    
+
     fn decrypt(
         &self,
         nonce: &Self::Nonce,
@@ -121,30 +121,30 @@ impl Aead for Aes256GcmAead {
         if ciphertext.len() < 16 {
             return Err(PqcError::DecryptionError);
         }
-        
+
         let (ct, tag_bytes) = ciphertext.split_at(ciphertext.len() - 16);
         let mut plaintext = ct.to_vec();
-        
+
         let mut tag = [0u8; 16];
         tag.copy_from_slice(tag_bytes);
         let tag = GcmTag(tag);
-        
+
         self.decrypt_in_place_detached(nonce, associated_data, &mut plaintext, &tag)?;
         Ok(plaintext)
     }
-    
+
     fn key_size() -> usize {
         32 // 256 bits
     }
-    
+
     fn nonce_size() -> usize {
         12 // 96 bits
     }
-    
+
     fn tag_size() -> usize {
         16 // 128 bits
     }
-    
+
     fn name() -> &'static str {
         "AES-256-GCM"
     }
@@ -177,14 +177,14 @@ impl AeadCipher {
             Self::ChaCha20Poly1305 => {
                 use crate::api::symmetric::ChaCha20Poly1305;
                 use chacha20poly1305::{Key, Nonce};
-                
+
                 if key.len() != 32 {
                     return Err(PqcError::InvalidKeyLength);
                 }
                 if nonce.len() != 12 {
                     return Err(PqcError::InvalidNonceLength);
                 }
-                
+
                 let key = Key::from_slice(key);
                 let nonce = Nonce::from_slice(nonce);
                 let cipher = ChaCha20Poly1305::new(key);
@@ -192,7 +192,7 @@ impl AeadCipher {
             }
         }
     }
-    
+
     /// Decrypt with associated data
     pub fn decrypt(
         &self,
@@ -210,14 +210,14 @@ impl AeadCipher {
             Self::ChaCha20Poly1305 => {
                 use crate::api::symmetric::ChaCha20Poly1305;
                 use chacha20poly1305::{Key, Nonce};
-                
+
                 if key.len() != 32 {
                     return Err(PqcError::InvalidKeyLength);
                 }
                 if nonce.len() != 12 {
                     return Err(PqcError::InvalidNonceLength);
                 }
-                
+
                 let key = Key::from_slice(key);
                 let nonce = Nonce::from_slice(nonce);
                 let cipher = ChaCha20Poly1305::new(key);
@@ -225,9 +225,10 @@ impl AeadCipher {
             }
         }
     }
-    
+
     /// Get the cipher name
-    pub fn name(&self) -> &'static str {
+    #[must_use]
+    pub const fn name(&self) -> &'static str {
         match self {
             Self::Aes256Gcm => "AES-256-GCM",
             Self::ChaCha20Poly1305 => "ChaCha20-Poly1305",
@@ -237,22 +238,24 @@ impl AeadCipher {
 
 /// Helper functions for AEAD operations
 pub mod helpers {
-    use super::*;
-    
+    use super::{Aead, AeadCipher, GcmNonce, KeyInit, PqcResult, Zeroizing};
+
     /// Generate a random nonce for AES-GCM
+    #[must_use]
     pub fn generate_aes_gcm_nonce() -> [u8; 12] {
         let nonce = GcmNonce::generate();
         nonce.0
     }
-    
+
     /// Generate a random key for AEAD ciphers
+    #[must_use]
     pub fn generate_aead_key() -> Zeroizing<[u8; 32]> {
         use rand_core::{OsRng, RngCore};
         let mut key = Zeroizing::new([0u8; 32]);
         OsRng.fill_bytes(&mut key[..]);
         key
     }
-    
+
     /// Encrypt with automatic nonce generation
     pub fn encrypt_with_random_nonce(
         cipher: AeadCipher,
@@ -269,47 +272,47 @@ pub mod helpers {
 #[cfg(test)]
 mod tests {
     use super::*;
-    
+
     #[test]
     fn test_aes256_gcm_basic() {
         let key = helpers::generate_aead_key();
         let nonce = helpers::generate_aes_gcm_nonce();
         let plaintext = b"test plaintext";
         let aad = b"associated data";
-        
+
         let cipher = Aes256GcmAead::new(&key[..]).unwrap();
-        
+
         // Encrypt
         let ciphertext = cipher.encrypt(&GcmNonce(nonce), plaintext, aad).unwrap();
         assert_eq!(ciphertext.len(), plaintext.len() + 16); // +16 for tag
-        
+
         // Decrypt
         let decrypted = cipher.decrypt(&GcmNonce(nonce), &ciphertext, aad).unwrap();
         assert_eq!(decrypted, plaintext);
     }
-    
+
     #[test]
     fn test_aes256_gcm_wrong_aad() {
         let key = helpers::generate_aead_key();
         let nonce = helpers::generate_aes_gcm_nonce();
         let plaintext = b"test plaintext";
         let aad = b"associated data";
-        
+
         let cipher = Aes256GcmAead::new(&key[..]).unwrap();
         let ciphertext = cipher.encrypt(&GcmNonce(nonce), plaintext, aad).unwrap();
-        
+
         // Decrypt with wrong AAD should fail
         let result = cipher.decrypt(&GcmNonce(nonce), &ciphertext, b"wrong aad");
         assert!(result.is_err());
     }
-    
+
     #[test]
     fn test_aead_cipher_enum() {
         let key = helpers::generate_aead_key();
         let nonce = helpers::generate_aes_gcm_nonce();
         let plaintext = b"test plaintext";
         let aad = b"associated data";
-        
+
         // Test AES-256-GCM
         let ct_aes = AeadCipher::Aes256Gcm
             .encrypt(&key[..], &nonce, plaintext, aad)
@@ -319,7 +322,7 @@ mod tests {
             .unwrap();
         assert_eq!(pt_aes, plaintext);
         assert_eq!(AeadCipher::Aes256Gcm.name(), "AES-256-GCM");
-        
+
         // Test ChaCha20-Poly1305
         let ct_chacha = AeadCipher::ChaCha20Poly1305
             .encrypt(&key[..], &nonce, plaintext, aad)
@@ -329,38 +332,30 @@ mod tests {
             .unwrap();
         assert_eq!(pt_chacha, plaintext);
         assert_eq!(AeadCipher::ChaCha20Poly1305.name(), "ChaCha20-Poly1305");
-        
+
         // Ciphertexts should be different
         assert_ne!(ct_aes, ct_chacha);
     }
-    
+
     #[test]
     fn test_encrypt_with_random_nonce() {
         let key = helpers::generate_aead_key();
         let plaintext = b"test plaintext";
         let aad = b"associated data";
-        
-        let (ciphertext1, nonce1) = helpers::encrypt_with_random_nonce(
-            AeadCipher::Aes256Gcm,
-            &key[..],
-            plaintext,
-            aad,
-        )
-        .unwrap();
-        
-        let (ciphertext2, nonce2) = helpers::encrypt_with_random_nonce(
-            AeadCipher::Aes256Gcm,
-            &key[..],
-            plaintext,
-            aad,
-        )
-        .unwrap();
-        
+
+        let (ciphertext1, nonce1) =
+            helpers::encrypt_with_random_nonce(AeadCipher::Aes256Gcm, &key[..], plaintext, aad)
+                .unwrap();
+
+        let (ciphertext2, nonce2) =
+            helpers::encrypt_with_random_nonce(AeadCipher::Aes256Gcm, &key[..], plaintext, aad)
+                .unwrap();
+
         // Nonces should be different
         assert_ne!(nonce1, nonce2);
         // Therefore ciphertexts should be different
         assert_ne!(ciphertext1, ciphertext2);
-        
+
         // But both should decrypt correctly
         let pt1 = AeadCipher::Aes256Gcm
             .decrypt(&key[..], &nonce1, &ciphertext1, aad)
@@ -368,7 +363,7 @@ mod tests {
         let pt2 = AeadCipher::Aes256Gcm
             .decrypt(&key[..], &nonce2, &ciphertext2, aad)
             .unwrap();
-        
+
         assert_eq!(pt1, plaintext);
         assert_eq!(pt2, plaintext);
     }

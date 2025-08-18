@@ -11,17 +11,24 @@ pub mod hmac;
 pub mod hpke;
 pub mod kdf;
 pub mod kem;
-pub mod sig;  // Renamed from dsa for consistency
+pub mod sig; // Renamed from dsa for consistency
 pub mod slh;
 pub mod symmetric;
 pub mod traits;
 
-pub use sig::{ml_dsa_65, MlDsa, MlDsaPublicKey, MlDsaSecretKey, MlDsaSignature, MlDsaVariant};
 pub use errors::{PqcError, PqcResult};
 pub use kem::{
-    MlKem, MlKemCiphertext, MlKemPublicKey, MlKemSecretKey, MlKemSharedSecret, MlKemVariant,
+    ml_kem_1024, ml_kem_512, ml_kem_768, MlKem, MlKemCiphertext, MlKemPublicKey, MlKemSecretKey,
+    MlKemSharedSecret, MlKemVariant,
 };
-pub use slh::{SlhDsa, SlhDsaPublicKey, SlhDsaSecretKey, SlhDsaSignature, SlhDsaVariant};
+pub use sig::{
+    ml_dsa_44, ml_dsa_65, ml_dsa_87, MlDsa, MlDsaPublicKey, MlDsaSecretKey, MlDsaSignature,
+    MlDsaVariant,
+};
+pub use slh::{
+    slh_dsa_sha2_128f, slh_dsa_sha2_128s, slh_dsa_sha2_192s, slh_dsa_sha2_256s, SlhDsa,
+    SlhDsaPublicKey, SlhDsaSecretKey, SlhDsaSignature, SlhDsaVariant,
+};
 pub use symmetric::{ChaCha20Poly1305, SecureKey};
 
 /// Initialize the cryptographic RNG system
@@ -38,11 +45,13 @@ pub fn init() -> PqcResult<()> {
 }
 
 /// Get library version and capabilities
-pub fn version() -> &'static str {
+#[must_use]
+pub const fn version() -> &'static str {
     env!("CARGO_PKG_VERSION")
 }
 
 /// Get supported algorithms
+#[must_use]
 pub fn supported_algorithms() -> SupportedAlgorithms {
     SupportedAlgorithms {
         ml_kem: vec![
