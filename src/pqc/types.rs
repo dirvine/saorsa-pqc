@@ -112,6 +112,15 @@ pub enum PqcError {
     KeyExchangeFailed,
 }
 
+/// Size of ML-KEM-512 public key in bytes (800 bytes)
+pub const ML_KEM_512_PUBLIC_KEY_SIZE: usize = 800;
+
+/// Size of ML-KEM-512 secret key in bytes (1632 bytes)
+pub const ML_KEM_512_SECRET_KEY_SIZE: usize = 1632;
+
+/// Size of ML-KEM-512 ciphertext in bytes (768 bytes)
+pub const ML_KEM_512_CIPHERTEXT_SIZE: usize = 768;
+
 /// Size of ML-KEM-768 public key in bytes (1184 bytes)
 pub const ML_KEM_768_PUBLIC_KEY_SIZE: usize = 1184;
 
@@ -121,8 +130,26 @@ pub const ML_KEM_768_SECRET_KEY_SIZE: usize = 2400;
 /// Size of ML-KEM-768 ciphertext in bytes (1088 bytes)
 pub const ML_KEM_768_CIPHERTEXT_SIZE: usize = 1088;
 
-/// Size of ML-KEM-768 shared secret in bytes (32 bytes)
-pub const ML_KEM_768_SHARED_SECRET_SIZE: usize = 32;
+/// Size of ML-KEM-1024 public key in bytes (1568 bytes)
+pub const ML_KEM_1024_PUBLIC_KEY_SIZE: usize = 1568;
+
+/// Size of ML-KEM-1024 secret key in bytes (3168 bytes)
+pub const ML_KEM_1024_SECRET_KEY_SIZE: usize = 3168;
+
+/// Size of ML-KEM-1024 ciphertext in bytes (1568 bytes)
+pub const ML_KEM_1024_CIPHERTEXT_SIZE: usize = 1568;
+
+/// Size of shared secret in bytes (32 bytes) - same for all ML-KEM variants
+pub const ML_KEM_SHARED_SECRET_SIZE: usize = 32;
+
+/// Size of ML-DSA-44 public key in bytes (1312 bytes)
+pub const ML_DSA_44_PUBLIC_KEY_SIZE: usize = 1312;
+
+/// Size of ML-DSA-44 secret key in bytes (2560 bytes)
+pub const ML_DSA_44_SECRET_KEY_SIZE: usize = 2560;
+
+/// Size of ML-DSA-44 signature in bytes (2420 bytes)
+pub const ML_DSA_44_SIGNATURE_SIZE: usize = 2420;
 
 /// Size of ML-DSA-65 public key in bytes (1952 bytes)
 pub const ML_DSA_65_PUBLIC_KEY_SIZE: usize = 1952;
@@ -132,6 +159,15 @@ pub const ML_DSA_65_SECRET_KEY_SIZE: usize = 4032;
 
 /// Size of ML-DSA-65 signature in bytes (3309 bytes)
 pub const ML_DSA_65_SIGNATURE_SIZE: usize = 3309;
+
+/// Size of ML-DSA-87 public key in bytes (2592 bytes)
+pub const ML_DSA_87_PUBLIC_KEY_SIZE: usize = 2592;
+
+/// Size of ML-DSA-87 secret key in bytes (4896 bytes)
+pub const ML_DSA_87_SECRET_KEY_SIZE: usize = 4896;
+
+/// Size of ML-DSA-87 signature in bytes (4627 bytes)
+pub const ML_DSA_87_SIGNATURE_SIZE: usize = 4627;
 
 /// ML-KEM-768 public key
 #[derive(Clone, Debug)]
@@ -308,7 +344,7 @@ impl MlDsaSignature {
 #[derive(Clone, PartialEq, Eq, Zeroize, ZeroizeOnDrop)]
 pub struct SharedSecret(
     /// The raw shared secret bytes
-    pub [u8; ML_KEM_768_SHARED_SECRET_SIZE],
+    pub [u8; ML_KEM_SHARED_SECRET_SIZE],
 );
 
 impl SharedSecret {
@@ -319,13 +355,13 @@ impl SharedSecret {
 
     /// Create from bytes
     pub fn from_bytes(bytes: &[u8]) -> Result<Self, PqcError> {
-        if bytes.len() != ML_KEM_768_SHARED_SECRET_SIZE {
+        if bytes.len() != ML_KEM_SHARED_SECRET_SIZE {
             return Err(PqcError::InvalidKeySize {
-                expected: ML_KEM_768_SHARED_SECRET_SIZE,
+                expected: ML_KEM_SHARED_SECRET_SIZE,
                 actual: bytes.len(),
             });
         }
-        let mut ss = [0u8; ML_KEM_768_SHARED_SECRET_SIZE];
+        let mut ss = [0u8; ML_KEM_SHARED_SECRET_SIZE];
         ss.copy_from_slice(bytes);
         Ok(Self(ss))
     }
@@ -410,14 +446,39 @@ mod tests {
     #[test]
     fn test_constant_sizes() {
         // Verify constant sizes match NIST standards
+        
+        // ML-KEM-512
+        assert_eq!(ML_KEM_512_PUBLIC_KEY_SIZE, 800);
+        assert_eq!(ML_KEM_512_SECRET_KEY_SIZE, 1632);
+        assert_eq!(ML_KEM_512_CIPHERTEXT_SIZE, 768);
+        
+        // ML-KEM-768
         assert_eq!(ML_KEM_768_PUBLIC_KEY_SIZE, 1184);
         assert_eq!(ML_KEM_768_SECRET_KEY_SIZE, 2400);
         assert_eq!(ML_KEM_768_CIPHERTEXT_SIZE, 1088);
-        assert_eq!(ML_KEM_768_SHARED_SECRET_SIZE, 32);
+        
+        // ML-KEM-1024
+        assert_eq!(ML_KEM_1024_PUBLIC_KEY_SIZE, 1568);
+        assert_eq!(ML_KEM_1024_SECRET_KEY_SIZE, 3168);
+        assert_eq!(ML_KEM_1024_CIPHERTEXT_SIZE, 1568);
+        
+        // Shared secret is same for all ML-KEM variants
+        assert_eq!(ML_KEM_SHARED_SECRET_SIZE, 32);
 
+        // ML-DSA-44
+        assert_eq!(ML_DSA_44_PUBLIC_KEY_SIZE, 1312);
+        assert_eq!(ML_DSA_44_SECRET_KEY_SIZE, 2560);
+        assert_eq!(ML_DSA_44_SIGNATURE_SIZE, 2420);
+        
+        // ML-DSA-65
         assert_eq!(ML_DSA_65_PUBLIC_KEY_SIZE, 1952);
         assert_eq!(ML_DSA_65_SECRET_KEY_SIZE, 4032);
         assert_eq!(ML_DSA_65_SIGNATURE_SIZE, 3309);
+        
+        // ML-DSA-87
+        assert_eq!(ML_DSA_87_PUBLIC_KEY_SIZE, 2592);
+        assert_eq!(ML_DSA_87_SECRET_KEY_SIZE, 4896);
+        assert_eq!(ML_DSA_87_SIGNATURE_SIZE, 4627);
     }
 
     #[test]
