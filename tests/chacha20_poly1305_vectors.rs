@@ -5,7 +5,6 @@
 
 use chacha20poly1305::{Key, Nonce};
 use hex;
-use saorsa_pqc::api::symmetric::generate_nonce;
 use saorsa_pqc::api::ChaCha20Poly1305;
 
 #[cfg(test)]
@@ -214,8 +213,6 @@ mod quantum_security {
     /// Verify that we're using 256-bit keys for quantum resistance
     #[test]
     fn test_key_size() {
-        use std::mem::size_of;
-
         // ChaCha20-Poly1305 uses 256-bit (32-byte) keys
         let key = Key::from_slice(&[0u8; 32]);
         assert_eq!(key.len(), 32);

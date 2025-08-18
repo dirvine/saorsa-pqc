@@ -113,11 +113,7 @@
     clippy::unimplemented,
     clippy::todo
 )]
-#![warn(
-    clippy::pedantic,
-    clippy::nursery,
-    clippy::cognitive_complexity
-)]
+#![warn(clippy::pedantic, clippy::nursery, clippy::cognitive_complexity)]
 #![cfg_attr(docsrs, feature(doc_cfg))]
 
 // Core PQC modules - the main attraction
@@ -182,20 +178,18 @@ pub use pqc::{
     HybridSignature,
 
     MlDsa65,
-
-    MlDsa65Config,
-    MlDsa65ExtendedOps,
-    // Production ML-DSA-65 implementation
-    MlDsa65Production,
-    MlDsa65ProductionOps,
     MlDsaOperations,
 
     // Implementations
     MlKem768,
     // Core traits
     MlKemOperations,
-    PerformanceConfig,
+};
 
+// Experimental ML-DSA implementation exports (disabled by default)
+#[cfg(feature = "experimental-impl")]
+pub use pqc::{
+    MlDsa65Config, MlDsa65ExtendedOps, MlDsa65Production, MlDsa65ProductionOps, PerformanceConfig,
     SecurityConfig,
 };
 

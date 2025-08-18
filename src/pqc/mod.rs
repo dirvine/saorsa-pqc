@@ -9,10 +9,13 @@
 
 // Core PQC implementations
 pub mod ml_dsa;
-pub mod ml_dsa_65; // Production-ready ML-DSA-65 implementation
-pub mod ml_dsa_impl;
+#[cfg(feature = "experimental-impl")]
+pub mod ml_dsa_65; // Experimental ML-DSA-65 implementation (disabled by default)
+#[cfg(feature = "experimental-impl")]
+pub mod ml_dsa_impl; // Experimental ML-DSA implementation (disabled by default)
 pub mod ml_kem;
-pub mod ml_kem_impl;
+#[cfg(feature = "experimental-impl")]
+pub mod ml_kem_impl; // Experimental ML-KEM implementation (disabled by default)
 pub mod types;
 
 // Hybrid cryptography
@@ -41,6 +44,7 @@ pub use encryption::{EncryptedMessage, HybridPublicKeyEncryption};
 pub use hybrid::{HybridKem, HybridSignature};
 pub use memory_pool::{PoolConfig, PqcMemoryPool};
 pub use ml_dsa::MlDsa65;
+#[cfg(feature = "experimental-impl")]
 pub use ml_dsa_65::{
     MlDsa65 as MlDsa65Production, MlDsa65Config, MlDsa65Extended as MlDsa65ExtendedOps,
     MlDsa65Operations as MlDsa65ProductionOps, PerformanceConfig, SecurityConfig,

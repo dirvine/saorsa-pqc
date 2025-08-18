@@ -5,11 +5,10 @@
 
 mod common;
 
-use common::{hex_to_bytes, load_test_vectors, TestVectorError};
-use saorsa_pqc::pqc::ml_dsa::{
-    MlDsa65, MlDsaKeyPair, MlDsaPublicKey, MlDsaSecretKey, MlDsaSignature,
+use common::{hex_to_bytes, load_test_vectors};
+use saorsa_pqc::api::dsa::{
+    ml_dsa_65, MlDsaPublicKey, MlDsaSecretKey, MlDsaSignature, MlDsaVariant,
 };
-use saorsa_pqc::pqc::types::PqcResult;
 use std::path::Path;
 
 /// Test ML-DSA-65 key generation against NIST test vectors
@@ -84,18 +83,18 @@ fn test_ml_dsa_keygen_nist_vectors() -> Result<(), Box<dyn std::error::Error>> {
             // For now, we validate the structure and sizes
 
             // Test that regular key generation produces correct sizes
-            let ml_dsa = MlDsa65::new();
-            let keypair = ml_dsa
+            let ml_dsa = ml_dsa_65();
+            let (public_key, secret_key) = ml_dsa
                 .generate_keypair()
                 .map_err(|e| format!("Key generation failed: {:?}", e))?;
 
             assert_eq!(
-                keypair.public_key().as_bytes().len(),
+                public_key.to_bytes().len(),
                 1952,
                 "Generated public key size mismatch"
             );
             assert_eq!(
-                keypair.secret_key().as_bytes().len(),
+                secret_key.to_bytes().len(),
                 4032,
                 "Generated secret key size mismatch"
             );
@@ -131,7 +130,7 @@ fn test_ml_dsa_siggen_nist_vectors() -> Result<(), Box<dyn std::error::Error>> {
             // Extract test inputs
             if let (Some(sk_hex), Some(message_hex)) = (&test.sk, &test.message) {
                 let sk_bytes = hex_to_bytes(sk_hex)?;
-                let message_bytes = hex_to_bytes(message_hex)?;
+                let _message_bytes = hex_to_bytes(message_hex)?;
 
                 // Validate secret key size
                 assert_eq!(sk_bytes.len(), 4032, "Secret key size mismatch");
@@ -192,14 +191,14 @@ fn test_ml_dsa_sigver_nist_vectors() -> Result<(), Box<dyn std::error::Error>> {
                 (&test.pk, &test.message, &test.signature)
             {
                 let pk_bytes = hex_to_bytes(pk_hex)?;
-                let message_bytes = hex_to_bytes(message_hex)?;
+                let _message_bytes = hex_to_bytes(message_hex)?;
                 let signature_bytes = hex_to_bytes(signature_hex)?;
 
                 // Validate public key size
                 assert_eq!(pk_bytes.len(), 1952, "Public key size mismatch");
 
                 // Extract expected result
-                let expected_result = expected_test.test_passed.unwrap_or(false);
+                let _expected_result = expected_test.test_passed.unwrap_or(false);
 
                 // TODO: Implement signature verification
                 // For now, validate structure
@@ -218,10 +217,10 @@ fn test_ml_dsa_sigver_nist_vectors() -> Result<(), Box<dyn std::error::Error>> {
 /// Test ML-DSA-65 sign/verify round-trip functionality
 #[test]
 fn test_ml_dsa_sign_verify_round_trip() -> Result<(), Box<dyn std::error::Error>> {
-    let ml_dsa = MlDsa65::new();
+    let ml_dsa = ml_dsa_65();
 
     // Generate keypair
-    let keypair = ml_dsa
+    let (public_key, secret_key) = ml_dsa
         .generate_keypair()
         .map_err(|e| format!("Key generation failed: {:?}", e))?;
 
@@ -239,12 +238,12 @@ fn test_ml_dsa_sign_verify_round_trip() -> Result<(), Box<dyn std::error::Error>
 
         // Sign the message
         let signature = ml_dsa
-            .sign(keypair.secret_key(), message)
+            .sign(&secret_key, message)
             .map_err(|e| format!("Signing failed for message {}: {:?}", i, e))?;
 
         // Verify the signature
         let is_valid = ml_dsa
-            .verify(keypair.public_key(), message, &signature)
+            .verify(&public_key, message, &signature)
             .map_err(|e| format!("Verification failed for message {}: {:?}", i, e))?;
 
         assert!(
@@ -255,10 +254,10 @@ fn test_ml_dsa_sign_verify_round_trip() -> Result<(), Box<dyn std::error::Error>
 
         // Verify signature size bounds
         assert!(
-            signature.as_bytes().len() <= 3309,
+            signature.to_bytes().len() <= 3309,
             "Signature too large for message {}: {} bytes",
             i,
-            signature.as_bytes().len()
+            signature.to_bytes().len()
         );
     }
 
@@ -268,10 +267,10 @@ fn test_ml_dsa_sign_verify_round_trip() -> Result<(), Box<dyn std::error::Error>
 /// Test ML-DSA-65 with invalid/corrupted signatures
 #[test]
 fn test_ml_dsa_invalid_signature() -> Result<(), Box<dyn std::error::Error>> {
-    let ml_dsa = MlDsa65::new();
+    let ml_dsa = ml_dsa_65();
 
     // Generate keypair
-    let keypair = ml_dsa
+    let (public_key, secret_key) = ml_dsa
         .generate_keypair()
         .map_err(|e| format!("Key generation failed: {:?}", e))?;
 
@@ -279,18 +278,20 @@ fn test_ml_dsa_invalid_signature() -> Result<(), Box<dyn std::error::Error>> {
     let message = b"Test message for signature corruption";
 
     // Sign the message
-    let mut signature = ml_dsa
-        .sign(keypair.secret_key(), message)
+    let signature = ml_dsa
+        .sign(&secret_key, message)
         .map_err(|e| format!("Signing failed: {:?}", e))?;
 
     // Test 1: Corrupt the signature by flipping a bit
     let original_sig = signature.clone();
-    let sig_bytes = signature.as_bytes_mut();
+    let mut sig_bytes = signature.to_bytes();
     sig_bytes[0] ^= 0x01;
+    let signature = MlDsaSignature::from_bytes(MlDsaVariant::MlDsa65, &sig_bytes)
+        .map_err(|e| format!("Failed to create corrupted signature: {:?}", e))?;
 
     // Verification should fail
     let is_valid = ml_dsa
-        .verify(keypair.public_key(), message, &signature)
+        .verify(&public_key, message, &signature)
         .map_err(|e| format!("Verification failed: {:?}", e))?;
 
     assert!(
@@ -300,7 +301,7 @@ fn test_ml_dsa_invalid_signature() -> Result<(), Box<dyn std::error::Error>> {
 
     // Test 2: Verify original signature still works
     let is_valid = ml_dsa
-        .verify(keypair.public_key(), message, &original_sig)
+        .verify(&public_key, message, &original_sig)
         .map_err(|e| format!("Verification failed: {:?}", e))?;
 
     assert!(is_valid, "Original signature should still verify");
@@ -311,10 +312,10 @@ fn test_ml_dsa_invalid_signature() -> Result<(), Box<dyn std::error::Error>> {
 /// Test ML-DSA-65 with wrong message
 #[test]
 fn test_ml_dsa_wrong_message() -> Result<(), Box<dyn std::error::Error>> {
-    let ml_dsa = MlDsa65::new();
+    let ml_dsa = ml_dsa_65();
 
     // Generate keypair
-    let keypair = ml_dsa
+    let (public_key, secret_key) = ml_dsa
         .generate_keypair()
         .map_err(|e| format!("Key generation failed: {:?}", e))?;
 
@@ -323,13 +324,13 @@ fn test_ml_dsa_wrong_message() -> Result<(), Box<dyn std::error::Error>> {
 
     // Sign the original message
     let signature = ml_dsa
-        .sign(keypair.secret_key(), message1)
+        .sign(&secret_key, message1)
         .map_err(|e| format!("Signing failed: {:?}", e))?;
 
     // Try to verify with different message
     let message2 = b"Different message entirely";
     let is_valid = ml_dsa
-        .verify(keypair.public_key(), message2, &signature)
+        .verify(&public_key, message2, &signature)
         .map_err(|e| format!("Verification failed: {:?}", e))?;
 
     assert!(
@@ -339,7 +340,7 @@ fn test_ml_dsa_wrong_message() -> Result<(), Box<dyn std::error::Error>> {
 
     // Verify original message still works
     let is_valid = ml_dsa
-        .verify(keypair.public_key(), message1, &signature)
+        .verify(&public_key, message1, &signature)
         .map_err(|e| format!("Verification failed: {:?}", e))?;
 
     assert!(is_valid, "Original message should still verify");
@@ -350,21 +351,21 @@ fn test_ml_dsa_wrong_message() -> Result<(), Box<dyn std::error::Error>> {
 /// Test ML-DSA-65 key pair serialization/deserialization
 #[test]
 fn test_ml_dsa_key_serialization() -> Result<(), Box<dyn std::error::Error>> {
-    let ml_dsa = MlDsa65::new();
+    let ml_dsa = ml_dsa_65();
 
     // Generate keypair
-    let original_keypair = ml_dsa
+    let (original_public_key, original_secret_key) = ml_dsa
         .generate_keypair()
         .map_err(|e| format!("Key generation failed: {:?}", e))?;
 
     // Serialize keys
-    let pk_bytes = original_keypair.public_key().as_bytes();
-    let sk_bytes = original_keypair.secret_key().as_bytes();
+    let pk_bytes = original_public_key.to_bytes();
+    let sk_bytes = original_secret_key.to_bytes();
 
     // Deserialize keys
-    let restored_pk = MlDsaPublicKey::from_bytes(pk_bytes)
+    let restored_pk = MlDsaPublicKey::from_bytes(MlDsaVariant::MlDsa65, &pk_bytes)
         .map_err(|e| format!("Public key deserialization failed: {:?}", e))?;
-    let restored_sk = MlDsaSecretKey::from_bytes(sk_bytes)
+    let restored_sk = MlDsaSecretKey::from_bytes(MlDsaVariant::MlDsa65, &sk_bytes)
         .map_err(|e| format!("Secret key deserialization failed: {:?}", e))?;
 
     // Test that restored keys work
@@ -390,7 +391,7 @@ fn test_ml_dsa_invalid_key_sizes() {
     let invalid_pk_sizes = [0, 100, 1951, 1953, 2000];
     for size in invalid_pk_sizes {
         let invalid_pk_bytes = vec![0u8; size];
-        let result = MlDsaPublicKey::from_bytes(&invalid_pk_bytes);
+        let result = MlDsaPublicKey::from_bytes(MlDsaVariant::MlDsa65, &invalid_pk_bytes);
         assert!(result.is_err(), "Should reject public key of size {}", size);
     }
 
@@ -398,7 +399,7 @@ fn test_ml_dsa_invalid_key_sizes() {
     let invalid_sk_sizes = [0, 100, 4031, 4033, 5000];
     for size in invalid_sk_sizes {
         let invalid_sk_bytes = vec![0u8; size];
-        let result = MlDsaSecretKey::from_bytes(&invalid_sk_bytes);
+        let result = MlDsaSecretKey::from_bytes(MlDsaVariant::MlDsa65, &invalid_sk_bytes);
         assert!(result.is_err(), "Should reject secret key of size {}", size);
     }
 }
@@ -406,30 +407,30 @@ fn test_ml_dsa_invalid_key_sizes() {
 /// Test ML-DSA-65 signature determinism
 #[test]
 fn test_ml_dsa_signature_determinism() -> Result<(), Box<dyn std::error::Error>> {
-    let ml_dsa = MlDsa65::new();
+    let ml_dsa = ml_dsa_65();
 
     // Generate keypair
-    let keypair = ml_dsa
+    let (public_key, secret_key) = ml_dsa
         .generate_keypair()
         .map_err(|e| format!("Key generation failed: {:?}", e))?;
 
     let message = b"Test message for determinism";
 
     // Sign the same message multiple times
-    let sig1 = ml_dsa.sign(keypair.secret_key(), message)?;
-    let sig2 = ml_dsa.sign(keypair.secret_key(), message)?;
-    let sig3 = ml_dsa.sign(keypair.secret_key(), message)?;
+    let sig1 = ml_dsa.sign(&secret_key, message)?;
+    let sig2 = ml_dsa.sign(&secret_key, message)?;
+    let sig3 = ml_dsa.sign(&secret_key, message)?;
 
     // ML-DSA signatures should be non-deterministic (include randomness)
     // So signatures should likely be different
-    let sig1_bytes = sig1.as_bytes();
-    let sig2_bytes = sig2.as_bytes();
-    let sig3_bytes = sig3.as_bytes();
+    let sig1_bytes = sig1.to_bytes();
+    let sig2_bytes = sig2.to_bytes();
+    let sig3_bytes = sig3.to_bytes();
 
     // All signatures should verify
-    assert!(ml_dsa.verify(keypair.public_key(), message, &sig1)?);
-    assert!(ml_dsa.verify(keypair.public_key(), message, &sig2)?);
-    assert!(ml_dsa.verify(keypair.public_key(), message, &sig3)?);
+    assert!(ml_dsa.verify(&public_key, message, &sig1)?);
+    assert!(ml_dsa.verify(&public_key, message, &sig2)?);
+    assert!(ml_dsa.verify(&public_key, message, &sig3)?);
 
     // Signatures should likely be different due to randomness
     // Note: There's a tiny chance they could be the same, but very unlikely
@@ -443,26 +444,26 @@ fn test_ml_dsa_signature_determinism() -> Result<(), Box<dyn std::error::Error>>
 /// Test ML-DSA-65 performance characteristics
 #[test]
 fn test_ml_dsa_performance() -> Result<(), Box<dyn std::error::Error>> {
-    let ml_dsa = MlDsa65::new();
+    let ml_dsa = ml_dsa_65();
 
     // Warm up
     let _ = ml_dsa.generate_keypair()?;
 
     // Time key generation
     let start = std::time::Instant::now();
-    let keypair = ml_dsa.generate_keypair()?;
+    let (public_key, secret_key) = ml_dsa.generate_keypair()?;
     let keygen_time = start.elapsed();
 
     let message = b"Performance test message";
 
     // Time signing
     let start = std::time::Instant::now();
-    let signature = ml_dsa.sign(keypair.secret_key(), message)?;
+    let signature = ml_dsa.sign(&secret_key, message)?;
     let sign_time = start.elapsed();
 
     // Time verification
     let start = std::time::Instant::now();
-    let _ = ml_dsa.verify(keypair.public_key(), message, &signature)?;
+    let _ = ml_dsa.verify(&public_key, message, &signature)?;
     let verify_time = start.elapsed();
 
     // Performance bounds (generous for CI environments)
@@ -498,15 +499,15 @@ fn test_ml_dsa_memory_safety() {
     let zero_sk = vec![0u8; 4032];
 
     // These should not panic, but may return errors
-    let _ = MlDsaPublicKey::from_bytes(&zero_pk);
-    let _ = MlDsaSecretKey::from_bytes(&zero_sk);
+    let _ = MlDsaPublicKey::from_bytes(MlDsaVariant::MlDsa65, &zero_pk);
+    let _ = MlDsaSecretKey::from_bytes(MlDsaVariant::MlDsa65, &zero_sk);
 
     // Test with all-ones keys
     let ones_pk = vec![0xFFu8; 1952];
     let ones_sk = vec![0xFFu8; 4032];
 
-    let _ = MlDsaPublicKey::from_bytes(&ones_pk);
-    let _ = MlDsaSecretKey::from_bytes(&ones_sk);
+    let _ = MlDsaPublicKey::from_bytes(MlDsaVariant::MlDsa65, &ones_pk);
+    let _ = MlDsaSecretKey::from_bytes(MlDsaVariant::MlDsa65, &ones_sk);
 
     // Test with random data
     use rand::RngCore;
@@ -518,8 +519,8 @@ fn test_ml_dsa_memory_safety() {
     rng.fill_bytes(&mut random_pk);
     rng.fill_bytes(&mut random_sk);
 
-    let _ = MlDsaPublicKey::from_bytes(&random_pk);
-    let _ = MlDsaSecretKey::from_bytes(&random_sk);
+    let _ = MlDsaPublicKey::from_bytes(MlDsaVariant::MlDsa65, &random_pk);
+    let _ = MlDsaSecretKey::from_bytes(MlDsaVariant::MlDsa65, &random_sk);
 }
 
 /// Test ML-DSA-65 thread safety
@@ -528,7 +529,7 @@ fn test_ml_dsa_thread_safety() -> Result<(), Box<dyn std::error::Error>> {
     use std::sync::Arc;
     use std::thread;
 
-    let ml_dsa = Arc::new(MlDsa65::new());
+    let ml_dsa = Arc::new(ml_dsa_65());
     let mut handles = vec![];
 
     // Spawn multiple threads doing ML-DSA operations
@@ -537,14 +538,16 @@ fn test_ml_dsa_thread_safety() -> Result<(), Box<dyn std::error::Error>> {
         let handle = thread::spawn(
             move || -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
                 for j in 0..10 {
-                    let keypair = ml_dsa_clone.generate_keypair()?;
+                    let (public_key, secret_key) = ml_dsa_clone
+                        .generate_keypair()
+                        .map_err(|e| Box::new(e) as Box<dyn std::error::Error + Send + Sync>)?;
                     let message = format!("Thread {} message {}", i, j);
-                    let signature = ml_dsa_clone.sign(keypair.secret_key(), message.as_bytes())?;
-                    let is_valid = ml_dsa_clone.verify(
-                        keypair.public_key(),
-                        message.as_bytes(),
-                        &signature,
-                    )?;
+                    let signature = ml_dsa_clone
+                        .sign(&secret_key, message.as_bytes())
+                        .map_err(|e| Box::new(e) as Box<dyn std::error::Error + Send + Sync>)?;
+                    let is_valid = ml_dsa_clone
+                        .verify(&public_key, message.as_bytes(), &signature)
+                        .map_err(|e| Box::new(e) as Box<dyn std::error::Error + Send + Sync>)?;
                     assert!(is_valid);
                 }
                 println!("Thread {} completed successfully", i);
@@ -556,7 +559,10 @@ fn test_ml_dsa_thread_safety() -> Result<(), Box<dyn std::error::Error>> {
 
     // Wait for all threads to complete
     for handle in handles {
-        handle.join().expect("Thread panicked")?;
+        handle
+            .join()
+            .expect("Thread panicked")
+            .map_err(|e| format!("Thread error: {:?}", e))?;
     }
 
     Ok(())
@@ -565,25 +571,25 @@ fn test_ml_dsa_thread_safety() -> Result<(), Box<dyn std::error::Error>> {
 /// Test ML-DSA-65 with edge case messages
 #[test]
 fn test_ml_dsa_edge_case_messages() -> Result<(), Box<dyn std::error::Error>> {
-    let ml_dsa = MlDsa65::new();
-    let keypair = ml_dsa.generate_keypair()?;
+    let ml_dsa = ml_dsa_65();
+    let (public_key, secret_key) = ml_dsa.generate_keypair()?;
 
     // Test empty message
     let empty_msg = b"";
-    let sig = ml_dsa.sign(keypair.secret_key(), empty_msg)?;
-    assert!(ml_dsa.verify(keypair.public_key(), empty_msg, &sig)?);
+    let sig = ml_dsa.sign(&secret_key, empty_msg)?;
+    assert!(ml_dsa.verify(&public_key, empty_msg, &sig)?);
 
     // Test single byte messages
     for byte in [0x00, 0xFF, 0x42] {
         let single_byte_msg = [byte];
-        let sig = ml_dsa.sign(keypair.secret_key(), &single_byte_msg)?;
-        assert!(ml_dsa.verify(keypair.public_key(), &single_byte_msg, &sig)?);
+        let sig = ml_dsa.sign(&secret_key, &single_byte_msg)?;
+        assert!(ml_dsa.verify(&public_key, &single_byte_msg, &sig)?);
     }
 
     // Test very large message (test chunking/streaming if implemented)
     let large_msg = vec![0x5A; 1_000_000]; // 1MB message
-    let sig = ml_dsa.sign(keypair.secret_key(), &large_msg)?;
-    assert!(ml_dsa.verify(keypair.public_key(), &large_msg, &sig)?);
+    let sig = ml_dsa.sign(&secret_key, &large_msg)?;
+    assert!(ml_dsa.verify(&public_key, &large_msg, &sig)?);
 
     Ok(())
 }

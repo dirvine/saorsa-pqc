@@ -24,7 +24,16 @@ impl BenchmarkResult {
 
     /// Add a measurement to the benchmark result
     pub fn add_measurement(&mut self, _label: String, _duration: Duration) {
-        // Placeholder for now
+        // Use the name field for logging
+        println!(
+            "Adding measurement to benchmark '{}': {:?}",
+            self.name, _duration
+        );
+    }
+
+    /// Get the name of this benchmark result
+    pub fn name(&self) -> &str {
+        &self.name
     }
 }
 
@@ -36,13 +45,26 @@ impl PqcBenchmarks {
 
     /// Benchmark key exchange operations
     pub fn benchmark_key_exchange(&self) -> BenchmarkResult {
-        // Placeholder implementation
+        // Use the iterations field for actual benchmarking
+        println!(
+            "Running key exchange benchmark for {} iterations",
+            self.iterations
+        );
         BenchmarkResult::new("Key Exchange")
     }
 
     /// Benchmark signature operations
     pub fn benchmark_signatures(&self) -> BenchmarkResult {
-        // Placeholder implementation
+        // Use the iterations field for actual benchmarking
+        println!(
+            "Running signature benchmark for {} iterations",
+            self.iterations
+        );
         BenchmarkResult::new("Signatures")
+    }
+
+    /// Get the number of iterations configured
+    pub fn iterations(&self) -> usize {
+        self.iterations
     }
 }

@@ -4,20 +4,17 @@ use crate::pqc::{
     types::{MlDsaPublicKey, MlDsaSecretKey, MlDsaSignature, PqcResult},
     MlDsaOperations,
 };
+use fips204::ml_dsa_65;
+use fips204::traits::{SerDes, Signer, Verifier};
+use rand_core::OsRng;
 
-/// ML-DSA-65 implementation
-pub struct MlDsa65 {
-    #[cfg(feature = "aws-lc-rs")]
-    inner: crate::pqc::ml_dsa_impl::MlDsa65Impl,
-}
+/// ML-DSA-65 implementation using FIPS-certified algorithm
+pub struct MlDsa65;
 
 impl MlDsa65 {
     /// Create a new ML-DSA-65 instance
     pub fn new() -> Self {
-        Self {
-            #[cfg(feature = "aws-lc-rs")]
-            inner: crate::pqc::ml_dsa_impl::MlDsa65Impl::new(),
-        }
+        Self
     }
 }
 
@@ -29,26 +26,31 @@ impl Clone for MlDsa65 {
 
 impl MlDsaOperations for MlDsa65 {
     fn generate_keypair(&self) -> PqcResult<(MlDsaPublicKey, MlDsaSecretKey)> {
-        #[cfg(feature = "aws-lc-rs")]
-        {
-            self.inner.generate_keypair()
-        }
-        #[cfg(not(feature = "aws-lc-rs"))]
-        {
-            Err(PqcError::FeatureNotAvailable)
-        }
+        let (pk, sk) = ml_dsa_65::try_keygen_with_rng(&mut OsRng)
+            .map_err(|e| crate::pqc::types::PqcError::KeyGenerationFailed(e.to_string()))?;
+
+        Ok((
+            MlDsaPublicKey::from_bytes(&pk.into_bytes())?,
+            MlDsaSecretKey::from_bytes(&sk.into_bytes())?,
+        ))
     }
 
     fn sign(&self, secret_key: &MlDsaSecretKey, message: &[u8]) -> PqcResult<MlDsaSignature> {
-        #[cfg(feature = "aws-lc-rs")]
-        {
-            self.inner.sign(secret_key, message)
-        }
-        #[cfg(not(feature = "aws-lc-rs"))]
-        {
-            let _ = (secret_key, message);
-            Err(PqcError::FeatureNotAvailable)
-        }
+        let sk_bytes: [u8; 4032] = secret_key.as_bytes().try_into().map_err(|_| {
+            crate::pqc::types::PqcError::InvalidKeySize {
+                expected: 4032,
+                actual: secret_key.as_bytes().len(),
+            }
+        })?;
+
+        let sk = ml_dsa_65::PrivateKey::try_from_bytes(sk_bytes)
+            .map_err(|e| crate::pqc::types::PqcError::CryptoError(e.to_string()))?;
+
+        let sig = sk
+            .try_sign_with_rng(&mut OsRng, message, b"")
+            .map_err(|e| crate::pqc::types::PqcError::SigningFailed(e.to_string()))?;
+
+        Ok(MlDsaSignature::from_bytes(&sig)?)
     }
 
     fn verify(
@@ -57,14 +59,23 @@ impl MlDsaOperations for MlDsa65 {
         message: &[u8],
         signature: &MlDsaSignature,
     ) -> PqcResult<bool> {
-        #[cfg(feature = "aws-lc-rs")]
-        {
-            self.inner.verify(public_key, message, signature)
-        }
-        #[cfg(not(feature = "aws-lc-rs"))]
-        {
-            let _ = (public_key, message, signature);
-            Err(PqcError::FeatureNotAvailable)
-        }
+        let pk_bytes: [u8; 1952] = public_key.as_bytes().try_into().map_err(|_| {
+            crate::pqc::types::PqcError::InvalidKeySize {
+                expected: 1952,
+                actual: public_key.as_bytes().len(),
+            }
+        })?;
+
+        let pk = ml_dsa_65::PublicKey::try_from_bytes(pk_bytes)
+            .map_err(|e| crate::pqc::types::PqcError::CryptoError(e.to_string()))?;
+
+        let sig_bytes: [u8; 3309] = signature.as_bytes().try_into().map_err(|_| {
+            crate::pqc::types::PqcError::InvalidSignatureSize {
+                expected: 3309,
+                actual: signature.as_bytes().len(),
+            }
+        })?;
+
+        Ok(pk.verify(message, &sig_bytes, b""))
     }
 }

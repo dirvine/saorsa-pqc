@@ -1,6 +1,6 @@
 [package]
 name = "saorsa-pqc"
-version = "0.3.1"
+version = "0.3.2"
 edition = "2021"
 authors = ["David Irvine <david@saorsalabs.com>"]
 license = "MIT OR Apache-2.0"
@@ -51,6 +51,7 @@ cert_compression = []
 dangerous_configuration = []
 test-utils = []
 benchmarks = []
+experimental-impl = []  # Enable experimental internal implementations
 
 [dependencies]
 # NIST Post-Quantum Cryptography Standards
@@ -147,6 +148,7 @@ required-features = ["aws-lc-rs"]
 name = "property_tests"
 path = "tests/property_tests.rs"
 required-features = ["test-utils", "aws-lc-rs"]
+
 
 # Benchmarks
 [[bench]]

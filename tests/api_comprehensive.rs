@@ -1,8 +1,8 @@
 //! Comprehensive tests for the clean API
 
 use saorsa_pqc::api::{
-    dsa::ml_dsa_65, kem::ml_kem_768, slh::slh_dsa_sha2_128s, MlDsa, MlDsaVariant, MlKem,
-    MlKemVariant, SlhDsa, SlhDsaVariant,
+    dsa::ml_dsa_65, kem::ml_kem_768, slh::slh_dsa_sha2_128s, MlDsaVariant, MlKem, MlKemVariant,
+    SlhDsa, SlhDsaVariant,
 };
 
 #[test]
@@ -176,7 +176,7 @@ fn test_api_key_serialization() {
 
 #[test]
 fn test_api_error_handling() {
-    use saorsa_pqc::api::{MlDsaSecretKey, MlKemPublicKey, PqcError};
+    use saorsa_pqc::api::{MlKemPublicKey, PqcError};
 
     // Test invalid key size
     let result = MlKemPublicKey::from_bytes(MlKemVariant::MlKem768, &[0u8; 100]);

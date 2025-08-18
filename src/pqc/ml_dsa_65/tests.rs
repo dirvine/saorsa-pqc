@@ -261,8 +261,7 @@ mod unit_tests {
 
 #[cfg(test)]
 mod integration_tests {
-    use super::*;
-    use crate::pqc::ml_dsa_65::params::*;
+
     use crate::pqc::ml_dsa_65::*;
 
     #[test]
@@ -394,7 +393,7 @@ mod integration_tests {
 
 #[cfg(test)]
 mod security_tests {
-    use super::*;
+
     use crate::pqc::ml_dsa_65::params::*;
     use crate::pqc::ml_dsa_65::*;
 

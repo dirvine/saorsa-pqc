@@ -5,8 +5,8 @@
 
 use proptest::prelude::*;
 use saorsa_pqc::api::{
-    kem::{ml_kem_768, MlKemCiphertext, MlKemPublicKey, MlKemSecretKey, MlKemVariant},
     dsa::{ml_dsa_65, MlDsaPublicKey, MlDsaSecretKey, MlDsaSignature, MlDsaVariant},
+    kem::{ml_kem_768, MlKemCiphertext, MlKemPublicKey, MlKemSecretKey, MlKemVariant},
 };
 use std::collections::HashSet;
 
