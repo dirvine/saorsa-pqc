@@ -16,7 +16,8 @@ fn arbitrary_message() -> impl Strategy<Value = Vec<u8>> {
 }
 
 /// Generate smaller byte vectors for key material testing
-fn arbitrary_key_material() -> impl Strategy<Value = Vec<u8>> {
+#[allow(dead_code)]
+fn _arbitrary_key_material() -> impl Strategy<Value = Vec<u8>> {
     prop::collection::vec(any::<u8>(), 16..64)
 }
 
@@ -419,7 +420,6 @@ proptest! {
     }
 }
 
-/// Test statistical properties
 proptest! {
     #![proptest_config(ProptestConfig::with_cases(100))]
 
@@ -448,7 +448,7 @@ proptest! {
         messages in prop::collection::vec(arbitrary_message(), 20..50)
     ) {
         let ml_dsa = ml_dsa_65();
-        let (public_key, secret_key) = ml_dsa.generate_keypair().expect("Key generation failed");
+        let (_public_key, secret_key) = ml_dsa.generate_keypair().expect("Key generation failed");
 
         let mut signature_sizes = Vec::new();
 
