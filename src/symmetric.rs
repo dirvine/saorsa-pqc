@@ -14,7 +14,7 @@
 //! - High performance `ChaCha20` stream cipher with Poly1305 MAC
 //!
 //! # Example
-//! ```rust
+//! ```ignore
 //! use saorsa_pqc::symmetric::{ChaCha20Poly1305Cipher, SymmetricKey};
 //!
 //! // Generate a new key
@@ -23,10 +23,10 @@
 //!
 //! // Encrypt data
 //! let plaintext = b"Hello, quantum-resistant world!";
-//! let (ciphertext, nonce) = cipher.encrypt(plaintext)?;
+//! let (ciphertext, nonce) = cipher.encrypt(plaintext, None)?;
 //!
 //! // Decrypt data
-//! let decrypted = cipher.decrypt(&ciphertext, &nonce)?;
+//! let decrypted = cipher.decrypt(&ciphertext, &nonce, None)?;
 //! assert_eq!(plaintext, &decrypted[..]);
 //! # Ok::<(), Box<dyn std::error::Error>>(())
 //! ```

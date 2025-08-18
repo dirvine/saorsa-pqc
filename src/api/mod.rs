@@ -33,12 +33,14 @@ pub use symmetric::{ChaCha20Poly1305, SecureKey};
 
 /// Initialize the cryptographic RNG system
 /// This should be called once at application startup
+///
+/// # Errors
+/// Returns an error if the system RNG cannot be accessed.
 pub fn init() -> PqcResult<()> {
     // Verify RNG is available
-    use rand_core::OsRng;
+    use rand_core::{OsRng, RngCore};
 
     let mut test_bytes = [0u8; 32];
-    use rand_core::RngCore;
     OsRng.fill_bytes(&mut test_bytes);
 
     Ok(())

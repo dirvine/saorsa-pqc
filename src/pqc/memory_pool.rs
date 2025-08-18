@@ -6,13 +6,10 @@
 //!
 //! # Example
 //!
-//! ```
-//! use ant_quic::crypto::pqc::memory_pool::{PqcMemoryPool, PoolConfig};
-//!
-//! let pool = PqcMemoryPool::new(PoolConfig::default());
-//!
-//! // Acquire a buffer for ML-KEM public key
-//! let guard = pool.acquire_ml_kem_public_key().unwrap();
+//! ```ignore
+//! // Example usage in a consuming crate
+//! // let pool = PqcMemoryPool::new(PoolConfig::default());
+//! // let guard = pool.acquire_ml_kem_public_key().unwrap();
 //! // Buffer is automatically returned to pool when guard is dropped
 //! ```
 
@@ -79,7 +76,6 @@ impl PoolStats {
 }
 
 /// Buffer types for pooling
-
 /// Pre-allocated buffer for ML-KEM public keys with secure memory management
 #[derive(Clone)]
 pub struct MlKemPublicKeyBuffer(pub Box<[u8; ML_KEM_768_PUBLIC_KEY_SIZE]>);

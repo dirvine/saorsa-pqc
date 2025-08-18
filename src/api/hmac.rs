@@ -237,12 +237,12 @@ pub mod helpers {
     /// Create an HMAC-based key confirmation value
     pub fn key_confirmation(
         shared_secret: &[u8],
-        party_a_data: &[u8],
-        party_b_data: &[u8],
+        initiator_data: &[u8],
+        responder_data: &[u8],
     ) -> PqcResult<[u8; 32]> {
         let mut combined = Vec::new();
-        combined.extend_from_slice(party_a_data);
-        combined.extend_from_slice(party_b_data);
+        combined.extend_from_slice(initiator_data);
+        combined.extend_from_slice(responder_data);
 
         hmac_sha3_256(shared_secret, &combined)
     }

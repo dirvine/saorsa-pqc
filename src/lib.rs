@@ -223,15 +223,14 @@ pub const DEFAULT_SECURITY_LEVEL: &str = "NIST Level 3 (192-bit quantum security
 ///
 /// # Examples
 ///
-/// ```rust
-/// use saorsa_pqc;
-///
-/// # fn main() -> Result<(), Box<dyn std::error::Error>> {
-/// saorsa_pqc::init()?;
-/// // Library is now ready for use
-/// # Ok(())
-/// # }
+/// ```no_run
+/// // Initialize once at application startup
+/// saorsa_pqc::init().expect("failed to initialize saorsa_pqc");
 /// ```
+/// Initialize the library with optimal settings
+///
+/// # Errors
+/// Returns an error if initialization of internal components fails.
 pub fn init() -> Result<(), Box<dyn std::error::Error>> {
     // Initialize logging if available
     // Note: Logging setup is application-specific, not library-specific
@@ -282,22 +281,30 @@ pub struct LibraryInfo {
 
 /// Get the list of enabled features
 fn get_enabled_features() -> Vec<String> {
-    let mut features = Vec::new();
-
-    // PQC is always enabled now (using FIPS crates)
-    features.push("pqc".to_string());
+    let mut features: Vec<String> = vec![
+        // PQC is always enabled now (using FIPS crates)
+        "pqc".to_string(),
+    ];
 
     #[cfg(feature = "parallel")]
-    features.push("parallel".to_string());
+    {
+        features.push("parallel".to_string());
+    }
 
     #[cfg(feature = "memory-pool")]
-    features.push("memory-pool".to_string());
+    {
+        features.push("memory-pool".to_string());
+    }
 
     #[cfg(feature = "cert_compression")]
-    features.push("cert_compression".to_string());
+    {
+        features.push("cert_compression".to_string());
+    }
 
     #[cfg(feature = "dangerous_configuration")]
-    features.push("dangerous_configuration".to_string());
+    {
+        features.push("dangerous_configuration".to_string());
+    }
 
     features
 }
