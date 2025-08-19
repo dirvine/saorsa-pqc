@@ -58,7 +58,8 @@ fn benchmark_round_trip(c: &mut Criterion) {
 
     c.bench_function("ml_kem_768_round_trip", |b| {
         b.iter(|| {
-            let (public_key, secret_key) = ml_kem.generate_keypair().expect("Key generation failed");
+            let (public_key, secret_key) =
+                ml_kem.generate_keypair().expect("Key generation failed");
             let (shared_secret1, ciphertext) = ml_kem
                 .encapsulate(&public_key)
                 .expect("Encapsulation failed");
@@ -131,7 +132,8 @@ fn benchmark_memory_usage(c: &mut Criterion) {
             // Generate many keypairs to test memory allocation patterns
             let mut keypairs = Vec::new();
             for _ in 0..10 {
-                let (public_key, secret_key) = ml_kem.generate_keypair().expect("Key generation failed");
+                let (public_key, secret_key) =
+                    ml_kem.generate_keypair().expect("Key generation failed");
                 keypairs.push((public_key, secret_key));
             }
 

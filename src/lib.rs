@@ -281,6 +281,7 @@ pub struct LibraryInfo {
 
 /// Get the list of enabled features
 fn get_enabled_features() -> Vec<String> {
+    #[allow(unused_mut)]
     let mut features: Vec<String> = vec![
         // PQC is always enabled now (using FIPS crates)
         "pqc".to_string(),

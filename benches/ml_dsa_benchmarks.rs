@@ -36,9 +36,7 @@ fn benchmark_signing(c: &mut Criterion) {
             &message,
             |b, msg| {
                 b.iter(|| {
-                    let signature = ml_dsa
-                        .sign(&secret_key, msg)
-                        .expect("Signing failed");
+                    let signature = ml_dsa.sign(&secret_key, msg).expect("Signing failed");
                     black_box(signature);
                 });
             },
@@ -58,9 +56,7 @@ fn benchmark_verification(c: &mut Criterion) {
     // Pre-generate signatures for different message sizes
     for message_size in [0, 32, 1024, 10240, 102400].iter() {
         let message = vec![0x42u8; *message_size];
-        let signature = ml_dsa
-            .sign(&secret_key, &message)
-            .expect("Signing failed");
+        let signature = ml_dsa.sign(&secret_key, &message).expect("Signing failed");
 
         group.throughput(Throughput::Bytes(*message_size as u64));
 
@@ -89,10 +85,9 @@ fn benchmark_round_trip(c: &mut Criterion) {
 
     c.bench_function("ml_dsa_65_round_trip", |b| {
         b.iter(|| {
-            let (public_key, secret_key) = ml_dsa.generate_keypair().expect("Key generation failed");
-            let signature = ml_dsa
-                .sign(&secret_key, message)
-                .expect("Signing failed");
+            let (public_key, secret_key) =
+                ml_dsa.generate_keypair().expect("Key generation failed");
+            let signature = ml_dsa.sign(&secret_key, message).expect("Signing failed");
             let is_valid = ml_dsa
                 .verify(&public_key, message, &signature)
                 .expect("Verification failed");
@@ -124,9 +119,7 @@ fn benchmark_batch_signing(c: &mut Criterion) {
                 b.iter(|| {
                     let mut signatures = Vec::with_capacity(msgs.len());
                     for msg in msgs {
-                        let signature = ml_dsa
-                            .sign(&secret_key, msg)
-                            .expect("Signing failed");
+                        let signature = ml_dsa.sign(&secret_key, msg).expect("Signing failed");
                         signatures.push(signature);
                     }
                     black_box(signatures);
@@ -150,9 +143,7 @@ fn benchmark_batch_verification(c: &mut Criterion) {
         let test_data: Vec<(Vec<u8>, _)> = (0..*batch_size)
             .map(|i| {
                 let message = format!("Message number {}", i).into_bytes();
-                let signature = ml_dsa
-                    .sign(&secret_key, &message)
-                    .expect("Signing failed");
+                let signature = ml_dsa.sign(&secret_key, &message).expect("Signing failed");
                 (message, signature)
             })
             .collect();
@@ -200,9 +191,7 @@ fn benchmark_signature_sizes(c: &mut Criterion) {
                     _ => (0..32).map(|j| (i * j) as u8).collect(), // Pattern
                 };
 
-                let signature = ml_dsa
-                    .sign(&secret_key, &message)
-                    .expect("Signing failed");
+                let signature = ml_dsa.sign(&secret_key, &message).expect("Signing failed");
                 signature_sizes.push(signature.to_bytes().len());
             }
 
@@ -220,7 +209,8 @@ fn benchmark_memory_usage(c: &mut Criterion) {
             // Generate many keypairs to test memory allocation patterns
             let mut keypairs = Vec::new();
             for _ in 0..5 {
-                let (public_key, secret_key) = ml_dsa.generate_keypair().expect("Key generation failed");
+                let (public_key, secret_key) =
+                    ml_dsa.generate_keypair().expect("Key generation failed");
                 keypairs.push((public_key, secret_key));
             }
 
@@ -228,9 +218,7 @@ fn benchmark_memory_usage(c: &mut Criterion) {
             let mut results = Vec::new();
             for (i, (public_key, secret_key)) in keypairs.iter().enumerate() {
                 let message = format!("Test message {}", i).into_bytes();
-                let signature = ml_dsa
-                    .sign(secret_key, &message)
-                    .expect("Signing failed");
+                let signature = ml_dsa.sign(secret_key, &message).expect("Signing failed");
                 let is_valid = ml_dsa
                     .verify(public_key, &message, &signature)
                     .expect("Verification failed");
@@ -249,9 +237,7 @@ fn benchmark_invalid_signature_verification(c: &mut Criterion) {
     let (public_key, secret_key) = ml_dsa.generate_keypair().expect("Key generation failed");
 
     let message = b"Test message for invalid signature benchmark";
-    let signature = ml_dsa
-        .sign(&secret_key, message)
-        .expect("Signing failed");
+    let signature = ml_dsa.sign(&secret_key, message).expect("Signing failed");
 
     // Corrupt the signature by converting to bytes, modifying, and reconstructing
     let mut sig_bytes = signature.to_bytes();

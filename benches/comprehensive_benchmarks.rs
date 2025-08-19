@@ -13,8 +13,8 @@
 
 use criterion::{black_box, criterion_group, criterion_main, BenchmarkId, Criterion, Throughput};
 use saorsa_pqc::api::{
-    sig::{ml_dsa_65, MlDsa, MlDsaVariant},
     kem::{ml_kem_768, MlKem, MlKemVariant},
+    sig::{ml_dsa_65, MlDsa, MlDsaVariant},
     symmetric::ChaCha20Poly1305,
 };
 use std::time::Duration;
