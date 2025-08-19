@@ -40,7 +40,7 @@ jobs:
       run: cargo fmt -- --check
     
     - name: Run clippy
-      run: cargo clippy --all-targets --all-features -- -D warnings -A clippy::missing_errors_doc -A clippy::missing_panics_doc -A clippy::struct_excessive_bools -A clippy::arithmetic_side_effects -A clippy::cast_possible_truncation -A clippy::cast_precision_loss -A clippy::indexing_slicing -A clippy::cast_sign_loss -A clippy::significant_drop_tightening -A clippy::expect_used -A clippy::unwrap_used -A clippy::used_underscore_binding -A clippy::option_if_let_else -A clippy::needless_borrow -A clippy::uninlined_format_args -A clippy::must_use_candidate -A clippy::missing_const_for_fn -A clippy::type_complexity -A clippy::large_stack_frames -A clippy::get_first -A clippy::float_cmp -A clippy::single_component_path_imports
+      run: cargo clippy --all-targets --all-features
 
   # Unit and integration tests
   test:

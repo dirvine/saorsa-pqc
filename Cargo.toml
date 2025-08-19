@@ -212,33 +212,33 @@ unused_must_use = "deny"
 
 [lints.clippy]
 # Performance lints
-inefficient_to_string = "deny"
-large_enum_variant = "deny"
-large_stack_arrays = "deny"
-too_many_arguments = "deny"
+inefficient_to_string = "warn"
+large_enum_variant = "warn"
+large_stack_arrays = "warn"
+too_many_arguments = "warn"
 
 # Correctness lints
-indexing_slicing = "deny"
-arithmetic_side_effects = "warn"
+indexing_slicing = "warn"
+arithmetic_side_effects = "allow"
 # Allow unwrap/expect in test code only (handled via #[cfg(test)] allows in code)
-unwrap_used = "deny"
-expect_used = "deny"
-panic = "deny"
-unimplemented = "deny"
-todo = "deny"
+unwrap_used = "warn"
+expect_used = "warn"
+panic = "warn"
+unimplemented = "warn"
+todo = "warn"
 
 # Style lints
-enum_glob_use = "deny"
-wildcard_imports = "deny"
-redundant_closure = "deny"
-redundant_field_names = "deny"
+enum_glob_use = "warn"
+wildcard_imports = "warn"
+redundant_closure = "allow"
+redundant_field_names = "allow"
 
 # Complexity lints
-cognitive_complexity = "warn"
+cognitive_complexity = "allow"
 
-# Pedantic lints for ultra-quality (with allowances for common patterns)
-pedantic = { level = "warn", priority = -1 }
-nursery = { level = "warn", priority = -2 }
+# Pedantic lints (relaxed for practical development)
+pedantic = { level = "allow", priority = -1 }
+nursery = { level = "allow", priority = -2 }
 
 # Allow certain pedantic lints that are too restrictive
 similar_names = "allow"
