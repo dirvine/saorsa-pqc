@@ -349,6 +349,9 @@ impl PqcMemoryPool {
 static GLOBAL_POOL: OnceLock<PqcMemoryPool> = OnceLock::new();
 
 /// Initialize the global memory pool
+///
+/// # Errors
+/// Returns an error if the global pool has already been initialized
 pub fn initialize_global_pool() -> Result<(), Box<dyn std::error::Error>> {
     let config = PoolConfig::default();
     let pool = PqcMemoryPool::new(config);

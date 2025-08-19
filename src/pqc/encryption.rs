@@ -76,6 +76,9 @@ impl HybridPublicKeyEncryption {
     }
 
     /// Generate a new keypair for hybrid encryption
+    ///
+    /// # Errors
+    /// Returns `PqcError` if keypair generation fails
     pub fn generate_keypair(&self) -> PqcResult<(MlKemPublicKey, MlKemSecretKey)> {
         self.ml_kem.generate_keypair()
     }
@@ -89,6 +92,9 @@ impl HybridPublicKeyEncryption {
     ///
     /// # Returns
     /// An `EncryptedMessage` containing all components needed for decryption
+    ///
+    /// # Errors
+    /// Returns `PqcError` if encapsulation or encryption fails
     pub fn encrypt(
         &self,
         public_key: &MlKemPublicKey,

@@ -24,13 +24,18 @@ impl ConcatenationCombiner {
     ///
     /// # Returns
     /// A combined shared secret of 32 bytes
+    ///
+    /// # Errors
+    /// Returns `PqcError::CryptoError` if HKDF expansion fails
     pub fn combine(
         classical_secret: &[u8],
         pqc_secret: &[u8],
         info: &[u8],
     ) -> PqcResult<SharedSecret> {
         // NIST SP 800-56C Rev. 2 specifies concatenation: classical || pqc
-        let mut concatenated = Vec::with_capacity(classical_secret.len() + pqc_secret.len());
+        let mut concatenated = Vec::with_capacity(
+            classical_secret.len().saturating_add(pqc_secret.len())
+        );
         concatenated.extend_from_slice(classical_secret);
         concatenated.extend_from_slice(pqc_secret);
 
@@ -50,6 +55,9 @@ impl ConcatenationCombiner {
     /// * `pqc_secret` - The post-quantum shared secret
     /// * `salt` - Optional salt value for HKDF
     /// * `info` - Context-specific information
+    ///
+    /// # Errors
+    /// Returns `PqcError::CryptoError` if HKDF operations fail
     pub fn combine_with_salt(
         classical_secret: &[u8],
         pqc_secret: &[u8],
@@ -57,7 +65,9 @@ impl ConcatenationCombiner {
         info: &[u8],
     ) -> PqcResult<SharedSecret> {
         // Concatenate secrets
-        let mut concatenated = Vec::with_capacity(classical_secret.len() + pqc_secret.len());
+        let mut concatenated = Vec::with_capacity(
+            classical_secret.len().saturating_add(pqc_secret.len())
+        );
         concatenated.extend_from_slice(classical_secret);
         concatenated.extend_from_slice(pqc_secret);
 
@@ -78,6 +88,9 @@ pub struct TwoStepCombiner;
 
 impl TwoStepCombiner {
     /// Combine secrets using a two-step extraction process
+    ///
+    /// # Errors
+    /// Returns `PqcError::CryptoError` if HKDF operations fail
     pub fn combine(
         classical_secret: &[u8],
         pqc_secret: &[u8],
@@ -111,6 +124,9 @@ pub struct HmacCombiner;
 
 impl HmacCombiner {
     /// Combine secrets using HMAC
+    ///
+    /// # Errors
+    /// Returns `PqcError::CryptoError` if HMAC key creation fails
     pub fn combine(
         classical_secret: &[u8],
         pqc_secret: &[u8],
