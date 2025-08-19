@@ -145,6 +145,10 @@ impl HybridPublicKeyEncryption {
     ///
     /// # Returns
     /// The decrypted plaintext if successful
+    ///
+    /// # Errors
+    /// Returns `PqcError::DecryptionFailed` if AAD verification fails or AES-GCM decryption fails.
+    /// Returns `PqcError::CryptoError` if HKDF expansion fails.
     pub fn decrypt(
         &self,
         secret_key: &MlKemSecretKey,
@@ -205,6 +209,9 @@ impl EncryptionSession {
     ///
     /// # Returns
     /// A tuple of (session, KEM ciphertext) where the ciphertext must be sent to the recipient
+    ///
+    /// # Errors
+    /// Returns `PqcError` if ML-KEM encapsulation fails.
     pub fn new(public_key: &MlKemPublicKey) -> PqcResult<(Self, MlKemCiphertext)> {
         let ml_kem = MlKem768::new();
         let (kem_ciphertext, shared_secret) = ml_kem.encapsulate(public_key)?;
@@ -221,6 +228,10 @@ impl EncryptionSession {
     /// Encrypt a message in the session
     ///
     /// Each message gets a unique key derived from the session secret and counter
+    ///
+    /// # Errors
+    /// Returns `PqcError::CryptoError` if HKDF expansion fails.
+    /// Returns `PqcError::EncryptionFailed` if AES-GCM encryption fails.
     pub fn encrypt_message(&mut self, plaintext: &[u8]) -> PqcResult<Vec<u8>> {
         // Derive per-message key
         let mut key_material = Vec::new();
@@ -234,7 +245,8 @@ impl EncryptionSession {
 
         // Generate nonce from counter
         let mut nonce = [0u8; 12];
-        nonce[4..].copy_from_slice(&self.message_counter.to_be_bytes());
+        let counter_bytes = self.message_counter.to_be_bytes();
+        nonce[4..12].copy_from_slice(&counter_bytes);
 
         // Encrypt
         let key = Key::<Aes256Gcm>::from_slice(&aes_key);
@@ -245,11 +257,11 @@ impl EncryptionSession {
             .encrypt(nonce_obj, plaintext)
             .map_err(|_| PqcError::EncryptionFailed("Session encryption failed".to_string()))?;
 
-        self.message_counter += 1;
+        self.message_counter = self.message_counter.saturating_add(1);
 
         // Prepend counter for decryption
-        let mut result = Vec::with_capacity(8 + ciphertext.len());
-        result.extend_from_slice(&(self.message_counter - 1).to_be_bytes());
+        let mut result = Vec::with_capacity(8_usize.saturating_add(ciphertext.len()));
+        result.extend_from_slice(&(self.message_counter.saturating_sub(1)).to_be_bytes());
         result.extend_from_slice(&ciphertext);
 
         Ok(result)
@@ -270,6 +282,9 @@ impl DecryptionSession {
     /// # Arguments
     /// * `secret_key` - Recipient's secret key
     /// * `kem_ciphertext` - KEM ciphertext from sender
+    ///
+    /// # Errors
+    /// Returns `PqcError` if ML-KEM decapsulation fails.
     pub fn new(secret_key: &MlKemSecretKey, kem_ciphertext: &MlKemCiphertext) -> PqcResult<Self> {
         let ml_kem = MlKem768::new();
         let shared_secret = ml_kem.decapsulate(secret_key, kem_ciphertext)?;
@@ -281,13 +296,24 @@ impl DecryptionSession {
     }
 
     /// Decrypt a message in the session
+    ///
+    /// # Errors
+    /// Returns `PqcError::DecryptionFailed` for invalid ciphertext, counter format errors, or replay attacks.
+    /// Returns `PqcError::CryptoError` if HKDF expansion fails.
+    /// Returns `PqcError::DecryptionFailed` if AES-GCM decryption fails.
     pub fn decrypt_message(&mut self, ciphertext: &[u8]) -> PqcResult<Vec<u8>> {
         if ciphertext.len() < 8 {
             return Err(PqcError::DecryptionFailed("Invalid ciphertext".to_string()));
         }
 
         // Extract counter
-        let counter = u64::from_be_bytes(ciphertext[..8].try_into().unwrap());
+        let counter_slice = ciphertext.get(..8).ok_or_else(|| {
+            PqcError::DecryptionFailed("Ciphertext too short for counter".to_string())
+        })?;
+        let counter_bytes: [u8; 8] = counter_slice
+            .try_into()
+            .map_err(|_| PqcError::DecryptionFailed("Invalid counter format".to_string()))?;
+        let counter = u64::from_be_bytes(counter_bytes);
 
         // Check for replay
         if self.received_counters.contains_key(&counter) {
@@ -313,8 +339,11 @@ impl DecryptionSession {
         let cipher = Aes256Gcm::new(key);
         let nonce_obj = AesNonce::from_slice(&nonce);
 
+        let ciphertext_slice = ciphertext
+            .get(8..)
+            .ok_or_else(|| PqcError::DecryptionFailed("Ciphertext too short".to_string()))?;
         let plaintext = cipher
-            .decrypt(nonce_obj, &ciphertext[8..])
+            .decrypt(nonce_obj, ciphertext_slice)
             .map_err(|_| PqcError::DecryptionFailed("Session decryption failed".to_string()))?;
 
         // Mark counter as used

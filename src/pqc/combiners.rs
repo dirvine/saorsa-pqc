@@ -33,9 +33,8 @@ impl ConcatenationCombiner {
         info: &[u8],
     ) -> PqcResult<SharedSecret> {
         // NIST SP 800-56C Rev. 2 specifies concatenation: classical || pqc
-        let mut concatenated = Vec::with_capacity(
-            classical_secret.len().saturating_add(pqc_secret.len())
-        );
+        let mut concatenated =
+            Vec::with_capacity(classical_secret.len().saturating_add(pqc_secret.len()));
         concatenated.extend_from_slice(classical_secret);
         concatenated.extend_from_slice(pqc_secret);
 
@@ -65,9 +64,8 @@ impl ConcatenationCombiner {
         info: &[u8],
     ) -> PqcResult<SharedSecret> {
         // Concatenate secrets
-        let mut concatenated = Vec::with_capacity(
-            classical_secret.len().saturating_add(pqc_secret.len())
-        );
+        let mut concatenated =
+            Vec::with_capacity(classical_secret.len().saturating_add(pqc_secret.len()));
         concatenated.extend_from_slice(classical_secret);
         concatenated.extend_from_slice(pqc_secret);
 
@@ -143,7 +141,13 @@ impl HmacCombiner {
 
         let result = mac.finalize();
         let mut output = [0u8; 32];
-        output.copy_from_slice(&result.into_bytes()[..32]);
+        let result_bytes = result.into_bytes();
+        let copy_len = output.len().min(result_bytes.len());
+        if let (Some(out_slice), Some(res_slice)) =
+            (output.get_mut(..copy_len), result_bytes.get(..copy_len))
+        {
+            out_slice.copy_from_slice(res_slice);
+        }
 
         Ok(SharedSecret(output))
     }

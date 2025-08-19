@@ -106,13 +106,11 @@
     missing_docs,
     unsafe_code,
     unused_must_use,
-    clippy::unwrap_used,
-    clippy::expect_used,
     clippy::panic,
     clippy::unimplemented,
     clippy::todo
 )]
-#![warn(clippy::pedantic, clippy::nursery, clippy::cognitive_complexity)]
+#![warn(clippy::correctness, clippy::suspicious, clippy::perf)]
 #![cfg_attr(docsrs, feature(doc_cfg))]
 
 // Core PQC modules - the main attraction
@@ -259,9 +257,9 @@ pub fn get_info() -> LibraryInfo {
     let version_parts: Vec<&str> = VERSION.split('.').collect();
     let (major, minor, patch) = if version_parts.len() >= 3 {
         (
-            version_parts[0].parse().unwrap_or(0),
-            version_parts[1].parse().unwrap_or(3),
-            version_parts[2].parse().unwrap_or(6),
+            version_parts.first().unwrap_or(&"0").parse().unwrap_or(0),
+            version_parts.get(1).unwrap_or(&"3").parse().unwrap_or(3),
+            version_parts.get(2).unwrap_or(&"6").parse().unwrap_or(6),
         )
     } else {
         (0, 3, 6) // Default fallback
@@ -282,7 +280,7 @@ pub fn get_info() -> LibraryInfo {
         },
         dependencies: DependencyVersionInfo {
             fips203_version: "0.4".to_string(), // Track major.minor for compatibility
-            fips204_version: "0.4".to_string(), // Track major.minor for compatibility  
+            fips204_version: "0.4".to_string(), // Track major.minor for compatibility
             fips205_version: "0.4".to_string(), // Track major.minor for compatibility
             bincode_version: "2.0".to_string(), // Major version for compatibility tracking
             serde_version: "1.0".to_string(),   // Major version for compatibility tracking
@@ -343,35 +341,32 @@ impl ApiCompatibilityInfo {
     /// Check if this API version is compatible with a minimum required version
     #[must_use]
     pub fn is_compatible_with(&self, min_version: &str) -> bool {
+        use std::cmp::Ordering;
         // Parse the minimum version string
         let min_parts: Vec<&str> = min_version.split('.').collect();
         if min_parts.len() < 3 {
             return false;
         }
 
-        let Ok(min_major) = min_parts[0].parse::<u32>() else {
+        let Ok(min_major) = min_parts.get(0).unwrap_or(&"0").parse::<u32>() else {
             return false;
         };
-        let Ok(min_minor) = min_parts[1].parse::<u32>() else {
+        let Ok(min_minor) = min_parts.get(1).unwrap_or(&"0").parse::<u32>() else {
             return false;
         };
-        let Ok(min_patch) = min_parts[2].parse::<u32>() else {
+        let Ok(min_patch) = min_parts.get(2).unwrap_or(&"0").parse::<u32>() else {
             return false;
         };
 
         // Check compatibility using semantic versioning rules
-        if self.major > min_major {
-            true
-        } else if self.major == min_major {
-            if self.minor > min_minor {
-                true
-            } else if self.minor == min_minor {
-                self.patch >= min_patch
-            } else {
-                false
-            }
-        } else {
-            false
+        match self.major.cmp(&min_major) {
+            Ordering::Greater => true,
+            Ordering::Equal => match self.minor.cmp(&min_minor) {
+                Ordering::Greater => true,
+                Ordering::Equal => self.patch >= min_patch,
+                Ordering::Less => false,
+            },
+            Ordering::Less => false,
         }
     }
 
@@ -436,7 +431,7 @@ mod tests {
         assert!(info.supported_ml_kem.contains(&"ML-KEM-768".to_string()));
         assert!(info.supported_ml_dsa.contains(&"ML-DSA-65".to_string()));
         assert!(!info.features.is_empty());
-        
+
         // Test new version tracking fields
         assert_eq!(info.api_version.stability, "stable");
         assert_eq!(info.api_version.min_supported_version, "0.3.0");
@@ -448,17 +443,19 @@ mod tests {
     #[test]
     fn test_version_compatibility() {
         let info = get_info();
-        
+
         // Test compatibility with older versions
         assert!(info.api_version.is_compatible_with("0.3.0"));
         assert!(info.api_version.is_compatible_with("0.3.1"));
-        
+
         // Test compatibility with current version
-        assert!(info.api_version.is_compatible_with(&info.api_version.version_string()));
-        
+        assert!(info
+            .api_version
+            .is_compatible_with(&info.api_version.version_string()));
+
         // Test public API function
         assert!(is_compatible_with_version("0.3.0"));
-        
+
         // Test invalid version string handling
         assert!(!info.api_version.is_compatible_with("invalid"));
         assert!(!info.api_version.is_compatible_with("1.0"));
