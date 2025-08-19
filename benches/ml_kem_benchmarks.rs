@@ -3,8 +3,10 @@
 //! Comprehensive benchmarking suite for ML-KEM-768 operations
 //! to ensure performance targets are met and identify bottlenecks.
 
+#![allow(missing_docs)] // Criterion macros generate undocumented functions
+
 use criterion::{black_box, criterion_group, criterion_main, BenchmarkId, Criterion, Throughput};
-use saorsa_pqc::api::kem::{ml_kem_768, MlKem};
+use saorsa_pqc::api::kem::ml_kem_768;
 use std::time::Duration;
 
 /// Benchmark ML-KEM-768 key generation
@@ -38,7 +40,7 @@ fn benchmark_encapsulation(c: &mut Criterion) {
 fn benchmark_decapsulation(c: &mut Criterion) {
     let ml_kem = ml_kem_768();
     let (public_key, secret_key) = ml_kem.generate_keypair().expect("Key generation failed");
-    let (shared_secret, ciphertext) = ml_kem
+    let (_shared_secret, ciphertext) = ml_kem
         .encapsulate(&public_key)
         .expect("Encapsulation failed");
 

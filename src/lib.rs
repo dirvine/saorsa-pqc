@@ -252,15 +252,41 @@ pub fn init() -> Result<(), Box<dyn std::error::Error>> {
 /// Get library information and capabilities
 ///
 /// Returns information about the library version, supported algorithms,
-/// and available features.
+/// available features, and compatibility information.
 #[must_use]
 pub fn get_info() -> LibraryInfo {
+    // Parse version string to extract major.minor.patch
+    let version_parts: Vec<&str> = VERSION.split('.').collect();
+    let (major, minor, patch) = if version_parts.len() >= 3 {
+        (
+            version_parts[0].parse().unwrap_or(0),
+            version_parts[1].parse().unwrap_or(3),
+            version_parts[2].parse().unwrap_or(6),
+        )
+    } else {
+        (0, 3, 6) // Default fallback
+    };
+
     LibraryInfo {
         version: VERSION.to_string(),
         supported_ml_kem: SUPPORTED_ML_KEM.iter().map(|s| (*s).to_string()).collect(),
         supported_ml_dsa: SUPPORTED_ML_DSA.iter().map(|s| (*s).to_string()).collect(),
         features: get_enabled_features(),
         security_level: DEFAULT_SECURITY_LEVEL.to_string(),
+        api_version: ApiCompatibilityInfo {
+            major,
+            minor,
+            patch,
+            min_supported_version: "0.3.0".to_string(), // Maintain compatibility back to 0.3.0
+            stability: "stable".to_string(),
+        },
+        dependencies: DependencyVersionInfo {
+            fips203_version: "0.4".to_string(), // Track major.minor for compatibility
+            fips204_version: "0.4".to_string(), // Track major.minor for compatibility  
+            fips205_version: "0.4".to_string(), // Track major.minor for compatibility
+            bincode_version: "2.0".to_string(), // Major version for compatibility tracking
+            serde_version: "1.0".to_string(),   // Major version for compatibility tracking
+        },
     }
 }
 
@@ -277,6 +303,89 @@ pub struct LibraryInfo {
     pub features: Vec<String>,
     /// Default security level
     pub security_level: String,
+    /// API compatibility information
+    pub api_version: ApiCompatibilityInfo,
+    /// Core dependency versions for compatibility tracking
+    pub dependencies: DependencyVersionInfo,
+}
+
+/// API compatibility and version tracking information
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ApiCompatibilityInfo {
+    /// Current API major version
+    pub major: u32,
+    /// Current API minor version  
+    pub minor: u32,
+    /// Current API patch version
+    pub patch: u32,
+    /// Minimum supported API version for backwards compatibility
+    pub min_supported_version: String,
+    /// API stability level
+    pub stability: String,
+}
+
+/// Core dependency versions for backwards compatibility tracking
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct DependencyVersionInfo {
+    /// FIPS 203 (ML-KEM) crate version
+    pub fips203_version: String,
+    /// FIPS 204 (ML-DSA) crate version
+    pub fips204_version: String,
+    /// FIPS 205 (SLH-DSA) crate version
+    pub fips205_version: String,
+    /// Bincode version for serialization compatibility
+    pub bincode_version: String,
+    /// Serde version for serialization compatibility
+    pub serde_version: String,
+}
+
+impl ApiCompatibilityInfo {
+    /// Check if this API version is compatible with a minimum required version
+    #[must_use]
+    pub fn is_compatible_with(&self, min_version: &str) -> bool {
+        // Parse the minimum version string
+        let min_parts: Vec<&str> = min_version.split('.').collect();
+        if min_parts.len() < 3 {
+            return false;
+        }
+
+        let Ok(min_major) = min_parts[0].parse::<u32>() else {
+            return false;
+        };
+        let Ok(min_minor) = min_parts[1].parse::<u32>() else {
+            return false;
+        };
+        let Ok(min_patch) = min_parts[2].parse::<u32>() else {
+            return false;
+        };
+
+        // Check compatibility using semantic versioning rules
+        if self.major > min_major {
+            true
+        } else if self.major == min_major {
+            if self.minor > min_minor {
+                true
+            } else if self.minor == min_minor {
+                self.patch >= min_patch
+            } else {
+                false
+            }
+        } else {
+            false
+        }
+    }
+
+    /// Get the full version string
+    #[must_use]
+    pub fn version_string(&self) -> String {
+        format!("{}.{}.{}", self.major, self.minor, self.patch)
+    }
+}
+
+/// Check if the current library version supports backward compatibility with a specific version
+#[must_use]
+pub fn is_compatible_with_version(required_version: &str) -> bool {
+    get_info().api_version.is_compatible_with(required_version)
 }
 
 /// Get the list of enabled features
@@ -327,6 +436,32 @@ mod tests {
         assert!(info.supported_ml_kem.contains(&"ML-KEM-768".to_string()));
         assert!(info.supported_ml_dsa.contains(&"ML-DSA-65".to_string()));
         assert!(!info.features.is_empty());
+        
+        // Test new version tracking fields
+        assert_eq!(info.api_version.stability, "stable");
+        assert_eq!(info.api_version.min_supported_version, "0.3.0");
+        assert!(!info.dependencies.fips203_version.is_empty());
+        assert!(!info.dependencies.fips204_version.is_empty());
+        assert!(!info.dependencies.fips205_version.is_empty());
+    }
+
+    #[test]
+    fn test_version_compatibility() {
+        let info = get_info();
+        
+        // Test compatibility with older versions
+        assert!(info.api_version.is_compatible_with("0.3.0"));
+        assert!(info.api_version.is_compatible_with("0.3.1"));
+        
+        // Test compatibility with current version
+        assert!(info.api_version.is_compatible_with(&info.api_version.version_string()));
+        
+        // Test public API function
+        assert!(is_compatible_with_version("0.3.0"));
+        
+        // Test invalid version string handling
+        assert!(!info.api_version.is_compatible_with("invalid"));
+        assert!(!info.api_version.is_compatible_with("1.0"));
     }
 
     #[test]

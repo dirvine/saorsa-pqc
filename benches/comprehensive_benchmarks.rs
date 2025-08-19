@@ -8,6 +8,8 @@
 //! - Hybrid operations - ML-KEM + ChaCha20-Poly1305 workflows
 //! - Cross-platform performance analysis
 //! - Memory usage profiling
+
+#![allow(missing_docs)] // Criterion macros generate undocumented functions
 //!
 //! Run with: cargo bench --bench comprehensive_benchmarks
 

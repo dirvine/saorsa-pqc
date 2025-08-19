@@ -3,8 +3,10 @@
 //! Comprehensive benchmarking suite for ML-DSA-65 operations
 //! to ensure performance targets are met and identify bottlenecks.
 
+#![allow(missing_docs)] // Criterion macros generate undocumented functions
+
 use criterion::{black_box, criterion_group, criterion_main, BenchmarkId, Criterion, Throughput};
-use saorsa_pqc::api::sig::{ml_dsa_65, MlDsa};
+use saorsa_pqc::api::sig::ml_dsa_65;
 use std::time::Duration;
 
 /// Benchmark ML-DSA-65 key generation
@@ -24,7 +26,7 @@ fn benchmark_signing(c: &mut Criterion) {
     let mut group = c.benchmark_group("ml_dsa_65_signing");
 
     let ml_dsa = ml_dsa_65();
-    let (public_key, secret_key) = ml_dsa.generate_keypair().expect("Key generation failed");
+    let (_public_key, secret_key) = ml_dsa.generate_keypair().expect("Key generation failed");
 
     // Test different message sizes
     for message_size in [0, 32, 1024, 10240, 102400].iter() {
@@ -103,7 +105,7 @@ fn benchmark_batch_signing(c: &mut Criterion) {
     let mut group = c.benchmark_group("ml_dsa_65_batch_signing");
 
     let ml_dsa = ml_dsa_65();
-    let (public_key, secret_key) = ml_dsa.generate_keypair().expect("Key generation failed");
+    let (_public_key, secret_key) = ml_dsa.generate_keypair().expect("Key generation failed");
 
     for batch_size in [1, 10, 50, 100].iter() {
         let messages: Vec<Vec<u8>> = (0..*batch_size)
@@ -176,7 +178,7 @@ fn benchmark_batch_verification(c: &mut Criterion) {
 /// Benchmark signature size analysis
 fn benchmark_signature_sizes(c: &mut Criterion) {
     let ml_dsa = ml_dsa_65();
-    let (public_key, secret_key) = ml_dsa.generate_keypair().expect("Key generation failed");
+    let (_public_key, secret_key) = ml_dsa.generate_keypair().expect("Key generation failed");
 
     c.bench_function("ml_dsa_65_signature_size_analysis", |b| {
         b.iter(|| {

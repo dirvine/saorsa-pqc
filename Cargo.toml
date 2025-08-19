@@ -1,6 +1,6 @@
 [package]
 name = "saorsa-pqc"
-version = "0.3.6"
+version = "0.3.7"
 edition = "2021"
 authors = ["David Irvine <david@saorsalabs.com>"]
 license = "MIT OR Apache-2.0"
@@ -77,12 +77,12 @@ hkdf = "0.12"
 hmac = "0.12"
 
 # Hybrid Public Key Encryption (RFC 9180)
-hpke = { version = "0.12", features = ["std"] }
+hpke = { version = "0.13", features = ["std"] }
 
 # Serialization and data handling
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
-bincode = "1.3"
+bincode = "2.0"
 
 # Random and hash
 rand = "0.8"
@@ -91,7 +91,7 @@ sha3 = "0.10"
 blake3 = "1.8"
 
 # Error handling and secure memory
-thiserror = "1.0"
+thiserror = "2.0"
 anyhow = "1.0"
 zeroize = { version = "1.8", features = ["derive"] }
 libc = "0.2"
@@ -119,7 +119,7 @@ rand_core = { version = "0.6.4", features = ["std", "getrandom"] }
 [dev-dependencies]
 # Existing dependencies
 tokio-test = "0.4"
-criterion = { version = "0.5", features = ["html_reports"] }
+criterion = { version = "0.7", features = ["html_reports"] }
 proptest = "1.4"
 hex = "0.4"
 once_cell = "1.19"
@@ -130,7 +130,7 @@ lazy_static = "1.4"
 tempfile = "3.8"
 
 # For performance profiling
-pprof = { version = "0.13", features = ["flamegraph"] }
+pprof = { version = "0.15", features = ["flamegraph"] }
 
 # Additional test dependencies
 slh-dsa = "0.0.3"  # Alternative SLH-DSA implementation for cross-validation
