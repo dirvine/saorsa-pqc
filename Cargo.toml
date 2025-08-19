@@ -1,6 +1,6 @@
 [package]
 name = "saorsa-pqc"
-version = "0.3.5"
+version = "0.3.6"
 edition = "2021"
 authors = ["David Irvine <david@saorsalabs.com>"]
 license = "MIT OR Apache-2.0"
