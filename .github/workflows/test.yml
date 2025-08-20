@@ -81,11 +81,9 @@ jobs:
         sudo apt-get update
         sudo apt-get install -y build-essential pkg-config
     
-    - name: Download test vectors
-      run: |
-        chmod +x scripts/download_test_vectors.sh
-        ./scripts/download_test_vectors.sh
-    
+    # Test vectors are already committed to the repository
+    # No download needed - files are in tests/nist_vectors/
+
     - name: Run lib tests
       run: cargo test --lib ${{ matrix.features }}
     
@@ -144,11 +142,9 @@ jobs:
         restore-keys: |
           ${{ runner.os }}-cargo-
     
-    - name: Download test vectors
-      run: |
-        chmod +x scripts/download_test_vectors.sh
-        ./scripts/download_test_vectors.sh
-    
+    # Test vectors are already committed to the repository
+    # No download needed - files are in tests/nist_vectors/
+
     - name: Run ML-KEM tests
       run: cargo test --test ml_kem_tests -- --nocapture
     
@@ -180,11 +176,9 @@ jobs:
         restore-keys: |
           ${{ runner.os }}-cargo-
     
-    - name: Download test vectors
-      run: |
-        chmod +x scripts/download_test_vectors.sh
-        ./scripts/download_test_vectors.sh
-    
+    # Test vectors are already committed to the repository
+    # No download needed - files are in tests/nist_vectors/
+
     - name: Generate coverage report
       run: |
         cargo tarpaulin \
@@ -423,31 +417,9 @@ jobs:
         restore-keys: |
           ${{ matrix.os }}-cargo-
     
-    - name: Download test vectors (Unix)
-      if: runner.os != 'Windows'
-      run: |
-        chmod +x scripts/download_test_vectors.sh
-        ./scripts/download_test_vectors.sh
-    
-    - name: Download test vectors (Windows)
-      if: runner.os == 'Windows'
-      shell: bash
-      run: |
-        # Windows-compatible version of test vector download
-        mkdir -p tests/nist_vectors/{ml_kem,ml_dsa,community}
-        echo '{"algorithm": "ML-KEM", "testGroups": []}' > tests/nist_vectors/ml_kem/keygen_prompt.json
-        echo '{"algorithm": "ML-KEM", "testGroups": []}' > tests/nist_vectors/ml_kem/keygen_expected.json
-        echo '{"algorithm": "ML-KEM", "testGroups": []}' > tests/nist_vectors/ml_kem/encapdecap_prompt.json
-        echo '{"algorithm": "ML-KEM", "testGroups": []}' > tests/nist_vectors/ml_kem/encapdecap_expected.json
-        echo '{"algorithm": "ML-DSA", "testGroups": []}' > tests/nist_vectors/ml_dsa/keygen_prompt.json
-        echo '{"algorithm": "ML-DSA", "testGroups": []}' > tests/nist_vectors/ml_dsa/keygen_expected.json
-        echo '{"algorithm": "ML-DSA", "testGroups": []}' > tests/nist_vectors/ml_dsa/siggen_prompt.json
-        echo '{"algorithm": "ML-DSA", "testGroups": []}' > tests/nist_vectors/ml_dsa/siggen_expected.json
-        echo '{"algorithm": "ML-DSA", "testGroups": []}' > tests/nist_vectors/ml_dsa/sigver_prompt.json
-        echo '{"algorithm": "ML-DSA", "testGroups": []}' > tests/nist_vectors/ml_dsa/sigver_expected.json
-        echo '{"algorithm": "ML-KEM", "tests": []}' > tests/nist_vectors/community/ml_kem_768_unlucky.json
-        echo '{"algorithm": "ML-KEM", "tests": []}' > tests/nist_vectors/community/ml_kem_768_golden.json
-    
+    # Test vectors are already committed to the repository
+    # No download needed - files are in tests/nist_vectors/
+
     - name: Build for target
       run: cargo build --target ${{ matrix.target }} --all-features
     
