@@ -1,6 +1,6 @@
 [package]
 name = "saorsa-pqc"
-version = "0.3.8"
+version = "0.3.9"
 edition = "2021"
 authors = ["David Irvine <david@saorsalabs.com>"]
 license = "MIT OR Apache-2.0"
@@ -32,6 +32,7 @@ cert_compression = []         # Certificate compression optimization
 dangerous_configuration = []  # Only enable for specific use cases
 test-utils = []               # Testing utilities
 benchmarks = []               # Benchmarking support
+fuzzing = []                  # Fuzzing tests (requires libfuzzer-sys)
 
 [dependencies]
 # NIST Post-Quantum Cryptography Standards
@@ -117,6 +118,13 @@ pprof = { version = "0.15", features = ["flamegraph"] }
 
 # Additional test dependencies
 slh-dsa = "0.0.3"  # Alternative SLH-DSA implementation for cross-validation
+
+# Enhanced testing infrastructure
+cargo-mutants = "23.11"
+libfuzzer-sys = "0.4"
+arbitrary = { version = "1.3", features = ["derive"] }
+honggfuzz = "0.5"
+mutants = "0.0.3"
 
 
 # Test configuration for specific test suites
