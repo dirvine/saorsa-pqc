@@ -50,10 +50,10 @@ jobs:
     strategy:
       matrix:
         rust: [stable, beta]
-        features: 
+        features:
           - --all-features
-          - --no-default-features --features parallel,memory-pool
-          - --no-default-features --features hpke-support,extended-crypto
+          - --no-default-features --features simd
+          - --no-default-features --features cert_compression
     
     steps:
     - name: Checkout code
