@@ -161,10 +161,8 @@ fn test_feature_flag_compilation() {
 
     // No longer using aws-lc-rs - using FIPS crates directly
 
-    #[cfg(feature = "parallel")]
-    {
-        println!("parallel feature is enabled");
-    }
+    // Parallel processing is always enabled
+    println!("parallel processing is always enabled");
 
     #[cfg(feature = "test-utils")]
     {

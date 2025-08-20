@@ -90,10 +90,14 @@
 //!
 //! ## Feature Flags
 //!
-//! - `pqc`: Enable post-quantum cryptography features (using FIPS crates)
-//! - `extended-crypto`: Extended cryptographic primitives (Hash, KDF, HMAC, AES-GCM)
-//! - `parallel`: Enable parallel processing capabilities
-//! - `memory-pool`: Enable memory pool optimizations
+//! The library is designed to work out-of-the-box with sensible defaults.
+//! Optional features are available for specific use cases:
+//!
+//! - `simd`: Enable SIMD acceleration for performance (requires `wide` crate)
+//! - `cert_compression`: Enable certificate compression optimization
+//! - `dangerous_configuration`: Enable dangerous configuration options (not recommended)
+//! - `test-utils`: Enable testing utilities
+//! - `benchmarks`: Enable benchmarking support
 //!
 //! ## Safety and Compliance
 //!
@@ -233,11 +237,8 @@ pub fn init() -> Result<(), Box<dyn std::error::Error>> {
     // Initialize logging if available
     // Note: Logging setup is application-specific, not library-specific
 
-    // Initialize memory pools if enabled
-    #[cfg(feature = "memory-pool")]
-    {
-        pqc::memory_pool::initialize_global_pool()?;
-    }
+    // Initialize memory pools (always enabled)
+    pqc::memory_pool::initialize_global_pool()?;
 
     // Validate algorithm availability - always available now
     // Test that we can create algorithm instances
@@ -387,18 +388,19 @@ pub fn is_compatible_with_version(required_version: &str) -> bool {
 fn get_enabled_features() -> Vec<String> {
     #[allow(unused_mut)]
     let mut features: Vec<String> = vec![
-        // PQC is always enabled now (using FIPS crates)
+        // Core features always enabled
         "pqc".to_string(),
+        "parallel".to_string(),
+        "memory-pool".to_string(),
+        "secure-memory".to_string(),
+        "constant-time".to_string(),
+        "hpke-support".to_string(),
+        "extended-crypto".to_string(),
     ];
 
-    #[cfg(feature = "parallel")]
+    #[cfg(feature = "simd")]
     {
-        features.push("parallel".to_string());
-    }
-
-    #[cfg(feature = "memory-pool")]
-    {
-        features.push("memory-pool".to_string());
+        features.push("simd".to_string());
     }
 
     #[cfg(feature = "cert_compression")]

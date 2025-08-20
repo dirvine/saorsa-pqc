@@ -19,36 +19,19 @@ name = "saorsa_pqc"
 path = "src/lib.rs"
 
 [features]
-# All security and performance features enabled by default
+# Core functionality - always enabled
 default = [
-    "parallel", 
-    "memory-pool", 
-    "secure-memory", 
-    "constant-time",
-    "simd",
-    "hpke-support",
-    "extended-crypto"
+    "simd"  # SIMD acceleration for performance
 ]
 
+# Performance and optimization features
+simd = ["dep:wide"]  # SIMD acceleration (requires wide crate)
 
-# Performance features (enabled by default)
-parallel = []
-memory-pool = []
-
-# Security features (enabled by default) 
-secure-memory = []
-constant-time = []
-simd = ["dep:wide"]
-
-# Extended cryptographic primitives (enabled by default)
-hpke-support = []    # HPKE with PQC KEMs
-extended-crypto = []  # Hash, KDF, HMAC, AES-GCM
-
-# Optional development features (not enabled by default)
-cert_compression = []
-dangerous_configuration = []
-test-utils = []
-benchmarks = []
+# Optional development and testing features
+cert_compression = []         # Certificate compression optimization
+dangerous_configuration = []  # Only enable for specific use cases
+test-utils = []               # Testing utilities
+benchmarks = []               # Benchmarking support
 
 [dependencies]
 # NIST Post-Quantum Cryptography Standards
