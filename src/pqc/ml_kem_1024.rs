@@ -240,6 +240,7 @@ impl MlKem1024Operations for MlKem1024 {
 }
 
 #[cfg(test)]
+#[allow(clippy::unwrap_used, clippy::expect_used)]
 mod tests {
     use super::*;
 

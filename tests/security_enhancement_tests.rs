@@ -34,16 +34,26 @@ fn test_timing_attack_resistance() {
 
     // Calculate timing variance
     let avg_time: Duration = times.iter().sum::<Duration>() / times.len() as u32;
-    let variance = times.iter()
+    let variance = times
+        .iter()
         .map(|&t| {
-            let diff = if t > avg_time { t - avg_time } else { avg_time - t };
+            let diff = if t > avg_time {
+                t - avg_time
+            } else {
+                avg_time - t
+            };
             diff.as_nanos() as f64
         })
-        .sum::<f64>() / times.len() as f64;
+        .sum::<f64>()
+        / times.len() as f64;
 
     // Variance should be reasonable (not too high, indicating timing leaks)
     // This is a basic check - real timing analysis would be more sophisticated
-    assert!(variance < 1_000_000.0, "Timing variance too high: {}", variance);
+    assert!(
+        variance < 1_000_000.0,
+        "Timing variance too high: {}",
+        variance
+    );
 }
 
 /// Test cache timing attack resistance
@@ -66,14 +76,24 @@ fn test_cache_timing_resistance() {
 
     // Calculate timing differences
     let avg_time: Duration = times.iter().sum::<Duration>() / times.len() as u32;
-    let max_deviation = times.iter()
-        .map(|&t| if t > avg_time { t - avg_time } else { avg_time - t })
+    let max_deviation = times
+        .iter()
+        .map(|&t| {
+            if t > avg_time {
+                t - avg_time
+            } else {
+                avg_time - t
+            }
+        })
         .max()
         .unwrap();
 
     // Maximum deviation should be reasonable
-    assert!(max_deviation < Duration::from_micros(10),
-        "Cache timing deviation too high: {:?}", max_deviation);
+    assert!(
+        max_deviation < Duration::from_micros(10),
+        "Cache timing deviation too high: {:?}",
+        max_deviation
+    );
 }
 
 /// Test power analysis resistance (basic simulation)
@@ -100,7 +120,7 @@ fn test_power_analysis_resistance() {
             start.elapsed(),
             mid.elapsed(),
             end.elapsed(),
-            ss1.to_bytes() == ss2.to_bytes()
+            ss1.to_bytes() == ss2.to_bytes(),
         ));
     }
 
@@ -109,21 +129,41 @@ fn test_power_analysis_resistance() {
 
     // Check that timing patterns don't reveal information
     // This is a simplified check
-    let encap_times: Vec<_> = operations.iter().map(|(_, start, mid, _, _)| *mid - *start).collect();
-    let decap_times: Vec<_> = operations.iter().map(|(_, _, mid, end, _)| *end - *mid).collect();
+    let encap_times: Vec<_> = operations
+        .iter()
+        .map(|(_, start, mid, _, _)| *mid - *start)
+        .collect();
+    let decap_times: Vec<_> = operations
+        .iter()
+        .map(|(_, _, mid, end, _)| *end - *mid)
+        .collect();
 
     let encap_avg = encap_times.iter().sum::<Duration>() / encap_times.len() as u32;
     let decap_avg = decap_times.iter().sum::<Duration>() / decap_times.len() as u32;
 
     // Times should be relatively consistent
     for &time in &encap_times {
-        let diff = if time > encap_avg { time - encap_avg } else { encap_avg - time };
-        assert!(diff < Duration::from_millis(1), "Encapsulation timing too variable");
+        let diff = if time > encap_avg {
+            time - encap_avg
+        } else {
+            encap_avg - time
+        };
+        assert!(
+            diff < Duration::from_millis(1),
+            "Encapsulation timing too variable"
+        );
     }
 
     for &time in &decap_times {
-        let diff = if time > decap_avg { time - decap_avg } else { decap_avg - time };
-        assert!(diff < Duration::from_millis(1), "Decapsulation timing too variable");
+        let diff = if time > decap_avg {
+            time - decap_avg
+        } else {
+            decap_avg - time
+        };
+        assert!(
+            diff < Duration::from_millis(1),
+            "Decapsulation timing too variable"
+        );
     }
 }
 
@@ -148,7 +188,7 @@ fn test_em_emission_resistance() {
             pk.to_bytes().iter().map(|&b| b.count_ones()).sum::<u32>(),
             sk.to_bytes().iter().map(|&b| b.count_ones()).sum::<u32>(),
             ct.to_bytes().iter().map(|&b| b.count_ones()).sum::<u32>(),
-            ss1.to_bytes() == ss2.to_bytes()
+            ss1.to_bytes() == ss2.to_bytes(),
         );
 
         patterns.push(pattern);
@@ -175,9 +215,7 @@ fn test_em_emission_resistance() {
 
 fn calculate_variance(data: &[u32]) -> f64 {
     let mean = data.iter().sum::<u32>() as f64 / data.len() as f64;
-    data.iter()
-        .map(|&x| (x as f64 - mean).powi(2))
-        .sum::<f64>() / data.len() as f64
+    data.iter().map(|&x| (x as f64 - mean).powi(2)).sum::<f64>() / data.len() as f64
 }
 
 /// Test fault injection resistance
@@ -217,8 +255,12 @@ fn test_algorithm_agility() {
         let (ss1, ct) = kem.encapsulate(&pk).unwrap();
         let ss2 = kem.decapsulate(&sk, &ct).unwrap();
 
-        assert_eq!(ss1.to_bytes(), ss2.to_bytes(),
-            "Variant {:?} round-trip failed", variant);
+        assert_eq!(
+            ss1.to_bytes(),
+            ss2.to_bytes(),
+            "Variant {:?} round-trip failed",
+            variant
+        );
     }
 }
 
@@ -263,13 +305,23 @@ fn test_memory_access_patterns() {
 
     // Calculate access time variance
     let avg_time: Duration = access_times.iter().sum::<Duration>() / access_times.len() as u32;
-    let variance = access_times.iter()
+    let variance = access_times
+        .iter()
         .map(|&t| {
-            let diff = if t > avg_time { t - avg_time } else { avg_time - t };
+            let diff = if t > avg_time {
+                t - avg_time
+            } else {
+                avg_time - t
+            };
             diff.as_nanos() as f64
         })
-        .sum::<f64>() / access_times.len() as f64;
+        .sum::<f64>()
+        / access_times.len() as f64;
 
     // Variance should be reasonable
-    assert!(variance < 500_000.0, "Memory access timing variance too high: {}", variance);
+    assert!(
+        variance < 500_000.0,
+        "Memory access timing variance too high: {}",
+        variance
+    );
 }

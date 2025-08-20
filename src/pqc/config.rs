@@ -115,6 +115,13 @@ impl PqcConfig {
     }
 
     /// Validate the configuration
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if:
+    /// - `PqcOnly` mode is selected but no PQC algorithms are enabled
+    /// - Memory pool size is 0 or greater than 1000
+    /// - Handshake timeout multiplier is less than 1.0 or greater than 10.0
     pub fn validate(&self) -> Result<(), ConfigError> {
         // PqcOnly mode requires at least one PQC algorithm
         if self.mode == PqcMode::PqcOnly && !self.ml_kem_enabled && !self.ml_dsa_enabled {
@@ -212,6 +219,10 @@ impl PqcConfigBuilder {
     }
 
     /// Build the `PqcConfig`, validating all settings
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the configuration is invalid according to [`PqcConfig::validate`]
     pub fn build(self) -> Result<PqcConfig, ConfigError> {
         let config = PqcConfig {
             mode: self.mode,
@@ -228,6 +239,7 @@ impl PqcConfigBuilder {
 }
 
 #[cfg(test)]
+#[allow(clippy::unwrap_used, clippy::expect_used)]
 mod tests {
     use super::*;
 

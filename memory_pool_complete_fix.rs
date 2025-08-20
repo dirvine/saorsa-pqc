@@ -219,7 +219,7 @@ impl<T: BufferCleanup> PoolGuard<T> {
         // SAFETY: PoolGuard is constructed with Some(object) and only consumed on drop
         // The object is guaranteed to exist until drop
         // Using unwrap_or_else to avoid expect, though this should never panic
-        self.object.as_ref().unwrap_or_else(|| {
+        self.object.get_ref().unwrap_or_else(|| {
             unreachable!("PoolGuard object must exist until drop - this is a programming error")
         })
     }

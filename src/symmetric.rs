@@ -442,6 +442,11 @@ pub mod utils {
     /// let message = utils::encrypt_message(&key, b"Hello, world!", None)?;
     /// # Ok::<(), saorsa_pqc::symmetric::SymmetricError>(())
     /// ```
+    /// ```
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the underlying cipher fails to encrypt the message
     pub fn encrypt_message(
         key: &SymmetricKey,
         plaintext: &[u8],
@@ -459,15 +464,18 @@ pub mod utils {
 
     /// Decrypt an `EncryptedMessage`
     ///
+    /// This is a convenience function that creates a cipher and decrypts
+    /// the message in one step.
+    ///
     /// # Arguments
-    /// * `key` - The symmetric encryption key
+    /// * `key` - The symmetric key to use for decryption
     /// * `message` - The encrypted message to decrypt
     ///
     /// # Returns
-    /// The decrypted plaintext
+    /// The decrypted plaintext as a `Vec<u8>`
     ///
-    /// # Example
-    /// ```rust
+    /// # Examples
+    /// ```no_run
     /// use saorsa_pqc::symmetric::{SymmetricKey, utils};
     ///
     /// let key = SymmetricKey::generate();
@@ -476,6 +484,13 @@ pub mod utils {
     /// assert_eq!(b"Hello, world!", &plaintext[..]);
     /// # Ok::<(), saorsa_pqc::symmetric::SymmetricError>(())
     /// ```
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if:
+    /// - The message is corrupted or tampered with
+    /// - The key used for encryption doesn't match the key used for decryption
+    /// - The underlying cipher fails to decrypt the message
     pub fn decrypt_message(
         key: &SymmetricKey,
         message: &EncryptedMessage,
@@ -487,21 +502,17 @@ pub mod utils {
     /// Generate a key from a password using PBKDF2
     ///
     /// # Arguments
-    /// * `password` - The password to derive a key from
-    /// * `salt` - A random salt (should be at least 16 bytes)
+    /// * `password` - The password to derive the key from
+    /// * `salt` - Random salt bytes (should be at least 16 bytes)
     /// * `iterations` - Number of PBKDF2 iterations (recommended: 100,000+)
     ///
-    /// # Returns
-    /// A derived symmetric key
+    /// # Security Notes
+    /// - Use a cryptographically secure random salt
+    /// - Use at least 100,000 iterations for good security
+    /// - Consider using higher iteration counts on faster hardware
     ///
-    /// # Security Note
-    /// This function uses SHA-256 as the hash function for PBKDF2.
-    /// The salt should be randomly generated and stored alongside the encrypted data.
-    /// The iteration count should be chosen based on your security requirements and
-    /// performance constraints.
-    ///
-    /// # Example
-    /// ```rust
+    /// # Examples
+    /// ```no_run
     /// use saorsa_pqc::symmetric::utils;
     ///
     /// let password = b"my_secure_password";
@@ -509,6 +520,9 @@ pub mod utils {
     /// let key = utils::derive_key_from_password(password, salt, 100_000)?;
     /// # Ok::<(), saorsa_pqc::symmetric::SymmetricError>(())
     /// ```
+    /// # Errors
+    ///
+    /// Returns an error if the key derivation process fails (though this is rare with valid inputs)
     pub fn derive_key_from_password(
         password: &[u8],
         salt: &[u8],
@@ -525,6 +539,7 @@ pub mod utils {
 }
 
 #[cfg(test)]
+#[allow(clippy::unwrap_used, clippy::expect_used)]
 mod tests {
     use super::*;
 

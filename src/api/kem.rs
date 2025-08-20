@@ -1002,6 +1002,7 @@ pub const fn ml_kem_1024() -> MlKem {
 }
 
 #[cfg(test)]
+#[allow(clippy::unwrap_used, clippy::expect_used)]
 mod tests {
     use super::*;
 

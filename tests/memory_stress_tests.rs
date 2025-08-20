@@ -3,11 +3,7 @@
 //! These tests verify that the cryptographic implementations handle
 //! memory pressure and large allocations correctly without leaks or panics.
 
-use saorsa_pqc::api::{
-    kem::ml_kem_768,
-    sig::ml_dsa_65,
-    symmetric::ChaCha20Poly1305,
-};
+use saorsa_pqc::api::{kem::ml_kem_768, sig::ml_dsa_65, symmetric::ChaCha20Poly1305};
 use std::collections::VecDeque;
 
 /// Test handling of very large messages
@@ -39,7 +35,7 @@ fn test_memory_usage_patterns() {
     let mut results = Vec::new();
 
     for i in 0..1000 {
-    let (pk, sk) = kem.generate_keypair().unwrap();
+        let (pk, sk) = kem.generate_keypair().unwrap();
         let (ss1, ct) = kem.encapsulate(&pk).unwrap();
         let ss2 = kem.decapsulate(&sk, &ct).unwrap();
 
@@ -156,15 +152,16 @@ fn test_memory_fragmentation_resistance() {
     // Verify all remaining signatures are still valid
     for (pk, signature, message) in &signatures {
         let is_valid = dsa.verify(pk, message, signature).unwrap();
-        assert!(is_valid, "Signature should remain valid despite fragmentation");
+        assert!(
+            is_valid,
+            "Signature should remain valid despite fragmentation"
+        );
     }
 }
 
 /// Test zeroization of sensitive data
 #[test]
 fn test_sensitive_data_zeroization() {
-    
-
     let kem = ml_kem_768();
 
     // Create some sensitive data
@@ -172,7 +169,10 @@ fn test_sensitive_data_zeroization() {
     let sk_bytes = sk.to_bytes();
 
     // Verify the secret key contains non-zero data initially
-    assert!(sk_bytes.iter().any(|&b| b != 0), "Secret key should contain data");
+    assert!(
+        sk_bytes.iter().any(|&b| b != 0),
+        "Secret key should contain data"
+    );
 
     // When sk goes out of scope, it should be zeroized
     drop(sk);
@@ -195,7 +195,7 @@ fn test_memory_usage_scaling() {
         let mut results = Vec::with_capacity(num_ops);
 
         for _ in 0..num_ops {
-    let (pk, sk) = kem.generate_keypair().unwrap();
+            let (pk, sk) = kem.generate_keypair().unwrap();
             let (ss1, ct) = kem.encapsulate(&pk).unwrap();
             let ss2 = kem.decapsulate(&sk, &ct).unwrap();
 

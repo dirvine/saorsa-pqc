@@ -208,7 +208,10 @@ impl SecurityValidator {
         // Simple entropy estimation using byte frequency
         let mut frequency = [0u32; 256];
         for &byte in &self.entropy_samples {
-            frequency[byte as usize] += 1;
+            // Safe indexing: byte as usize is always within [0, 255] for u8
+            if let Some(freq) = frequency.get_mut(usize::from(byte)) {
+                *freq += 1;
+            }
         }
 
         let total = self.entropy_samples.len() as f64;

@@ -46,6 +46,10 @@ impl HybridKem {
     }
 
     /// Generate a hybrid keypair (ML-KEM + X25519)
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if ML-KEM keypair generation fails
     pub fn generate_keypair(&self) -> PqcResult<HybridKemKeypair> {
         // Generate ML-KEM keypair
         let (ml_kem_public, ml_kem_secret) = self.ml_kem.generate_keypair()?;
@@ -67,6 +71,10 @@ impl HybridKem {
     }
 
     /// Encapsulate to create a shared secret
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if ML-KEM encapsulation fails or secret combination fails
     pub fn encapsulate(
         &self,
         public_key: &HybridKemPublicKey,
@@ -96,6 +104,10 @@ impl HybridKem {
     }
 
     /// Decapsulate to recover the shared secret
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if ML-KEM decapsulation fails or secret combination fails
     pub fn decapsulate(
         &self,
         secret_key: &HybridKemSecretKey,
@@ -136,6 +148,10 @@ impl HybridSignature {
     }
 
     /// Generate a hybrid signing keypair
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if ML-DSA keypair generation fails
     pub fn generate_keypair(&self) -> PqcResult<HybridSignatureKeypair> {
         // Generate ML-DSA keypair
         let (ml_dsa_public, ml_dsa_secret) = self.ml_dsa.generate_keypair()?;
@@ -157,6 +173,10 @@ impl HybridSignature {
     }
 
     /// Sign a message with both algorithms
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if ML-DSA signing fails
     pub fn sign(
         &self,
         secret_key: &HybridSignatureSecretKey,
@@ -175,6 +195,10 @@ impl HybridSignature {
     }
 
     /// Verify a hybrid signature
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if ML-DSA verification fails
     pub fn verify(
         &self,
         public_key: &HybridSignaturePublicKey,
@@ -276,6 +300,7 @@ impl Default for HybridSignature {
 }
 
 #[cfg(test)]
+#[allow(clippy::unwrap_used, clippy::expect_used)]
 mod tests {
     use super::*;
 

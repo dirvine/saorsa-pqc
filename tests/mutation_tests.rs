@@ -3,11 +3,7 @@
 //! This module configures mutation testing to ensure our tests are
 //! comprehensive enough to catch implementation bugs.
 
-use saorsa_pqc::api::{
-    kem::ml_kem_768,
-    sig::ml_dsa_65,
-    symmetric::ChaCha20Poly1305,
-};
+use saorsa_pqc::api::{kem::ml_kem_768, sig::ml_dsa_65, symmetric::ChaCha20Poly1305};
 
 /// Test that should catch mutations in key generation
 #[test]
@@ -95,7 +91,6 @@ fn test_size_invariants() {
 #[test]
 fn test_algorithm_selection() {
     use saorsa_pqc::api::kem::{MlKem, MlKemVariant};
-
 
     // These should fail if algorithm selection is mutated
     let kem_512 = MlKem::new(MlKemVariant::MlKem512);

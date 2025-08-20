@@ -208,6 +208,7 @@ pub fn ct_copy_bytes(dest: &mut [u8], src: &[u8], choice: bool) {
 }
 
 #[cfg(test)]
+#[allow(clippy::unwrap_used, clippy::expect_used)]
 mod tests {
     use super::*;
 

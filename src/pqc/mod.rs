@@ -89,15 +89,37 @@ pub trait PqcProvider: Send + Sync + 'static {
 /// ML-KEM operations trait
 pub trait MlKemOperations: Send + Sync {
     /// Generate a new ML-KEM keypair
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if:
+    /// - Random number generation fails
+    /// - Key generation algorithm fails
+    /// - Insufficient entropy is available
     fn generate_keypair(&self) -> PqcResult<(MlKemPublicKey, MlKemSecretKey)>;
 
     /// Encapsulate a shared secret
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if:
+    /// - The public key is invalid or malformed
+    /// - Random number generation fails
+    /// - The encapsulation algorithm fails
     fn encapsulate(
         &self,
         public_key: &MlKemPublicKey,
     ) -> PqcResult<(MlKemCiphertext, SharedSecret)>;
 
     /// Decapsulate a shared secret
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if:
+    /// - The secret key is invalid or malformed
+    /// - The ciphertext is invalid or malformed
+    /// - The decapsulation algorithm fails
+    /// - Key-ciphertext mismatch is detected
     fn decapsulate(
         &self,
         secret_key: &MlKemSecretKey,
@@ -108,12 +130,35 @@ pub trait MlKemOperations: Send + Sync {
 /// ML-DSA operations trait
 pub trait MlDsaOperations: Send + Sync {
     /// Generate a new ML-DSA keypair
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if:
+    /// - Random number generation fails
+    /// - Key generation algorithm fails
+    /// - Insufficient entropy is available
     fn generate_keypair(&self) -> PqcResult<(MlDsaPublicKey, MlDsaSecretKey)>;
 
     /// Sign a message
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if:
+    /// - The secret key is invalid or malformed
+    /// - Random number generation fails (for randomized signing)
+    /// - The signing algorithm fails
+    /// - The message is too large
     fn sign(&self, secret_key: &MlDsaSecretKey, message: &[u8]) -> PqcResult<MlDsaSignature>;
 
     /// Verify a signature
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if:
+    /// - The public key is invalid or malformed
+    /// - The signature is invalid or malformed
+    /// - The verification algorithm fails
+    /// - Internal computation errors occur
     fn verify(
         &self,
         public_key: &MlDsaPublicKey,
@@ -129,6 +174,7 @@ use types::{
 };
 
 #[cfg(test)]
+#[allow(clippy::unwrap_used, clippy::expect_used)]
 mod tests {
     #[test]
     fn test_pqc_module_imports() {

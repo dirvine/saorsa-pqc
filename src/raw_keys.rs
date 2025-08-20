@@ -187,6 +187,7 @@ pub fn generate_ed25519_keypair() -> Ed25519KeyPair {
 }
 
 #[cfg(test)]
+#[allow(clippy::unwrap_used, clippy::expect_used)]
 mod tests {
     use super::*;
 
