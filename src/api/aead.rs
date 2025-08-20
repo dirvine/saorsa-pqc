@@ -21,6 +21,10 @@ pub struct GcmNonce([u8; 12]);
 
 impl GcmNonce {
     /// Create a new nonce from bytes
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the slice is not exactly 12 bytes
     pub fn from_slice(slice: &[u8]) -> PqcResult<Self> {
         if slice.len() != 12 {
             return Err(PqcError::InvalidNonceLength);
@@ -161,6 +165,10 @@ pub enum AeadCipher {
 
 impl AeadCipher {
     /// Encrypt with associated data
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if encryption fails or if key/nonce have invalid sizes
     pub fn encrypt(
         &self,
         key: &[u8],
@@ -194,6 +202,10 @@ impl AeadCipher {
     }
 
     /// Decrypt with associated data
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if decryption fails, authentication fails, or if key/nonce have invalid sizes
     pub fn decrypt(
         &self,
         key: &[u8],
