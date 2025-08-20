@@ -442,7 +442,6 @@ pub mod utils {
     /// let message = utils::encrypt_message(&key, b"Hello, world!", None)?;
     /// # Ok::<(), saorsa_pqc::symmetric::SymmetricError>(())
     /// ```
-    /// ```
     ///
     /// # Errors
     ///

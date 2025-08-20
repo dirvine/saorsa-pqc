@@ -269,6 +269,10 @@ pub mod helpers {
     }
 
     /// Encrypt with automatic nonce generation
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if encryption fails or if key/nonce have invalid sizes
     pub fn encrypt_with_random_nonce(
         cipher: AeadCipher,
         key: &[u8],
@@ -282,6 +286,7 @@ pub mod helpers {
 }
 
 #[cfg(test)]
+#[allow(clippy::indexing_slicing)]
 #[allow(clippy::unwrap_used, clippy::expect_used)]
 mod tests {
     use super::*;

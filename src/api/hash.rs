@@ -249,7 +249,7 @@ pub mod helpers {
 }
 
 #[cfg(test)]
-#[allow(clippy::unwrap_used, clippy::expect_used)]
+#[allow(clippy::indexing_slicing)]#[allow(clippy::unwrap_used, clippy::expect_used)]
 mod tests {
     use super::*;
 

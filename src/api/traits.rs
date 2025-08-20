@@ -289,7 +289,7 @@ pub trait Mac {
 // We don't need a custom RNG trait as the standard ones are sufficient
 
 #[cfg(test)]
-#[allow(clippy::unwrap_used, clippy::expect_used)]
+#[allow(clippy::indexing_slicing)]#[allow(clippy::unwrap_used, clippy::expect_used)]
 mod tests {
     use super::*;
 

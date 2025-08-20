@@ -147,6 +147,10 @@ pub enum HmacAlgorithm {
 
 impl HmacAlgorithm {
     /// Compute HMAC of data
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the key has invalid length or HMAC computation fails
     pub fn mac(&self, key: &[u8], data: &[u8]) -> PqcResult<Vec<u8>> {
         match self {
             Self::HmacSha3_256 => {
@@ -161,6 +165,10 @@ impl HmacAlgorithm {
     }
 
     /// Verify HMAC tag (constant-time)
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if verification fails or the tag is invalid
     pub fn verify(&self, key: &[u8], data: &[u8], tag: &[u8]) -> PqcResult<()> {
         let computed = self.mac(key, data)?;
 
@@ -199,6 +207,10 @@ pub mod helpers {
     use super::{HmacAlgorithm, HmacSha3_256, HmacSha3_512, Mac, PqcResult, Zeroizing};
 
     /// Compute HMAC-SHA3-256
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the key has invalid length or HMAC computation fails
     pub fn hmac_sha3_256(key: &[u8], data: &[u8]) -> PqcResult<[u8; 32]> {
         let tag = HmacSha3_256::mac(key, data)?;
         let mut result = [0u8; 32];
@@ -207,6 +219,10 @@ pub mod helpers {
     }
 
     /// Compute HMAC-SHA3-512
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the key has invalid length or HMAC computation fails
     pub fn hmac_sha3_512(key: &[u8], data: &[u8]) -> PqcResult<[u8; 64]> {
         let tag = HmacSha3_512::mac(key, data)?;
         let mut result = [0u8; 64];
@@ -215,16 +231,28 @@ pub mod helpers {
     }
 
     /// Verify HMAC-SHA3-256 (constant-time)
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if verification fails or the tag is invalid
     pub fn verify_hmac_sha3_256(key: &[u8], data: &[u8], tag: &[u8; 32]) -> PqcResult<()> {
         HmacAlgorithm::HmacSha3_256.verify(key, data, tag)
     }
 
     /// Verify HMAC-SHA3-512 (constant-time)
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if verification fails or the tag is invalid
     pub fn verify_hmac_sha3_512(key: &[u8], data: &[u8], tag: &[u8; 64]) -> PqcResult<()> {
         HmacAlgorithm::HmacSha3_512.verify(key, data, tag)
     }
 
     /// Generate a MAC key from key material
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if key derivation fails
     pub fn derive_mac_key(key_material: &[u8], context: &[u8]) -> PqcResult<Zeroizing<[u8; 32]>> {
         use crate::api::kdf::HkdfSha3_256;
         use crate::api::traits::Kdf;
@@ -235,6 +263,10 @@ pub mod helpers {
     }
 
     /// Create an HMAC-based key confirmation value
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if HMAC computation fails
     pub fn key_confirmation(
         shared_secret: &[u8],
         initiator_data: &[u8],
@@ -249,6 +281,7 @@ pub mod helpers {
 }
 
 #[cfg(test)]
+#[allow(clippy::indexing_slicing)]
 #[allow(clippy::unwrap_used, clippy::expect_used)]
 mod tests {
     use super::*;

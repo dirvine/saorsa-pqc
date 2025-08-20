@@ -1003,7 +1003,7 @@ pub const fn slh_dsa_sha2_256s() -> SlhDsa {
 }
 
 #[cfg(test)]
-#[allow(clippy::unwrap_used, clippy::expect_used)]
+#[allow(clippy::indexing_slicing)]#[allow(clippy::unwrap_used, clippy::expect_used)]
 mod tests {
     use super::*;
 

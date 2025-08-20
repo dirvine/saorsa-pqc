@@ -443,6 +443,7 @@ impl MlKemSharedSecret {
 
     /// Create from bytes (for testing)
     #[cfg(test)]
+    #[allow(clippy::indexing_slicing)]
     pub fn from_bytes(bytes: [u8; 32]) -> Self {
         Self { bytes }
     }
@@ -1002,6 +1003,7 @@ pub const fn ml_kem_1024() -> MlKem {
 }
 
 #[cfg(test)]
+#[allow(clippy::indexing_slicing)]
 #[allow(clippy::unwrap_used, clippy::expect_used)]
 mod tests {
     use super::*;

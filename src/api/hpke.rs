@@ -60,6 +60,10 @@ pub struct HpkeContext {
 
 impl HpkeContext {
     /// Export keying material
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if key derivation fails
     pub fn export(&self, context: &[u8], length: usize) -> PqcResult<Vec<u8>> {
         self.config
             .kdf
@@ -67,6 +71,10 @@ impl HpkeContext {
     }
 
     /// Seal (encrypt with associated data)
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if encryption fails
     pub fn seal(&mut self, plaintext: &[u8], aad: &[u8]) -> PqcResult<Vec<u8>> {
         let nonce = self.compute_nonce();
         let ciphertext = self
@@ -78,6 +86,10 @@ impl HpkeContext {
     }
 
     /// Open (decrypt with associated data)
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if decryption fails or authentication fails
     pub fn open(&mut self, ciphertext: &[u8], aad: &[u8]) -> PqcResult<Vec<u8>> {
         let nonce = self.compute_nonce();
         let plaintext = self
@@ -351,6 +363,7 @@ pub fn open(
 }
 
 #[cfg(test)]
+#[allow(clippy::indexing_slicing)]
 #[allow(clippy::unwrap_used, clippy::expect_used)]
 mod tests {
     use super::*;

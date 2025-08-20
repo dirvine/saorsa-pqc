@@ -159,7 +159,7 @@ pub fn decrypt(key: &Key, nonce: &Nonce, ciphertext: &[u8]) -> PqcResult<Vec<u8>
 }
 
 #[cfg(test)]
-#[allow(clippy::unwrap_used)]
+#[allow(clippy::indexing_slicing)]
 #[allow(clippy::unwrap_used, clippy::expect_used)]
 mod tests {
     use super::*;
