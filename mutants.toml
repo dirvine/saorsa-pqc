@@ -1,0 +1,95 @@
+# Mutation testing configuration for cargo-mutants
+# This file configures which files to test and which mutations to apply
+
+# Files to include in mutation testing
+[files]
+include = [
+    "src/**/*.rs",
+    "tests/**/*.rs"
+]
+
+# Files to exclude from mutation testing
+exclude = [
+    "src/lib.rs",           # Main library file (mostly re-exports)
+    "tests/fuzzing_tests.rs", # Fuzzing tests (would be too slow)
+    "tests/memory_stress_tests.rs", # Memory stress tests (too slow)
+]
+
+# Timeout for each mutation test (in seconds)
+timeout = 300
+
+# Minimum test timeout multiplier
+timeout_multiplier = 2.0
+
+# Which types of mutations to apply
+[mutate]
+# Arithmetic operators
+arithmetic = true
+
+# Comparison operators
+comparison = true
+
+# Control flow (if, match, etc.)
+control_flow = true
+
+# Function calls
+function_calls = true
+
+# Negation operators
+negate = true
+
+# Return statements
+returns = true
+
+# Slice operations
+slices = true
+
+# String literals
+strings = true
+
+# Variable assignments
+assignments = true
+
+# Method calls
+method_calls = true
+
+# Struct field access
+field_access = true
+
+# Array indexing
+array_indexing = true
+
+# Boolean operators
+boolean = true
+
+# Integer arithmetic
+integer_arithmetic = true
+
+# Bitwise operations
+bitwise = true
+
+# Shift operations
+shifts = true
+
+# Function parameters
+function_parameters = true
+
+# Loop constructs
+loops = true
+
+# Pattern matching
+patterns = true
+
+# Type casts
+casts = true
+
+# Exception: Don't mutate these specific functions/patterns
+[[mutate.exceptions]]
+# Don't mutate cryptographic constant-time operations
+pattern = "ct_.*"
+# Don't mutate test functions
+pattern = "#\\[test\\]"
+# Don't mutate derive macros
+pattern = "#\\[derive\\(.*\\)\\]"
+# Don't mutate unsafe blocks
+pattern = "unsafe \\{.*\\}"

@@ -23,6 +23,8 @@ fn _arbitrary_key_material() -> impl Strategy<Value = Vec<u8>> {
 
 // Test ML-KEM-768 round-trip property: encap(pk) -> (ct, ss1), decap(sk, ct) -> ss2, ss1 == ss2
 proptest! {
+    #![proptest_config(ProptestConfig::with_cases(10000))]
+
     #[test]
     fn prop_ml_kem_round_trip_consistency(
         _seed in any::<[u8; 32]>()
@@ -147,6 +149,8 @@ proptest! {
 
 // Test ML-DSA-65 signature properties
 proptest! {
+    #![proptest_config(ProptestConfig::with_cases(10000))]
+
     #[test]
     fn prop_ml_dsa_sign_verify_consistency(
         message in arbitrary_message()
