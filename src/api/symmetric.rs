@@ -75,7 +75,9 @@ impl ChaCha20Poly1305 {
 
     /// Decrypt and authenticate a ciphertext
     ///
-    /// Returns an error if authentication fails
+    /// # Errors
+    ///
+    /// Returns an error if authentication fails or decryption encounters an error.
     pub fn decrypt(&self, nonce: &Nonce, ciphertext: &[u8]) -> PqcResult<Vec<u8>> {
         self.cipher
             .decrypt(nonce, ciphertext)
@@ -83,6 +85,10 @@ impl ChaCha20Poly1305 {
     }
 
     /// Decrypt and authenticate a ciphertext with associated data
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if authentication fails or decryption encounters an error.
     pub fn decrypt_with_aad(
         &self,
         nonce: &Nonce,
@@ -145,6 +151,11 @@ pub fn generate_nonce() -> Nonce {
 /// Encrypt data using ChaCha20-Poly1305
 ///
 /// This is a convenience function for one-shot encryption
+///
+/// # Errors
+///
+/// Returns an error if encryption fails due to invalid parameters or
+/// cryptographic operation failures.
 pub fn encrypt(key: &Key, nonce: &Nonce, plaintext: &[u8]) -> PqcResult<Vec<u8>> {
     let cipher = ChaCha20Poly1305::new(key);
     cipher.encrypt(nonce, plaintext)
@@ -153,6 +164,11 @@ pub fn encrypt(key: &Key, nonce: &Nonce, plaintext: &[u8]) -> PqcResult<Vec<u8>>
 /// Decrypt data using ChaCha20-Poly1305
 ///
 /// This is a convenience function for one-shot decryption
+///
+/// # Errors
+///
+/// Returns an error if decryption fails due to authentication failure,
+/// invalid parameters, or cryptographic operation failures.
 pub fn decrypt(key: &Key, nonce: &Nonce, ciphertext: &[u8]) -> PqcResult<Vec<u8>> {
     let cipher = ChaCha20Poly1305::new(key);
     cipher.decrypt(nonce, ciphertext)

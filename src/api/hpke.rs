@@ -107,7 +107,9 @@ impl HpkeContext {
 
         // XOR sequence number into the last 8 bytes of nonce
         for i in 0..8 {
-            nonce[4 + i] ^= seq_bytes[i];
+            if let (Some(nonce_byte), Some(seq_byte)) = (nonce.get_mut(4 + i), seq_bytes.get(i)) {
+                *nonce_byte ^= seq_byte;
+            }
         }
 
         nonce
@@ -127,6 +129,11 @@ impl HpkeSender {
     }
 
     /// Setup and encapsulate for base mode
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if public key conversion fails, ML-KEM encapsulation fails,
+    /// or key schedule derivation fails.
     pub fn setup_base(
         &self,
         recipient_public_key: &[u8],
@@ -153,6 +160,11 @@ impl HpkeSender {
     }
 
     /// Setup and encapsulate for PSK mode
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if public key conversion fails, ML-KEM encapsulation fails,
+    /// or PSK key schedule derivation fails.
     pub fn setup_psk(
         &self,
         recipient_public_key: &[u8],
@@ -237,6 +249,11 @@ impl HpkeRecipient {
     }
 
     /// Setup and decapsulate for base mode
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if secret key or ciphertext conversion fails,
+    /// ML-KEM decapsulation fails, or key schedule derivation fails.
     pub fn setup_base(
         &self,
         encapsulated_key: &[u8],
@@ -263,6 +280,11 @@ impl HpkeRecipient {
     }
 
     /// Setup and decapsulate for PSK mode
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if secret key or ciphertext conversion fails,
+    /// ML-KEM decapsulation fails, or PSK key schedule derivation fails.
     pub fn setup_psk(
         &self,
         encapsulated_key: &[u8],
@@ -335,6 +357,11 @@ impl HpkeRecipient {
 }
 
 /// One-shot HPKE encryption
+///
+/// # Errors
+///
+/// Returns an error if HPKE setup fails, encryption fails, or any
+/// cryptographic operation encounters an error.
 pub fn seal(
     config: HpkeConfig,
     recipient_public_key: &[u8],
@@ -349,6 +376,11 @@ pub fn seal(
 }
 
 /// One-shot HPKE decryption
+///
+/// # Errors
+///
+/// Returns an error if HPKE setup fails, decryption fails, authentication
+/// fails, or any cryptographic operation encounters an error.
 pub fn open(
     config: HpkeConfig,
     encapsulated_key: &[u8],

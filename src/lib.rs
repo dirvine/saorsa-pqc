@@ -349,7 +349,7 @@ impl ApiCompatibilityInfo {
             return false;
         }
 
-        let Ok(min_major) = min_parts.get(0).unwrap_or(&"0").parse::<u32>() else {
+        let Ok(min_major) = min_parts.first().unwrap_or(&"0").parse::<u32>() else {
             return false;
         };
         let Ok(min_minor) = min_parts.get(1).unwrap_or(&"0").parse::<u32>() else {

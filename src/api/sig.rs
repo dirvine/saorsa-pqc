@@ -502,6 +502,7 @@ impl MlDsa {
     /// # Ok(())
     /// # }
     /// ```
+    #[allow(clippy::large_stack_frames)]
     pub fn generate_keypair(&self) -> PqcResult<(MlDsaPublicKey, MlDsaSecretKey)> {
         match self.variant {
             MlDsaVariant::MlDsa44 => {

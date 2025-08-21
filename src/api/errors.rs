@@ -139,7 +139,8 @@ impl std::error::Error for PqcError {}
 // Note: rand_core errors are handled differently in newer versions
 
 #[cfg(test)]
-#[allow(clippy::indexing_slicing)]#[allow(clippy::unwrap_used, clippy::expect_used)]
+#[allow(clippy::indexing_slicing)]
+#[allow(clippy::unwrap_used, clippy::expect_used)]
 mod tests {
     use super::*;
 

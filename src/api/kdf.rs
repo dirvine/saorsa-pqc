@@ -81,6 +81,11 @@ pub enum KdfAlgorithm {
 
 impl KdfAlgorithm {
     /// Derive key material
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if key derivation fails due to invalid parameters
+    /// or HKDF operation failures.
     pub fn derive(
         &self,
         ikm: &[u8],
@@ -115,8 +120,14 @@ impl KdfAlgorithm {
 /// Helper functions for common KDF operations
 pub mod helpers {
     use super::{HkdfSha3_256, HkdfSha3_512, Kdf, KdfAlgorithm, PqcResult, Zeroizing};
+    use crate::api::errors::PqcError;
 
     /// Derive encryption and authentication keys from a shared secret
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if key derivation fails or the derived key material
+    /// cannot be properly split into encryption and authentication keys.
     pub fn derive_enc_auth_keys(
         shared_secret: &[u8],
         context: &[u8],
@@ -127,13 +138,17 @@ pub mod helpers {
         let mut enc_key = Zeroizing::new([0u8; 32]);
         let mut auth_key = Zeroizing::new([0u8; 32]);
 
-        enc_key.copy_from_slice(&okm[..32]);
-        auth_key.copy_from_slice(&okm[32..]);
+        enc_key.copy_from_slice(okm.get(..32).ok_or(PqcError::InvalidKeyLength)?);
+        auth_key.copy_from_slice(okm.get(32..).ok_or(PqcError::InvalidKeyLength)?);
 
         Ok((enc_key, auth_key))
     }
 
     /// Derive a symmetric key from a password and salt
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if PBKDF2 key derivation fails due to invalid parameters.
     pub fn derive_key_from_password(
         password: &[u8],
         salt: &[u8],
@@ -148,11 +163,21 @@ pub mod helpers {
     }
 
     /// Simple key stretching for session keys
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if key stretching fails due to invalid parameters
+    /// or HKDF derivation failures.
     pub fn stretch_key(key: &[u8], label: &[u8], output_len: usize) -> PqcResult<Vec<u8>> {
         KdfAlgorithm::HkdfSha3_256.derive(key, None, label, output_len)
     }
 
     /// Derive multiple keys from a master key
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if key derivation fails for any of the requested labels
+    /// or if HKDF operations fail.
     pub fn derive_key_hierarchy(
         master_key: &[u8],
         labels: &[&[u8]],
