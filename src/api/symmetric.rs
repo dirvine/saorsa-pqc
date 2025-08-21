@@ -49,6 +49,11 @@ impl ChaCha20Poly1305 {
     /// Encrypt a message with authenticated encryption
     ///
     /// Returns ciphertext that includes the authentication tag
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if encryption fails due to invalid parameters or
+    /// cryptographic operation failures.
     pub fn encrypt(&self, nonce: &Nonce, plaintext: &[u8]) -> PqcResult<Vec<u8>> {
         self.cipher
             .encrypt(nonce, plaintext)
@@ -58,6 +63,11 @@ impl ChaCha20Poly1305 {
     /// Encrypt a message with associated data
     ///
     /// The associated data is authenticated but not encrypted
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if encryption fails due to invalid parameters or
+    /// cryptographic operation failures.
     pub fn encrypt_with_aad(
         &self,
         nonce: &Nonce,

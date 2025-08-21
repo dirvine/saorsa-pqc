@@ -690,6 +690,14 @@ impl SlhDsa {
     /// assert!(!slh.verify_with_context(&public_key, message, &signature, wrong_context)?);
     /// # Ok::<(), Box<dyn std::error::Error>>(())
     /// ```
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if:
+    /// - The secret key variant doesn't match the SLH variant
+    /// - The context is too long (exceeds maximum length)
+    /// - Key deserialization fails
+    /// - The signing operation fails
     pub fn sign_with_context(
         &self,
         secret_key: &SlhDsaSecretKey,
@@ -791,6 +799,14 @@ impl SlhDsa {
     /// assert!(!slh.verify(&public_key, wrong_message, &signature)?);
     /// # Ok::<(), Box<dyn std::error::Error>>(())
     /// ```
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if:
+    /// - The public key variant doesn't match the SLH variant
+    /// - The signature variant doesn't match the SLH variant
+    /// - Key deserialization fails
+    /// - The verification operation encounters an error
     pub fn verify(
         &self,
         public_key: &SlhDsaPublicKey,
@@ -836,6 +852,14 @@ impl SlhDsa {
     /// assert!(!slh.verify(&public_key, message, &signature)?);
     /// # Ok::<(), Box<dyn std::error::Error>>(())
     /// ```
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if:
+    /// - The public key variant doesn't match the SLH variant
+    /// - The signature variant doesn't match the SLH variant
+    /// - Key deserialization fails
+    /// - The verification operation encounters an error
     pub fn verify_with_context(
         &self,
         public_key: &SlhDsaPublicKey,
