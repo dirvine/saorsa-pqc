@@ -329,6 +329,10 @@ impl SlhDsaPublicKey {
     }
 
     /// Import a public key from bytes
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the byte slice has an incorrect length for the specified variant.
     pub fn from_bytes(variant: SlhDsaVariant, bytes: &[u8]) -> PqcResult<Self> {
         if bytes.len() != variant.public_key_size() {
             return Err(PqcError::InvalidKeySize {
@@ -395,6 +399,10 @@ impl SlhDsaSecretKey {
     }
 
     /// Import a secret key from bytes
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the byte slice has an incorrect length for the specified variant.
     pub fn from_bytes(variant: SlhDsaVariant, bytes: &[u8]) -> PqcResult<Self> {
         if bytes.len() != variant.secret_key_size() {
             return Err(PqcError::InvalidKeySize {
@@ -465,6 +473,10 @@ impl SlhDsaSignature {
     }
 
     /// Import a signature from bytes
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the byte slice has an incorrect length for the specified variant.
     pub fn from_bytes(variant: SlhDsaVariant, bytes: &[u8]) -> PqcResult<Self> {
         if bytes.len() != variant.signature_size() {
             return Err(PqcError::InvalidSignatureSize {
@@ -535,6 +547,10 @@ impl SlhDsa {
     ///
     /// # Returns
     /// A tuple containing the public key and secret key
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the key generation process fails.
     ///
     /// # Example
     /// ```rust
@@ -652,6 +668,11 @@ impl SlhDsa {
     /// assert!(slh.verify(&public_key, message, &signature)?);
     /// # Ok::<(), Box<dyn std::error::Error>>(())
     /// ```
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the signing process fails due to incompatible
+    /// key types or internal signature generation errors.
     pub fn sign(&self, secret_key: &SlhDsaSecretKey, message: &[u8]) -> PqcResult<SlhDsaSignature> {
         self.sign_with_context(secret_key, message, b"")
     }

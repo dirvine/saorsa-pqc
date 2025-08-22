@@ -121,7 +121,7 @@ impl KdfAlgorithm {
 pub mod helpers {
     use super::{HkdfSha3_256, HkdfSha3_512, Kdf, KdfAlgorithm, PqcResult, Zeroizing};
     use crate::api::errors::PqcError;
-    
+
     /// Type alias for encryption and authentication key pair
     pub type EncAuthKeyPair = (Zeroizing<[u8; 32]>, Zeroizing<[u8; 32]>);
 
@@ -131,10 +131,7 @@ pub mod helpers {
     ///
     /// Returns an error if key derivation fails or the derived key material
     /// cannot be properly split into encryption and authentication keys.
-    pub fn derive_enc_auth_keys(
-        shared_secret: &[u8],
-        context: &[u8],
-    ) -> PqcResult<EncAuthKeyPair> {
+    pub fn derive_enc_auth_keys(shared_secret: &[u8], context: &[u8]) -> PqcResult<EncAuthKeyPair> {
         let mut okm = Zeroizing::new([0u8; 64]);
         HkdfSha3_512::derive(shared_secret, None, context, &mut okm[..])?;
 

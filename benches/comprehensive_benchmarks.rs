@@ -10,10 +10,11 @@
 //! - Memory usage profiling
 
 #![allow(missing_docs)] // Criterion macros generate undocumented functions
+#![allow(clippy::unwrap_used, clippy::expect_used, clippy::indexing_slicing)]
 //!
 //! Run with: cargo bench --bench comprehensive_benchmarks
 
-use criterion::{black_box, criterion_group, criterion_main, BenchmarkId, Criterion, Throughput};
+use criterion::{ criterion_group, criterion_main, BenchmarkId, Criterion, Throughput};
 use saorsa_pqc::api::{
     kem::{ml_kem_768, MlKem, MlKemVariant},
     sig::{ml_dsa_65, MlDsa, MlDsaVariant},
@@ -43,7 +44,7 @@ fn bench_ml_kem(c: &mut Criterion) {
             |b, &variant| {
                 let kem = MlKem::new(variant);
                 b.iter(|| {
-                    let _ = black_box(kem.generate_keypair());
+                    let _ = std::hint::black_box(kem.generate_keypair());
                 });
             },
         );
@@ -58,7 +59,7 @@ fn bench_ml_kem(c: &mut Criterion) {
             &variant,
             |b, _| {
                 b.iter(|| {
-                    let _ = black_box(kem.encapsulate(&pk));
+                    let _ = std::hint::black_box(kem.encapsulate(&pk));
                 });
             },
         );
@@ -70,7 +71,7 @@ fn bench_ml_kem(c: &mut Criterion) {
             &variant,
             |b, _| {
                 b.iter(|| {
-                    let _ = black_box(kem.decapsulate(&sk, &ct));
+                    let _ = std::hint::black_box(kem.decapsulate(&sk, &ct));
                 });
             },
         );
@@ -101,7 +102,7 @@ fn bench_ml_dsa(c: &mut Criterion) {
             |b, &variant| {
                 let dsa = MlDsa::new(variant);
                 b.iter(|| {
-                    let _ = black_box(dsa.generate_keypair());
+                    let _ = std::hint::black_box(dsa.generate_keypair());
                 });
             },
         );
@@ -114,7 +115,7 @@ fn bench_ml_dsa(c: &mut Criterion) {
         // Benchmark signing
         group.bench_with_input(BenchmarkId::new("Sign", variant_name), &variant, |b, _| {
             b.iter(|| {
-                let _ = black_box(dsa.sign(&sk, message));
+                let _ = std::hint::black_box(dsa.sign(&sk, message));
             });
         });
 
@@ -125,7 +126,7 @@ fn bench_ml_dsa(c: &mut Criterion) {
             &variant,
             |b, _| {
                 b.iter(|| {
-                    let _ = black_box(dsa.verify(&pk, message, &sig));
+                    let _ = std::hint::black_box(dsa.verify(&pk, message, &sig));
                 });
             },
         );
@@ -137,7 +138,7 @@ fn bench_ml_dsa(c: &mut Criterion) {
             &variant,
             |b, _| {
                 b.iter(|| {
-                    let _ = black_box(dsa.sign_with_context(&sk, message, context));
+                    let _ = std::hint::black_box(dsa.sign_with_context(&sk, message, context));
                 });
             },
         );
@@ -161,7 +162,7 @@ fn bench_ml_dsa_throughput(c: &mut Criterion) {
         group.bench_with_input(BenchmarkId::new("sign_throughput", size), &size, |b, _| {
             b.iter(|| {
                 let _signature = dsa.sign(&secret_key, &message).expect("Signing failed");
-                black_box(_signature);
+                std::hint::black_box(_signature);
             });
         });
 
@@ -174,7 +175,7 @@ fn bench_ml_dsa_throughput(c: &mut Criterion) {
                     let _valid = dsa
                         .verify(&public_key, &message, &signature)
                         .expect("Verification failed");
-                    black_box(_valid);
+                    std::hint::black_box(_valid);
                 });
             },
         );
@@ -204,7 +205,7 @@ fn bench_chacha20poly1305(c: &mut Criterion) {
             &size,
             |b, _| {
                 b.iter(|| {
-                    let _ = black_box(
+                    let _ = std::hint::black_box(
                         cipher
                             .encrypt(&nonce, &plaintext)
                             .expect("Encryption failed"),
@@ -222,7 +223,7 @@ fn bench_chacha20poly1305(c: &mut Criterion) {
             &size,
             |b, _| {
                 b.iter(|| {
-                    let _ = black_box(
+                    let _ = std::hint::black_box(
                         cipher
                             .decrypt(&nonce, &ciphertext)
                             .expect("Decryption failed"),
@@ -246,14 +247,14 @@ fn bench_serialization(c: &mut Criterion) {
 
         group.bench_function("ML-KEM-768/PublicKey/Serialize", |b| {
             b.iter(|| {
-                let _ = black_box(pk.to_bytes());
+                let _ = std::hint::black_box(pk.to_bytes());
             });
         });
 
         let pk_bytes = pk.to_bytes();
         group.bench_function("ML-KEM-768/PublicKey/Deserialize", |b| {
             b.iter(|| {
-                let _ = black_box(saorsa_pqc::api::MlKemPublicKey::from_bytes(
+                let _ = std::hint::black_box(saorsa_pqc::api::MlKemPublicKey::from_bytes(
                     MlKemVariant::MlKem768,
                     &pk_bytes,
                 ));
@@ -262,7 +263,7 @@ fn bench_serialization(c: &mut Criterion) {
 
         group.bench_function("ML-KEM-768/SecretKey/Serialize", |b| {
             b.iter(|| {
-                let _ = black_box(sk.to_bytes());
+                let _ = std::hint::black_box(sk.to_bytes());
             });
         });
     }
@@ -276,14 +277,14 @@ fn bench_serialization(c: &mut Criterion) {
 
         group.bench_function("ML-DSA-65/Signature/Serialize", |b| {
             b.iter(|| {
-                let _ = black_box(sig.to_bytes());
+                let _ = std::hint::black_box(sig.to_bytes());
             });
         });
 
         let sig_bytes = sig.to_bytes();
         group.bench_function("ML-DSA-65/Signature/Deserialize", |b| {
             b.iter(|| {
-                let _ = black_box(saorsa_pqc::api::MlDsaSignature::from_bytes(
+                let _ = std::hint::black_box(saorsa_pqc::api::MlDsaSignature::from_bytes(
                     MlDsaVariant::MlDsa65,
                     &sig_bytes,
                 ));
@@ -337,7 +338,7 @@ fn bench_hybrid_workflow(c: &mut Criterion) {
                         .decrypt(&nonce, &encrypted)
                         .expect("Decryption failed");
 
-                    black_box(_decrypted);
+                    std::hint::black_box(_decrypted);
                 });
             },
         );
@@ -364,7 +365,7 @@ fn bench_batch_operations(c: &mut Criterion) {
                         let (pk, sk) = kem.generate_keypair().expect("Key generation failed");
                         let (_ss1, ct) = kem.encapsulate(&pk).expect("Encapsulation failed");
                         let _ss2 = kem.decapsulate(&sk, &ct).expect("Decapsulation failed");
-                        black_box(_ss2);
+                        std::hint::black_box(_ss2);
                     }
                 });
             },
@@ -384,7 +385,7 @@ fn bench_batch_operations(c: &mut Criterion) {
                         let (pk, sk) = dsa.generate_keypair().expect("Key generation failed");
                         let sig = dsa.sign(&sk, message).expect("Signing failed");
                         let _valid = dsa.verify(&pk, message, &sig).expect("Verification failed");
-                        black_box(_valid);
+                        std::hint::black_box(_valid);
                     }
                 });
             },
@@ -427,7 +428,7 @@ fn bench_cross_platform(c: &mut Criterion) {
                 chunk.reverse();
             }
 
-            black_box((pk_be, sk_be));
+            std::hint::black_box((pk_be, sk_be));
         });
     });
 
@@ -449,7 +450,7 @@ fn bench_cross_platform(c: &mut Criterion) {
             #[cfg(not(target_arch = "aarch64"))]
             let has_neon = false;
 
-            black_box((has_avx2, has_sse2, has_neon));
+            std::hint::black_box((has_avx2, has_sse2, has_neon));
         });
     });
 
@@ -473,7 +474,7 @@ fn bench_memory_usage(c: &mut Criterion) {
             let ct_bytes = ct.to_bytes();
             let ss_bytes = ss.to_bytes();
 
-            black_box((pk_bytes, sk_bytes, ct_bytes, ss_bytes));
+            std::hint::black_box((pk_bytes, sk_bytes, ct_bytes, ss_bytes));
         });
     });
 
@@ -488,7 +489,7 @@ fn bench_memory_usage(c: &mut Criterion) {
             let sk_bytes = sk.to_bytes();
             let sig_bytes = sig.to_bytes();
 
-            black_box((pk_bytes, sk_bytes, sig_bytes, message));
+            std::hint::black_box((pk_bytes, sk_bytes, sig_bytes, message));
         });
     });
 
@@ -501,7 +502,7 @@ fn bench_memory_usage(c: &mut Criterion) {
                 let data = vec![0u8; size];
                 allocations.push(data);
             }
-            black_box(allocations);
+            std::hint::black_box(allocations);
         });
     });
 
@@ -520,7 +521,7 @@ fn bench_latency_analysis(c: &mut Criterion) {
             let start = std::time::Instant::now();
             let _keypair = kem.generate_keypair().expect("Key generation failed");
             let duration = start.elapsed();
-            black_box(duration);
+            std::hint::black_box(duration);
         });
     });
 
@@ -530,7 +531,7 @@ fn bench_latency_analysis(c: &mut Criterion) {
             let start = std::time::Instant::now();
             let _result = kem.encapsulate(&pk).expect("Encapsulation failed");
             let duration = start.elapsed();
-            black_box(duration);
+            std::hint::black_box(duration);
         });
     });
 
@@ -540,7 +541,7 @@ fn bench_latency_analysis(c: &mut Criterion) {
             let start = std::time::Instant::now();
             let _ss = kem.decapsulate(&sk, &ct).expect("Decapsulation failed");
             let duration = start.elapsed();
-            black_box(duration);
+            std::hint::black_box(duration);
         });
     });
 
@@ -559,7 +560,7 @@ fn bench_latency_analysis(c: &mut Criterion) {
                     let start = std::time::Instant::now();
                     let _encrypted = cipher.encrypt(&nonce, &message).expect("Encryption failed");
                     let duration = start.elapsed();
-                    black_box(duration);
+                    std::hint::black_box(duration);
                 });
             },
         );

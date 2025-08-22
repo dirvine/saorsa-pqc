@@ -174,6 +174,10 @@ impl MlKemPublicKey {
     }
 
     /// Import a public key from bytes
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the byte slice has an incorrect length for the specified variant.
     pub fn from_bytes(variant: MlKemVariant, bytes: &[u8]) -> PqcResult<Self> {
         if bytes.len() != variant.public_key_size() {
             return Err(PqcError::InvalidKeySize {
@@ -270,6 +274,10 @@ impl MlKemSecretKey {
     }
 
     /// Import a secret key from bytes
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the byte slice has an incorrect length for the specified variant.
     pub fn from_bytes(variant: MlKemVariant, bytes: &[u8]) -> PqcResult<Self> {
         if bytes.len() != variant.secret_key_size() {
             return Err(PqcError::InvalidKeySize {
@@ -371,6 +379,10 @@ impl MlKemCiphertext {
     }
 
     /// Import a ciphertext from bytes
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the byte slice has an incorrect length for the specified variant.
     pub fn from_bytes(variant: MlKemVariant, bytes: &[u8]) -> PqcResult<Self> {
         if bytes.len() != variant.ciphertext_size() {
             return Err(PqcError::InvalidCiphertextSize {

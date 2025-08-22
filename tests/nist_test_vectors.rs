@@ -4,6 +4,8 @@
 //! post-quantum cryptography standards, providing exhaustive testing
 //! of the implementations.
 
+#![allow(clippy::unwrap_used, clippy::expect_used, clippy::indexing_slicing, clippy::drop_non_drop, clippy::manual_abs_diff, clippy::clone_on_copy, clippy::single_component_path_imports, clippy::manual_range_contains)]
+
 use serde::{Deserialize, Serialize};
 use serde_json;
 

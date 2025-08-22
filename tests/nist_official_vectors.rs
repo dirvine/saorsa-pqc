@@ -6,6 +6,8 @@
 //! These tests validate our implementation against the official NIST test vectors
 //! for FIPS 203, 204, and 205.
 
+#![allow(clippy::unwrap_used, clippy::expect_used, clippy::indexing_slicing, clippy::drop_non_drop, clippy::manual_abs_diff, clippy::clone_on_copy, clippy::single_component_path_imports, clippy::manual_range_contains)]
+
 use saorsa_pqc::api::{
     MlDsa, MlDsaPublicKey, MlDsaSecretKey, MlDsaVariant, MlKem, MlKemCiphertext, MlKemPublicKey,
     MlKemSecretKey, MlKemVariant, SlhDsa, SlhDsaVariant,
@@ -14,7 +16,6 @@ use saorsa_pqc::api::{
 #[cfg(test)]
 mod ml_kem_tests {
     use super::*;
-    use hex;
 
     /// Test deterministic key generation with NIST ACVP seed values
     ///

@@ -8,7 +8,8 @@
 //! - HMAC-SHA3: NIST CAVS test vectors
 //! - HPKE: Configuration validation tests
 
-use hex;
+#![allow(clippy::unwrap_used, clippy::expect_used, clippy::indexing_slicing, clippy::drop_non_drop, clippy::manual_abs_diff, clippy::clone_on_copy, clippy::single_component_path_imports, clippy::manual_range_contains)]
+
 use saorsa_pqc::api::{
     aead::{AeadCipher, Aes256GcmAead, GcmNonce},
     hash::{Blake3Hasher, Sha3_256Hasher, Sha3_512Hasher},

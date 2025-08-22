@@ -3,6 +3,8 @@
 //! Uses proptest for randomized testing to verify cryptographic properties
 //! and invariants across a wide range of inputs.
 
+#![allow(clippy::unwrap_used, clippy::expect_used, clippy::indexing_slicing, clippy::drop_non_drop, clippy::manual_abs_diff, clippy::clone_on_copy, clippy::single_component_path_imports, clippy::manual_range_contains)]
+
 use proptest::prelude::*;
 use saorsa_pqc::api::{
     kem::{ml_kem_768, MlKemCiphertext, MlKemPublicKey, MlKemSecretKey, MlKemVariant},

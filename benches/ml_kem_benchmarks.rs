@@ -4,8 +4,9 @@
 //! to ensure performance targets are met and identify bottlenecks.
 
 #![allow(missing_docs)] // Criterion macros generate undocumented functions
+#![allow(clippy::unwrap_used, clippy::expect_used, clippy::indexing_slicing)]
 
-use criterion::{black_box, criterion_group, criterion_main, BenchmarkId, Criterion, Throughput};
+use criterion::{ criterion_group, criterion_main, BenchmarkId, Criterion, Throughput};
 use saorsa_pqc::api::kem::ml_kem_768;
 use std::time::Duration;
 
@@ -16,7 +17,7 @@ fn benchmark_keygen(c: &mut Criterion) {
     c.bench_function("ml_kem_768_keygen", |b| {
         b.iter(|| {
             let _keypair = ml_kem.generate_keypair().expect("Key generation failed");
-            black_box(_keypair);
+            std::hint::black_box(_keypair);
         })
     });
 }
@@ -31,7 +32,7 @@ fn benchmark_encapsulation(c: &mut Criterion) {
             let (shared_secret, ciphertext) = ml_kem
                 .encapsulate(&public_key)
                 .expect("Encapsulation failed");
-            black_box((ciphertext, shared_secret));
+            std::hint::black_box((ciphertext, shared_secret));
         })
     });
 }
@@ -49,7 +50,7 @@ fn benchmark_decapsulation(c: &mut Criterion) {
             let shared_secret = ml_kem
                 .decapsulate(&secret_key, &ciphertext)
                 .expect("Decapsulation failed");
-            black_box(shared_secret);
+            std::hint::black_box(shared_secret);
         })
     });
 }
@@ -70,7 +71,7 @@ fn benchmark_round_trip(c: &mut Criterion) {
                 .expect("Decapsulation failed");
 
             assert_eq!(shared_secret1.to_bytes(), shared_secret2.to_bytes());
-            black_box((shared_secret1, shared_secret2));
+            std::hint::black_box((shared_secret1, shared_secret2));
         })
     });
 }
@@ -93,7 +94,7 @@ fn benchmark_batch_operations(c: &mut Criterion) {
                         let keypair = ml_kem.generate_keypair().expect("Key generation failed");
                         keypairs.push(keypair);
                     }
-                    black_box(keypairs);
+                    std::hint::black_box(keypairs);
                 });
             },
         );
@@ -116,7 +117,7 @@ fn benchmark_batch_operations(c: &mut Criterion) {
                             .expect("Encapsulation failed");
                         results.push(result);
                     }
-                    black_box(results);
+                    std::hint::black_box(results);
                 });
             },
         );
@@ -152,7 +153,7 @@ fn benchmark_memory_usage(c: &mut Criterion) {
                 results.push((ciphertext, shared_secret, recovered_secret));
             }
 
-            black_box(results);
+            std::hint::black_box(results);
         });
     });
 }

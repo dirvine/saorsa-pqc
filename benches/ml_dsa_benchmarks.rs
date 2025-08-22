@@ -4,8 +4,9 @@
 //! to ensure performance targets are met and identify bottlenecks.
 
 #![allow(missing_docs)] // Criterion macros generate undocumented functions
+#![allow(clippy::unwrap_used, clippy::expect_used, clippy::indexing_slicing)]
 
-use criterion::{black_box, criterion_group, criterion_main, BenchmarkId, Criterion, Throughput};
+use criterion::{ criterion_group, criterion_main, BenchmarkId, Criterion, Throughput};
 use saorsa_pqc::api::sig::ml_dsa_65;
 use std::time::Duration;
 
@@ -16,7 +17,7 @@ fn benchmark_keygen(c: &mut Criterion) {
     c.bench_function("ml_dsa_65_keygen", |b| {
         b.iter(|| {
             let _keypair = ml_dsa.generate_keypair().expect("Key generation failed");
-            black_box(_keypair);
+            std::hint::black_box(_keypair);
         })
     });
 }
@@ -39,7 +40,7 @@ fn benchmark_signing(c: &mut Criterion) {
             |b, msg| {
                 b.iter(|| {
                     let signature = ml_dsa.sign(&secret_key, msg).expect("Signing failed");
-                    black_box(signature);
+                    std::hint::black_box(signature);
                 });
             },
         );
@@ -71,7 +72,7 @@ fn benchmark_verification(c: &mut Criterion) {
                         .verify(&public_key, msg, sig)
                         .expect("Verification failed");
                     assert!(is_valid);
-                    black_box(is_valid);
+                    std::hint::black_box(is_valid);
                 });
             },
         );
@@ -95,7 +96,7 @@ fn benchmark_round_trip(c: &mut Criterion) {
                 .expect("Verification failed");
 
             assert!(is_valid);
-            black_box((signature, is_valid));
+            std::hint::black_box((signature, is_valid));
         })
     });
 }
@@ -124,7 +125,7 @@ fn benchmark_batch_signing(c: &mut Criterion) {
                         let signature = ml_dsa.sign(&secret_key, msg).expect("Signing failed");
                         signatures.push(signature);
                     }
-                    black_box(signatures);
+                    std::hint::black_box(signatures);
                 });
             },
         );
@@ -166,7 +167,7 @@ fn benchmark_batch_verification(c: &mut Criterion) {
                     }
                     // All should be valid
                     assert!(results.iter().all(|&x| x));
-                    black_box(results);
+                    std::hint::black_box(results);
                 });
             },
         );
@@ -197,7 +198,7 @@ fn benchmark_signature_sizes(c: &mut Criterion) {
                 signature_sizes.push(signature.to_bytes().len());
             }
 
-            black_box(signature_sizes);
+            std::hint::black_box(signature_sizes);
         });
     });
 }
@@ -228,7 +229,7 @@ fn benchmark_memory_usage(c: &mut Criterion) {
                 results.push((message, signature, is_valid));
             }
 
-            black_box(results);
+            std::hint::black_box(results);
         });
     });
 }
@@ -253,7 +254,7 @@ fn benchmark_invalid_signature_verification(c: &mut Criterion) {
                 .verify(&public_key, wrong_message, &signature)
                 .expect("Verification should not error");
             assert!(!is_valid);
-            black_box(is_valid);
+            std::hint::black_box(is_valid);
         });
     });
 }

@@ -346,7 +346,7 @@ impl ChaCha20Poly1305Cipher {
 
         let ciphertext = self
             .cipher
-            .encrypt(&nonce, payload)
+            .encrypt(nonce, payload)
             .map_err(|_| SymmetricError::EncryptionFailed)?;
 
         Ok(ciphertext)

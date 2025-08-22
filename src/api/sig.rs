@@ -193,6 +193,10 @@ impl MlDsaPublicKey {
     }
 
     /// Import a public key from bytes
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the byte slice has an incorrect length for the specified variant.
     pub fn from_bytes(variant: MlDsaVariant, bytes: &[u8]) -> PqcResult<Self> {
         if bytes.len() != variant.public_key_size() {
             return Err(PqcError::InvalidKeySize {
@@ -288,6 +292,10 @@ impl MlDsaSecretKey {
     }
 
     /// Import a secret key from bytes
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the byte slice has an incorrect length for the specified variant.
     pub fn from_bytes(variant: MlDsaVariant, bytes: &[u8]) -> PqcResult<Self> {
         if bytes.len() != variant.secret_key_size() {
             return Err(PqcError::InvalidKeySize {
@@ -389,6 +397,10 @@ impl MlDsaSignature {
     }
 
     /// Import a signature from bytes
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the byte slice has an incorrect length for the specified variant.
     pub fn from_bytes(variant: MlDsaVariant, bytes: &[u8]) -> PqcResult<Self> {
         if bytes.len() != variant.signature_size() {
             return Err(PqcError::InvalidSignatureSize {
@@ -723,6 +735,11 @@ impl MlDsa {
     /// - `Ok(false)` if the signature is invalid
     /// - `Err(_)` if verification cannot be performed (wrong key type, etc.)
     ///
+    /// # Errors
+    ///
+    /// Returns an error if the signature verification process fails due to
+    /// incompatible key types or internal verification errors.
+    ///
     /// # Example
     /// ```rust
     /// use saorsa_pqc::api::sig::ml_dsa_65;
@@ -767,6 +784,11 @@ impl MlDsa {
     /// - `Ok(true)` if the signature is valid with the given context
     /// - `Ok(false)` if the signature is invalid or context doesn't match
     /// - `Err(_)` if verification cannot be performed
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the signature verification process fails due to
+    /// incompatible key types, invalid context, or internal verification errors.
     ///
     /// # Example
     /// ```rust
