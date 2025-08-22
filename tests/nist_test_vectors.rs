@@ -63,6 +63,7 @@ struct MlDsaTestVector {
 
 /// SLH-DSA test vector structure
 #[derive(Debug, Deserialize, Serialize)]
+#[allow(dead_code)]
 struct SlhDsaTestVector {
     #[serde(rename = "tcId")]
     tc_id: u32,
