@@ -3,7 +3,16 @@
 //! Tests for ML-KEM (Module-Lattice-based Key Encapsulation Mechanism)
 //! following NIST FIPS 203 standard with ACVP test vectors.
 
-#![allow(clippy::unwrap_used, clippy::expect_used, clippy::indexing_slicing, clippy::drop_non_drop, clippy::manual_abs_diff, clippy::clone_on_copy, clippy::single_component_path_imports, clippy::manual_range_contains)]
+#![allow(
+    clippy::unwrap_used,
+    clippy::expect_used,
+    clippy::indexing_slicing,
+    clippy::drop_non_drop,
+    clippy::manual_abs_diff,
+    clippy::clone_on_copy,
+    clippy::single_component_path_imports,
+    clippy::manual_range_contains
+)]
 
 mod common;
 

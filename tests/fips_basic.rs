@@ -1,6 +1,15 @@
 //! Basic tests to verify FIPS implementations work correctly
 
-#![allow(clippy::unwrap_used, clippy::expect_used, clippy::indexing_slicing, clippy::drop_non_drop, clippy::manual_abs_diff, clippy::clone_on_copy, clippy::single_component_path_imports, clippy::manual_range_contains)]
+#![allow(
+    clippy::unwrap_used,
+    clippy::expect_used,
+    clippy::indexing_slicing,
+    clippy::drop_non_drop,
+    clippy::manual_abs_diff,
+    clippy::clone_on_copy,
+    clippy::single_component_path_imports,
+    clippy::manual_range_contains
+)]
 
 use fips203::{
     ml_kem_1024, ml_kem_512, ml_kem_768,

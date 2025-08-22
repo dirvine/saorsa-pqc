@@ -6,7 +6,7 @@
 #![allow(missing_docs)] // Criterion macros generate undocumented functions
 #![allow(clippy::unwrap_used, clippy::expect_used, clippy::indexing_slicing)]
 
-use criterion::{ criterion_group, criterion_main, BenchmarkId, Criterion, Throughput};
+use criterion::{criterion_group, criterion_main, BenchmarkId, Criterion, Throughput};
 use saorsa_pqc::api::kem::ml_kem_768;
 use std::time::Duration;
 

@@ -14,7 +14,7 @@
 //!
 //! Run with: cargo bench --bench comprehensive_benchmarks
 
-use criterion::{ criterion_group, criterion_main, BenchmarkId, Criterion, Throughput};
+use criterion::{criterion_group, criterion_main, BenchmarkId, Criterion, Throughput};
 use saorsa_pqc::api::{
     kem::{ml_kem_768, MlKem, MlKemVariant},
     sig::{ml_dsa_65, MlDsa, MlDsaVariant},
