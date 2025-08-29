@@ -27,6 +27,11 @@ pub mod ml_kem_1024;
 pub mod ml_kem_512;
 pub mod types;
 
+// New trait-based API
+pub mod kem_impl;
+pub mod sig_impl;
+pub mod traits;
+
 // Security-critical modules
 pub mod constant_time;
 
@@ -69,6 +74,14 @@ pub use ml_kem_1024::{
 pub use ml_kem_512::{
     MlKem512, MlKem512Ciphertext, MlKem512Operations, MlKem512PublicKey, MlKem512SecretKey,
 };
+
+// Re-export new trait-based API
+pub use kem_impl::{
+    MlKem1024 as MlKem1024Trait, MlKem512 as MlKem512Trait, MlKem768 as MlKem768Trait,
+};
+pub use sig_impl::{MlDsa44 as MlDsa44Trait, MlDsa65 as MlDsa65Trait, MlDsa87 as MlDsa87Trait};
+pub use traits::{blake3_helpers, ConstantTimeCompare, Kem, SecureBuffer, Sig};
+
 // TLS extensions are not part of core PQC - use saorsa-pqc-tls crate if needed
 
 /// Post-Quantum Cryptography provider trait
