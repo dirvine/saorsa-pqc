@@ -98,6 +98,36 @@ saorsa-pqc = "0.3"
 
 ## 💻 Quick Start
 
+### NEW: Trait-Based API (v0.3.11+)
+
+The library now provides a trait-based abstraction layer for PQC algorithms, enabling easier integration and algorithm agility:
+
+```rust
+use saorsa_pqc::pqc::{Kem, Sig, MlKem768Trait, MlDsa65Trait, ConstantTimeCompare};
+
+// Key Encapsulation with trait API
+let (kem_pk, kem_sk) = MlKem768Trait::keypair();
+let (shared_secret, ciphertext) = MlKem768Trait::encap(&kem_pk);
+let recovered = MlKem768Trait::decap(&kem_sk, &ciphertext)?;
+assert!(shared_secret.ct_eq(&recovered)); // Constant-time comparison
+
+// Digital Signatures with trait API
+let (sig_pk, sig_sk) = MlDsa65Trait::keypair();
+let message = b"Quantum-resistant message";
+let signature = MlDsa65Trait::sign(&sig_sk, message);
+assert!(MlDsa65Trait::verify(&sig_pk, message, &signature));
+
+// BLAKE3 helpers for secure key derivation
+use saorsa_pqc::pqc::blake3_helpers;
+let derived_key = blake3_helpers::derive_key("app-context", shared_secret.as_ref());
+```
+
+**Key Features of Trait API:**
+- **Zero-copy buffers**: Efficient memory usage without unnecessary allocations
+- **Automatic zeroization**: Secret keys are wiped from memory when dropped
+- **Constant-time operations**: Protection against timing attacks
+- **Generic programming**: Write code that works with any KEM or signature algorithm
+
 ### Quantum-Secure Symmetric Encryption (ChaCha20-Poly1305)
 
 ```rust
