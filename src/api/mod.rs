@@ -17,6 +17,7 @@ pub mod symmetric;
 pub mod traits;
 
 pub use errors::{PqcError, PqcResult};
+pub use kdf::{helpers, HkdfSha3_256, HkdfSha3_512, KdfAlgorithm};
 pub use kem::{
     ml_kem_1024, ml_kem_512, ml_kem_768, MlKem, MlKemCiphertext, MlKemPublicKey, MlKemSecretKey,
     MlKemSharedSecret, MlKemVariant,

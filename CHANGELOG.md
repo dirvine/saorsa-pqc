@@ -5,6 +5,25 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.12] - 2025-01-20
+
+### Added
+- **HKDF public API exposure** - Exported HKDF types and helper functions in the public API
+- **Comprehensive HKDF tests** - Added 11 integration tests covering all HKDF functionality
+- **HKDF usage examples** - Created detailed example demonstrating various HKDF use cases including ML-KEM integration
+
+### Changed
+- **Updated HKDF dependency** - Upgraded from version 0.12 to 0.12.4 for latest improvements
+- **Enhanced KDF exports** - Added `HkdfSha3_256`, `HkdfSha3_512`, `KdfAlgorithm`, and `kdf_helpers` to public exports
+
+### Fixed
+- **Removed invalid cargo-mutants dependency** - Eliminated compilation warning by removing binary-only dependency
+
+### Technical Details
+- HKDF implementation uses SHA3 variants for quantum resistance
+- Includes helper functions for common patterns: key hierarchies, password derivation, and enc/auth key pairs
+- Full integration with existing ML-KEM for post-quantum key derivation
+
 ## [0.3.3] - 2025-01-18
 
 ### Added

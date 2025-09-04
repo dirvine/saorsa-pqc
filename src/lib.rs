@@ -159,6 +159,11 @@ pub use api::{
     SlhDsaSignature,
 
     SlhDsaVariant,
+    // KDF exports
+    HkdfSha3_256,
+    HkdfSha3_512,
+    KdfAlgorithm,
+    kdf::helpers as kdf_helpers,
 };
 
 // Re-export the most commonly used types and traits for convenience (legacy)
