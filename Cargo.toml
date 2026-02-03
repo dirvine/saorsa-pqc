@@ -86,7 +86,7 @@ tracing = "0.1"
 log = "0.4"
 
 # Networking
-bytes = "1.5"
+bytes = "1.11"
 
 # Parallel processing (enabled by default)
 rayon = { version = "1.8" }
