@@ -1172,6 +1172,12 @@ mod tests {
             let message = b"Deterministic test";
             let sig = dsa.sign(&sk1, message).unwrap();
             assert!(dsa.verify(&pk1, message, &sig).unwrap());
+
+            // Serialization roundtrip for seeded keys
+            let pk_restored = MlDsaPublicKey::from_bytes(variant, &pk1.to_bytes()).unwrap();
+            let sk_restored = MlDsaSecretKey::from_bytes(variant, &sk1.to_bytes()).unwrap();
+            let sig2 = dsa.sign(&sk_restored, message).unwrap();
+            assert!(dsa.verify(&pk_restored, message, &sig2).unwrap());
         }
     }
 
