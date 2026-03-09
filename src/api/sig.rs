@@ -61,7 +61,7 @@ use rand_core::OsRng;
 use zeroize::{Zeroize, ZeroizeOnDrop};
 
 // Import FIPS implementations
-use fips204::traits::{SerDes, Signer, Verifier};
+use fips204::traits::{KeyGen, SerDes, Signer, Verifier};
 use fips204::{ml_dsa_44, ml_dsa_65, ml_dsa_87};
 
 /// ML-DSA algorithm variants
@@ -566,6 +566,86 @@ impl MlDsa {
         }
     }
 
+    /// Generate a deterministic key pair from a 32-byte seed
+    ///
+    /// Creates an ML-DSA key pair deterministically from the provided seed value.
+    /// The same seed will always produce the same key pair, as specified by FIPS 204.
+    ///
+    /// # Security
+    ///
+    /// `xi` **must** be a 32-byte value with full entropy (e.g. output of a CSPRNG
+    /// or a key-derivation function such as HKDF/BLAKE3). A predictable or
+    /// low-entropy seed produces a predictable key pair. Treat the seed with the
+    /// same confidentiality as a private key.
+    ///
+    /// Prefer [`generate_keypair`](Self::generate_keypair) for use-cases that do
+    /// not require reproducibility.
+    ///
+    /// # Arguments
+    /// * `xi` - A 32-byte seed value with full entropy
+    ///
+    /// # Returns
+    /// A tuple containing:
+    /// - `MlDsaPublicKey`: The public key for signature verification
+    /// - `MlDsaSecretKey`: The secret key for signing
+    ///
+    /// # Example
+    /// ```rust,no_run
+    /// use saorsa_pqc::api::sig::ml_dsa_65;
+    ///
+    /// // In production, use a CSPRNG or KDF — not a fixed value.
+    /// let dsa = ml_dsa_65();
+    /// let seed = [42u8; 32];
+    /// let (pk1, sk1) = dsa.generate_keypair_from_seed(&seed);
+    /// let (pk2, sk2) = dsa.generate_keypair_from_seed(&seed);
+    /// assert_eq!(pk1.to_bytes(), pk2.to_bytes());
+    /// ```
+    #[must_use]
+    #[allow(clippy::large_stack_frames)]
+    pub fn generate_keypair_from_seed(&self, xi: &[u8; 32]) -> (MlDsaPublicKey, MlDsaSecretKey) {
+        match self.variant {
+            MlDsaVariant::MlDsa44 => {
+                let (pk, sk) = ml_dsa_44::KG::keygen_from_seed(xi);
+                (
+                    MlDsaPublicKey {
+                        variant: self.variant,
+                        bytes: pk.into_bytes().to_vec(),
+                    },
+                    MlDsaSecretKey {
+                        variant: self.variant,
+                        bytes: sk.into_bytes().to_vec(),
+                    },
+                )
+            }
+            MlDsaVariant::MlDsa65 => {
+                let (pk, sk) = ml_dsa_65::KG::keygen_from_seed(xi);
+                (
+                    MlDsaPublicKey {
+                        variant: self.variant,
+                        bytes: pk.into_bytes().to_vec(),
+                    },
+                    MlDsaSecretKey {
+                        variant: self.variant,
+                        bytes: sk.into_bytes().to_vec(),
+                    },
+                )
+            }
+            MlDsaVariant::MlDsa87 => {
+                let (pk, sk) = ml_dsa_87::KG::keygen_from_seed(xi);
+                (
+                    MlDsaPublicKey {
+                        variant: self.variant,
+                        bytes: pk.into_bytes().to_vec(),
+                    },
+                    MlDsaSecretKey {
+                        variant: self.variant,
+                        bytes: sk.into_bytes().to_vec(),
+                    },
+                )
+            }
+        }
+    }
+
     /// Sign a message
     ///
     /// Creates a digital signature for the given message using the secret key.
@@ -1061,6 +1141,56 @@ mod tests {
         let message = b"Test";
         let sig = dsa.sign(&sk2, message).unwrap();
         assert!(dsa.verify(&pk2, message, &sig).unwrap());
+    }
+
+    #[test]
+    fn test_seeded_keygen_deterministic() {
+        let seed = [42u8; 32];
+        for variant in [
+            MlDsaVariant::MlDsa44,
+            MlDsaVariant::MlDsa65,
+            MlDsaVariant::MlDsa87,
+        ] {
+            let dsa = MlDsa::new(variant);
+            let (pk1, sk1) = dsa.generate_keypair_from_seed(&seed);
+            let (pk2, sk2) = dsa.generate_keypair_from_seed(&seed);
+
+            assert_eq!(
+                pk1.to_bytes(),
+                pk2.to_bytes(),
+                "Public keys must match for {:?}",
+                variant
+            );
+            assert_eq!(
+                sk1.to_bytes(),
+                sk2.to_bytes(),
+                "Secret keys must match for {:?}",
+                variant
+            );
+
+            // Signing with seeded key should verify
+            let message = b"Deterministic test";
+            let sig = dsa.sign(&sk1, message).unwrap();
+            assert!(dsa.verify(&pk1, message, &sig).unwrap());
+
+            // Serialization roundtrip for seeded keys
+            let pk_restored = MlDsaPublicKey::from_bytes(variant, &pk1.to_bytes()).unwrap();
+            let sk_restored = MlDsaSecretKey::from_bytes(variant, &sk1.to_bytes()).unwrap();
+            let sig2 = dsa.sign(&sk_restored, message).unwrap();
+            assert!(dsa.verify(&pk_restored, message, &sig2).unwrap());
+        }
+    }
+
+    #[test]
+    fn test_seeded_keygen_different_seeds() {
+        let dsa = ml_dsa_65();
+        let (pk1, _) = dsa.generate_keypair_from_seed(&[1u8; 32]);
+        let (pk2, _) = dsa.generate_keypair_from_seed(&[2u8; 32]);
+        assert_ne!(
+            pk1.to_bytes(),
+            pk2.to_bytes(),
+            "Different seeds must produce different keys"
+        );
     }
 
     #[test]
