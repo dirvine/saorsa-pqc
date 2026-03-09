@@ -571,8 +571,18 @@ impl MlDsa {
     /// Creates an ML-DSA key pair deterministically from the provided seed value.
     /// The same seed will always produce the same key pair, as specified by FIPS 204.
     ///
+    /// # Security
+    ///
+    /// `xi` **must** be a 32-byte value with full entropy (e.g. output of a CSPRNG
+    /// or a key-derivation function such as HKDF/BLAKE3). A predictable or
+    /// low-entropy seed produces a predictable key pair. Treat the seed with the
+    /// same confidentiality as a private key.
+    ///
+    /// Prefer [`generate_keypair`](Self::generate_keypair) for use-cases that do
+    /// not require reproducibility.
+    ///
     /// # Arguments
-    /// * `xi` - A 32-byte seed value
+    /// * `xi` - A 32-byte seed value with full entropy
     ///
     /// # Returns
     /// A tuple containing:
@@ -583,6 +593,7 @@ impl MlDsa {
     /// ```rust,no_run
     /// use saorsa_pqc::api::sig::ml_dsa_65;
     ///
+    /// // In production, use a CSPRNG or KDF — not a fixed value.
     /// let dsa = ml_dsa_65();
     /// let seed = [42u8; 32];
     /// let (pk1, sk1) = dsa.generate_keypair_from_seed(&seed);
