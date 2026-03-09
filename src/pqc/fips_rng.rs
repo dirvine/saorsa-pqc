@@ -232,7 +232,11 @@ impl FipsEntropySource {
         // 3. Reasonable distribution (simple chi-square-like test)
         let mut counts = [0usize; 256];
         for &byte in &samples {
-            counts[byte as usize] += 1;
+            // Index is always valid: u8 values are 0..=255 and counts has 256 elements.
+            #[allow(clippy::indexing_slicing)]
+            {
+                counts[usize::from(byte)] += 1;
+            }
         }
         let max_count = *counts.iter().max().unwrap_or(&0);
         // With 64 samples, expect ~0.25 per bucket, allow up to 8 in one bucket
@@ -405,6 +409,10 @@ impl FipsRng {
     /// Force a reseed operation
     ///
     /// This provides prediction resistance by obtaining fresh entropy.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the entropy source fails or the DRBG mutex is poisoned.
     pub fn reseed(&mut self) -> Result<()> {
         let mut seed = [0u8; 32];
         self.entropy_source
@@ -427,6 +435,10 @@ impl FipsRng {
     }
 
     /// Perform health check on entropy source
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the entropy source fails to produce valid output.
     pub fn health_check(&mut self) -> Result<()> {
         let mut test_entropy = [0u8; 64];
         self.entropy_source
@@ -455,7 +467,7 @@ impl RngCore for FipsRng {
     // - Mutex poisoning: indicates panic in another thread (unrecoverable)
     // - Reseed failure: entropy source exhausted (unrecoverable for FIPS RNG)
     // - Generate failure: internal DRBG error (unrecoverable)
-    #[allow(clippy::expect_used)]
+    #[allow(clippy::expect_used, clippy::indexing_slicing)]
     fn fill_bytes(&mut self, dest: &mut [u8]) {
         // Handle large requests by chunking
         const CHUNK_SIZE: usize = 65536; // 64KB max per FIPS requirement
@@ -463,7 +475,7 @@ impl RngCore for FipsRng {
         let mut offset = 0;
         while offset < dest.len() {
             let chunk_size = (dest.len() - offset).min(CHUNK_SIZE);
-            let chunk = &mut dest[offset..offset + chunk_size];
+            let chunk = &mut dest[offset..][..chunk_size];
 
             let mut state = self
                 .drbg_state

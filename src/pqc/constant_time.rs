@@ -30,7 +30,9 @@ pub fn ct_eq(a: &[u8], b: &[u8]) -> bool {
         // to minimize timing leakage, but we know the result will be false
         let min_len = a.len().min(b.len());
         if min_len > 0 {
-            // Compare overlapping portion to do consistent work
+            // Compare overlapping portion to do consistent work.
+            // Slicing is safe: min_len <= a.len() and min_len <= b.len() by construction.
+            #[allow(clippy::indexing_slicing)]
             let _ = black_box(a[..min_len].ct_eq(&b[..min_len]));
         }
         return black_box(false);

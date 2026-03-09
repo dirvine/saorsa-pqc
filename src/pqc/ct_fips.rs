@@ -120,7 +120,7 @@ impl<T: Zeroize> Zeroize for CtResult<T> {
 
 /// Constant-time ML-KEM operations wrapper
 pub mod ct_ml_kem {
-    use super::*;
+    use super::{Choice, ConditionallySelectable, ConstantTimeEq, CtResult, Zeroize};
 
     /// Shared secret size for ML-KEM (all variants)
     pub const SHARED_SECRET_SIZE: usize = 32;
@@ -162,8 +162,8 @@ pub mod ct_ml_kem {
     impl ConditionallySelectable for CtSharedSecret {
         fn conditional_select(a: &Self, b: &Self, choice: Choice) -> Self {
             let mut result = [0u8; SHARED_SECRET_SIZE];
-            for i in 0..SHARED_SECRET_SIZE {
-                result[i] = u8::conditional_select(&a.bytes[i], &b.bytes[i], choice);
+            for ((out, &a_byte), &b_byte) in result.iter_mut().zip(&a.bytes).zip(&b.bytes) {
+                *out = u8::conditional_select(&a_byte, &b_byte, choice);
             }
             Self { bytes: result }
         }
@@ -282,7 +282,7 @@ pub mod ct_ml_kem {
 
 /// Constant-time ML-DSA operations wrapper
 pub mod ct_ml_dsa {
-    use super::*;
+    use super::{Choice, ConstantTimeEq};
 
     /// Constant-time signature verification wrapper
     ///
@@ -380,7 +380,7 @@ pub mod ct_ml_dsa {
 
 /// Constant-time SLH-DSA operations wrapper
 pub mod ct_slh_dsa {
-    use super::*;
+    use super::{Choice, ConstantTimeEq};
 
     /// Constant-time signature verification for SLH-DSA
     ///
