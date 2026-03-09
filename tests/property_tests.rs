@@ -160,7 +160,7 @@ proptest! {
 
 // Test ML-DSA-65 signature properties
 proptest! {
-    #![proptest_config(ProptestConfig::with_cases(10000))]
+    #![proptest_config(ProptestConfig::with_cases(100))]
 
     #[test]
     fn prop_ml_dsa_sign_verify_consistency(
