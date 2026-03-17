@@ -116,6 +116,7 @@
 )]
 #![warn(clippy::correctness, clippy::suspicious, clippy::perf)]
 #![cfg_attr(docsrs, feature(doc_cfg))]
+pub(crate) mod logging;
 
 // Core PQC modules - the main attraction
 pub mod pqc;

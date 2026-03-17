@@ -24,7 +24,7 @@ use ed25519_dalek::{
     Signature, Signer, SigningKey as Ed25519SecretKey, Verifier, VerifyingKey as Ed25519PublicKey,
 };
 
-use tracing::{debug, info, warn};
+use crate::{debug, info, warn};
 
 /// Raw Public Key verifier for client-side authentication
 #[derive(Debug)]
