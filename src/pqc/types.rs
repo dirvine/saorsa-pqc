@@ -409,66 +409,6 @@ impl SharedSecret {
     }
 }
 
-/// Hybrid KEM public key
-#[derive(Clone, Debug)]
-pub struct HybridKemPublicKey {
-    /// Classical public key (e.g., X25519)
-    pub classical: Box<[u8]>,
-    /// ML-KEM public key
-    pub ml_kem: MlKemPublicKey,
-}
-
-/// Hybrid KEM secret key
-///
-/// Automatically zeroized on drop to prevent sensitive data leakage.
-/// Contains both classical and post-quantum secret keys.
-#[derive(Clone, Zeroize, ZeroizeOnDrop)]
-pub struct HybridKemSecretKey {
-    /// Classical secret key (e.g., X25519)
-    pub classical: Box<[u8]>,
-    /// ML-KEM secret key
-    pub ml_kem: MlKemSecretKey,
-}
-
-/// Hybrid KEM ciphertext
-#[derive(Clone, Debug)]
-pub struct HybridKemCiphertext {
-    /// Classical ciphertext (e.g., X25519 ephemeral key)
-    pub classical: Box<[u8]>,
-    /// ML-KEM ciphertext
-    pub ml_kem: MlKemCiphertext,
-}
-
-/// Hybrid signature public key
-#[derive(Clone, Debug)]
-pub struct HybridSignaturePublicKey {
-    /// Classical public key (e.g., Ed25519)
-    pub classical: Box<[u8]>,
-    /// ML-DSA public key
-    pub ml_dsa: MlDsaPublicKey,
-}
-
-/// Hybrid signature secret key
-///
-/// Automatically zeroized on drop to prevent sensitive data leakage.
-/// Contains both classical and post-quantum signature secret keys.
-#[derive(Clone, Zeroize, ZeroizeOnDrop)]
-pub struct HybridSignatureSecretKey {
-    /// Classical secret key (e.g., Ed25519)
-    pub classical: Box<[u8]>,
-    /// ML-DSA secret key
-    pub ml_dsa: MlDsaSecretKey,
-}
-
-/// Hybrid signature value
-#[derive(Clone, Debug)]
-pub struct HybridSignatureValue {
-    /// Classical signature (e.g., Ed25519)
-    pub classical: Box<[u8]>,
-    /// ML-DSA signature
-    pub ml_dsa: Box<[u8]>,
-}
-
 #[cfg(test)]
 #[allow(clippy::unwrap_used, clippy::expect_used)]
 mod tests {

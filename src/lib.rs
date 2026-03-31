@@ -2,7 +2,7 @@
 //!
 //! A comprehensive, production-ready Post-Quantum Cryptography (PQC) library implementing
 //! NIST-standardized algorithms FIPS 203 (ML-KEM), FIPS 204 (ML-DSA), and FIPS 205 (SLH-DSA)
-//! with both pure PQC and hybrid (classical + PQC) modes.
+//! with pure PQC algorithms only (no classical cryptography).
 //!
 //! ## Features
 //!
@@ -10,13 +10,13 @@
 //! - **ML-KEM-512**: NIST Level 1 security (128-bit)
 //! - **ML-KEM-768**: NIST Level 3 security (192-bit)
 //! - **ML-KEM-1024**: NIST Level 5 security (256-bit)
-//! - **Hybrid KEM**: Classical ECDH + ML-KEM for defense-in-depth
+//! - **Public Key Encryption**: ML-KEM + AES-256-GCM for hybrid encryption
 //!
 //! ### Digital Signatures - FIPS 204
 //! - **ML-DSA-44**: NIST Level 2 security (~128-bit)
 //! - **ML-DSA-65**: NIST Level 3 security (~192-bit)
 //! - **ML-DSA-87**: NIST Level 5 security (~256-bit)
-//! - **Hybrid Signatures**: Classical Ed25519 + ML-DSA for defense-in-depth
+//! - **Pure PQC Signatures**: ML-DSA only, no classical fallback
 //!
 //! ### Hash-Based Signatures - FIPS 205
 //! - **SLH-DSA**: 12 parameter sets (SHA2/SHAKE, 128/192/256-bit, fast/small)
@@ -27,7 +27,6 @@
 //! - **Authenticated Encryption**: Built-in authentication prevents tampering
 //!
 //! ### Network Protocol Support
-//! - **Raw Public Keys**: Ed25519 key support for P2P authentication
 //! - **Key Derivation**: Utilities for network identity derivation
 //! - **Protocol Agnostic**: Designed for use with any network protocol
 //!
@@ -40,7 +39,7 @@
 //! ## Quick Start
 //!
 //! ```rust,no_run
-//! use saorsa_pqc::pqc::{MlKem768, MlKemOperations, HybridPublicKeyEncryption};
+//! use saorsa_pqc::pqc::{MlKem768, MlKemOperations, EncryptedMessage, HybridPublicKeyEncryption};
 //! use saorsa_pqc::symmetric::{SymmetricKey, ChaCha20Poly1305Cipher};
 //!
 //! # fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -76,7 +75,7 @@
 //! - **No Panics**: All operations return `Result` types with proper error handling
 //! - **Memory Safety**: Sensitive data is zeroed on drop and uses secure allocators
 //! - **Timing Attacks**: Constant-time implementations where cryptographically relevant
-//! - **Algorithm Agility**: Support for multiple algorithms and hybrid modes
+//! - **Algorithm Agility**: Support for multiple PQC algorithms
 //! - **Validation**: Comprehensive input validation and parameter checking
 //!
 //! ## Performance
@@ -170,18 +169,13 @@ pub use api::{
 pub use pqc::{
     // Types
     types::{
-        HybridKemCiphertext, HybridKemPublicKey, HybridKemSecretKey, HybridSignaturePublicKey,
-        HybridSignatureSecretKey, HybridSignatureValue, MlDsaPublicKey, MlDsaSecretKey,
-        MlDsaSignature, MlKemCiphertext, MlKemPublicKey, MlKemSecretKey, PqcError, PqcResult,
-        SharedSecret,
+        MlDsaPublicKey, MlDsaSecretKey, MlDsaSignature, MlKemCiphertext, MlKemPublicKey,
+        MlKemSecretKey, PqcError, PqcResult, SharedSecret,
     },
     EncryptedMessage,
 
-    // Hybrid modes
-    HybridKem,
-    // Public key encryption
+    // Public key encryption (ML-KEM + AES-256-GCM)
     HybridPublicKeyEncryption,
-    HybridSignature,
 
     MlDsa65,
     MlDsaOperations,

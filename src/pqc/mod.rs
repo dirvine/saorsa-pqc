@@ -15,8 +15,7 @@
 //! All implementations use constant-time algorithms from the FIPS-certified
 //! reference implementations for protection against timing attacks.
 //!
-//! The implementation provides both pure PQC and hybrid modes combining classical
-//! and PQC algorithms for defense-in-depth against both classical and quantum attacks.
+//! The implementation provides pure PQC algorithms only - no classical cryptography.
 //!
 //! ## Usage Examples
 //!
@@ -99,10 +98,9 @@ pub mod constant_time;
 pub mod ct_fips;
 pub mod fips_rng;
 
-// Hybrid cryptography
+// Encryption and combiners
 pub mod combiners;
 pub mod encryption;
-pub mod hybrid;
 
 // Configuration and utilities
 pub mod config;
@@ -122,7 +120,6 @@ pub use types::{PqcError, PqcResult};
 
 // PQC algorithm implementations - always available
 pub use encryption::{EncryptedMessage, HybridPublicKeyEncryption};
-pub use hybrid::{HybridKem, HybridSignature};
 pub use memory_pool::{PoolConfig, PqcMemoryPool};
 pub use ml_dsa::MlDsa65;
 pub use ml_dsa_44::{

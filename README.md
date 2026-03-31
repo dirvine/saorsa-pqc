@@ -616,7 +616,6 @@ This library builds upon the excellent work of:
 - [ ] Hardware security module (HSM) support
 - [ ] WebAssembly bindings
 - [ ] C FFI bindings
-- [ ] Hybrid modes (PQC + Classical)
 - [ ] SHAKE256 XOF implementation
 - [ ] Additional KDF algorithms (PBKDF2, Argon2)
 - [x] **Side-channel resistance validation** ✅ (v0.4.0 - DudeCT integration)
