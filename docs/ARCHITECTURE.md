@@ -12,7 +12,7 @@
 
 ## System Overview
 
-Saorsa PQC is a production-ready post-quantum cryptography library implementing NIST-standardized algorithms with a focus on security, performance, and ease of integration. The library provides both pure post-quantum and hybrid cryptographic modes for defense-in-depth.
+Saorsa PQC is a production-ready post-quantum cryptography library implementing NIST-standardized algorithms with a focus on security, performance, and ease of integration. As of v0.5.0, the library is **pure post-quantum only** — all classical cryptography (Ed25519, X25519) has been removed (see ADR-001).
 
 ```mermaid
 graph TB
@@ -29,7 +29,7 @@ graph TB
         MLKEM[ML-KEM<br/>FIPS 203]
         MLDSA[ML-DSA<br/>FIPS 204]
         SLHDSA[SLH-DSA<br/>FIPS 205]
-        HYBRID[Hybrid Crypto]
+        SYM[Symmetric AEAD]
     end
     
     subgraph "Security Layer"
@@ -107,7 +107,7 @@ src/
 │   ├── ml_dsa.rs    # ML-DSA-65
 │   ├── ml_dsa_44.rs
 │   ├── ml_dsa_87.rs
-│   ├── hybrid.rs    # Hybrid modes
+│   ├── encryption.rs # Public-key encryption (ML-KEM + AEAD)
 │   ├── constant_time.rs
 │   └── types.rs     # Core types
 │
@@ -173,7 +173,7 @@ sequenceDiagram
 | Weak Randomness | System RNG via `getrandom` |
 | Buffer Overflow | Rust's memory safety, bounds checking |
 | Side Channels | Constant-time, no secret-dependent branches |
-| Quantum Attacks | NIST PQC algorithms, hybrid modes available |
+| Quantum Attacks | NIST PQC algorithms (pure post-quantum, no classical fallback) |
 
 ## Cryptographic Primitives
 
@@ -205,36 +205,15 @@ sequenceDiagram
 - **Use Case**: Long-term signatures, hash-based security
 - **Properties**: Quantum-resistant even against future attacks
 
-### Classical Algorithms (Hybrid Mode)
+### Symmetric Primitives
 
-- **X25519**: ECDH key exchange
-- **Ed25519**: EdDSA signatures
-- **ChaCha20-Poly1305**: AEAD encryption
-- **SHA3/BLAKE3**: Hashing
-- **HKDF**: Key derivation
+- **ChaCha20-Poly1305**: AEAD encryption (primary)
+- **AES-256-GCM**: AEAD encryption (alternative)
+- **BLAKE3**: Hashing
+- **SHA3**: Hashing
+- **HKDF-SHA3**: Key derivation
 
-### Hybrid Cryptography
-
-```mermaid
-graph LR
-    subgraph "Hybrid KEM"
-        MLKEM768[ML-KEM-768]
-        X25519[X25519]
-        HKDF1[HKDF Combiner]
-        MLKEM768 --> HKDF1
-        X25519 --> HKDF1
-        HKDF1 --> SS[Shared Secret]
-    end
-    
-    subgraph "Hybrid Signature"
-        MLDSA65[ML-DSA-65]
-        ED25519[Ed25519]
-        MLDSA65 --> SIG1[PQ Signature]
-        ED25519 --> SIG2[Classic Signature]
-        SIG1 --> COMBINED[Combined Signature]
-        SIG2 --> COMBINED
-    end
-```
+> **Note**: Classical asymmetric algorithms (X25519, Ed25519) were removed in v0.5.0. See [ADR-001](adr/ADR-001-pure-post-quantum-only.md) for rationale.
 
 ## Trust Boundaries
 
@@ -286,14 +265,14 @@ graph TB
 
 ### Algorithm Performance (Relative)
 
-| Operation | ML-KEM-768 | ML-DSA-65 | SLH-DSA-SHA2-128s | Classical |
-|-----------|------------|-----------|-------------------|-----------|
-| KeyGen | ~1ms | ~2ms | ~10ms | ~0.01ms |
-| Encap/Sign | ~1ms | ~5ms | ~100ms | ~0.1ms |
-| Decap/Verify | ~1ms | ~2ms | ~5ms | ~0.1ms |
-| Public Key | 1184 B | 1952 B | 32 B | 32 B |
-| Secret Key | 2400 B | 4032 B | 64 B | 32 B |
-| Ciphertext/Sig | 1088 B | 3309 B | 7856 B | 64 B |
+| Operation | ML-KEM-768 | ML-DSA-65 | SLH-DSA-SHA2-128s |
+|-----------|------------|-----------|-------------------|
+| KeyGen | ~1ms | ~2ms | ~10ms |
+| Encap/Sign | ~1ms | ~5ms | ~100ms |
+| Decap/Verify | ~1ms | ~2ms | ~5ms |
+| Public Key | 1184 B | 1952 B | 32 B |
+| Secret Key | 2400 B | 4032 B | 64 B |
+| Ciphertext/Sig | 1088 B | 3309 B | 7856 B |
 
 ### Optimization Strategies
 
@@ -336,22 +315,21 @@ let signature = dsa.sign(&secret_key, message, None)?;
 ### Advanced Integration
 
 ```rust
-use saorsa_pqc::{PqcConfig, HybridKem, SecurityValidator};
+use saorsa_pqc::api;
 
-// Configure for specific requirements
-let config = PqcConfig::builder()
-    .mode(PqcMode::Hybrid)
-    .ml_kem_variant(MlKemVariant::MlKem768)
-    .validation_level(ValidationLevel::Strict)
-    .build()?;
+// Key exchange (ML-KEM-768)
+let (pk, sk) = api::kem::keypair()?;
+let (ciphertext, shared_secret) = api::kem::encapsulate(&pk)?;
+let decapsulated = api::kem::decapsulate(&sk, &ciphertext)?;
 
-// Use with validation
-let validator = SecurityValidator::new();
-validator.validate_config(&config)?;
+// Signatures (ML-DSA-65)
+let (sign_pk, sign_sk) = api::sig::keypair()?;
+let signature = api::sig::sign(&sign_sk, message)?;
+let valid = api::sig::verify(&sign_pk, message, &signature)?;
 
-// Hybrid mode for transition period
-let hybrid = HybridKem::new();
-let (pk, sk) = hybrid.generate_keypair()?;
+// Symmetric encryption (ChaCha20-Poly1305)
+let encrypted = api::symmetric::encrypt(&key, &nonce, plaintext)?;
+let decrypted = api::symmetric::decrypt(&key, &nonce, &encrypted)?;
 ```
 
 ### Security Checklist
@@ -369,36 +347,9 @@ let (pk, sk) = hybrid.generate_keypair()?;
 
 ### Migration Path
 
-```mermaid
-graph LR
-    subgraph "Phase 1: Assessment"
-        AUDIT[Security Audit]
-        PLAN[Migration Plan]
-    end
-    
-    subgraph "Phase 2: Hybrid"
-        HYBRID[Deploy Hybrid Mode]
-        TEST[Test Both Algorithms]
-    end
-    
-    subgraph "Phase 3: Transition"
-        MONITOR[Monitor Performance]
-        MIGRATE[Gradual Migration]
-    end
-    
-    subgraph "Phase 4: Pure PQC"
-        PQC[Full PQC Mode]
-        CLASSICAL[Disable Classical]
-    end
-    
-    AUDIT --> PLAN
-    PLAN --> HYBRID
-    HYBRID --> TEST
-    TEST --> MONITOR
-    MONITOR --> MIGRATE
-    MIGRATE --> PQC
-    PQC --> CLASSICAL
-```
+> **Migration complete**: saorsa-pqc transitioned from hybrid (v0.3–v0.4) to pure
+> post-quantum (v0.5.0+). All classical cryptography has been removed.
+> See [ADR-001](adr/ADR-001-pure-post-quantum-only.md) for the decision rationale.
 
 ## Appendix: Security Properties
 
