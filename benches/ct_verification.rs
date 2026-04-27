@@ -10,6 +10,7 @@
 
 #![allow(missing_docs)]
 #![allow(clippy::unwrap_used, clippy::expect_used)]
+#![allow(clippy::indexing_slicing)]
 
 use dudect_bencher::{ctbench_main, BenchRng, Class, CtRunner};
 use rand::RngCore;

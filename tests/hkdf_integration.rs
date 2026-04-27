@@ -6,6 +6,7 @@
 #![cfg(test)]
 #![allow(clippy::expect_used)]
 #![allow(clippy::unwrap_used)]
+#![allow(clippy::indexing_slicing)]
 
 use saorsa_pqc::api::traits::Kdf;
 use saorsa_pqc::{kdf_helpers, HkdfSha3_256, HkdfSha3_512, KdfAlgorithm};

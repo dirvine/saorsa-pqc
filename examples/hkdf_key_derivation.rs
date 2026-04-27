@@ -4,6 +4,8 @@
 //! in various cryptographic scenarios, including key exchange, session keys, and
 //! password-based key derivation.
 
+#![allow(clippy::indexing_slicing, clippy::unwrap_used, clippy::expect_used)]
+
 use saorsa_pqc::api::traits::Kdf;
 use saorsa_pqc::{kdf_helpers, HkdfSha3_256, HkdfSha3_512, KdfAlgorithm};
 use saorsa_pqc::{MlKem768, MlKemOperations};
