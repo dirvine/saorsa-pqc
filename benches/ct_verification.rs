@@ -36,7 +36,7 @@ fn ct_eq_equal_vs_different(runner: &mut CtRunner, rng: &mut BenchRng) {
     let data_b_diff: [u8; 32] = [0xBBu8; 32];
 
     // Randomly choose which class to measure
-    let class = if rng.next_u32() % 2 == 0 {
+    let class = if rng.next_u32().is_multiple_of(2) {
         Class::Left
     } else {
         Class::Right
@@ -74,7 +74,7 @@ fn ct_eq_early_vs_late_diff(runner: &mut CtRunner, rng: &mut BenchRng) {
     let mut data_late_diff: [u8; 32] = [0xAAu8; 32];
     data_late_diff[31] = 0xBB;
 
-    let class = if rng.next_u32() % 2 == 0 {
+    let class = if rng.next_u32().is_multiple_of(2) {
         Class::Left
     } else {
         Class::Right
@@ -104,7 +104,7 @@ fn ct_array_eq_verification(runner: &mut CtRunner, rng: &mut BenchRng) {
     let array_b_same = [0xAAu8; 32];
     let array_b_diff = [0xBBu8; 32];
 
-    let class = if rng.next_u32() % 2 == 0 {
+    let class = if rng.next_u32().is_multiple_of(2) {
         Class::Left
     } else {
         Class::Right
@@ -127,7 +127,7 @@ fn ct_array_eq_verification(runner: &mut CtRunner, rng: &mut BenchRng) {
 fn ct_copy_bytes_choice_verification(runner: &mut CtRunner, rng: &mut BenchRng) {
     let src = [0xAAu8; 64];
 
-    let class = if rng.next_u32() % 2 == 0 {
+    let class = if rng.next_u32().is_multiple_of(2) {
         Class::Left
     } else {
         Class::Right
@@ -163,7 +163,7 @@ fn ct_select_verification(runner: &mut CtRunner, rng: &mut BenchRng) {
     let a = 42u32;
     let b = 100u32;
 
-    let class = if rng.next_u32() % 2 == 0 {
+    let class = if rng.next_u32().is_multiple_of(2) {
         Class::Left
     } else {
         Class::Right
@@ -191,7 +191,7 @@ fn ct_eq_random_data(runner: &mut CtRunner, rng: &mut BenchRng) {
     data_b.copy_from_slice(&data_a); // Same as data_a
     rng.fill_bytes(&mut data_c); // Different random data
 
-    let class = if rng.next_u32() % 2 == 0 {
+    let class = if rng.next_u32().is_multiple_of(2) {
         Class::Left
     } else {
         Class::Right
@@ -211,7 +211,7 @@ fn ct_eq_empty_slices(runner: &mut CtRunner, rng: &mut BenchRng) {
     let empty: &[u8] = &[];
     let non_empty = [0xAAu8; 32];
 
-    let class = if rng.next_u32() % 2 == 0 {
+    let class = if rng.next_u32().is_multiple_of(2) {
         Class::Left
     } else {
         Class::Right
@@ -240,7 +240,7 @@ fn ct_tag_verify_matching_vs_mismatching(runner: &mut CtRunner, rng: &mut BenchR
     let mut tag_b_diff = [0xAAu8; 16];
     tag_b_diff[0] = 0xBB;
 
-    let class = if rng.next_u32() % 2 == 0 {
+    let class = if rng.next_u32().is_multiple_of(2) {
         Class::Left
     } else {
         Class::Right
@@ -264,7 +264,7 @@ fn ct_buffer_eq_32byte_keys(runner: &mut CtRunner, rng: &mut BenchRng) {
     let key_b_same = [0x42u8; 32];
     let key_b_diff = [0x43u8; 32];
 
-    let class = if rng.next_u32() % 2 == 0 {
+    let class = if rng.next_u32().is_multiple_of(2) {
         Class::Left
     } else {
         Class::Right
@@ -284,7 +284,7 @@ fn ct_buffer_eq_32byte_keys(runner: &mut CtRunner, rng: &mut BenchRng) {
 /// Left: Zeroize (choice=true)
 /// Right: Don't zeroize (choice=false)
 fn ct_conditional_zeroize_verification(runner: &mut CtRunner, rng: &mut BenchRng) {
-    let class = if rng.next_u32() % 2 == 0 {
+    let class = if rng.next_u32().is_multiple_of(2) {
         Class::Left
     } else {
         Class::Right
@@ -309,7 +309,7 @@ fn ct_validate_key_length_verification(runner: &mut CtRunner, rng: &mut BenchRng
     let key_correct = vec![0u8; 1184]; // ML-KEM-768 public key size
     let key_incorrect = vec![0u8; 1000]; // Wrong size
 
-    let class = if rng.next_u32() % 2 == 0 {
+    let class = if rng.next_u32().is_multiple_of(2) {
         Class::Left
     } else {
         Class::Right
@@ -333,7 +333,7 @@ fn ct_eq_signature_sized(runner: &mut CtRunner, rng: &mut BenchRng) {
     let sig_b_same = [0x55u8; 256];
     let sig_b_diff = [0x66u8; 256];
 
-    let class = if rng.next_u32() % 2 == 0 {
+    let class = if rng.next_u32().is_multiple_of(2) {
         Class::Left
     } else {
         Class::Right
@@ -357,7 +357,7 @@ fn ct_eq_large_key_sized(runner: &mut CtRunner, rng: &mut BenchRng) {
     let key_b_same = vec![0x77u8; 2400];
     let key_b_diff = vec![0x88u8; 2400];
 
-    let class = if rng.next_u32() % 2 == 0 {
+    let class = if rng.next_u32().is_multiple_of(2) {
         Class::Left
     } else {
         Class::Right
@@ -388,7 +388,7 @@ fn ct_eq_single_bit_diff(runner: &mut CtRunner, rng: &mut BenchRng) {
     let mut data_late_bit = vec![0x00u8; size];
     data_late_bit[size - 1] = 0x80;
 
-    let class = if rng.next_u32() % 2 == 0 {
+    let class = if rng.next_u32().is_multiple_of(2) {
         Class::Left
     } else {
         Class::Right
@@ -411,7 +411,7 @@ fn ct_select_u64_verification(runner: &mut CtRunner, rng: &mut BenchRng) {
     let a = 0xDEAD_BEEF_CAFE_BABEu64;
     let b = 0x1234_5678_9ABC_DEF0u64;
 
-    let class = if rng.next_u32() % 2 == 0 {
+    let class = if rng.next_u32().is_multiple_of(2) {
         Class::Left
     } else {
         Class::Right
@@ -435,7 +435,7 @@ fn ct_array_eq_64byte(runner: &mut CtRunner, rng: &mut BenchRng) {
     let hash_b_same = [0x99u8; 64];
     let hash_b_diff = [0xAAu8; 64];
 
-    let class = if rng.next_u32() % 2 == 0 {
+    let class = if rng.next_u32().is_multiple_of(2) {
         Class::Left
     } else {
         Class::Right
@@ -461,7 +461,7 @@ fn ct_shared_secret_eq(runner: &mut CtRunner, rng: &mut BenchRng) {
     let ss_b_same = ct_ml_kem::CtSharedSecret::from_bytes([0xCCu8; 32]);
     let ss_b_diff = ct_ml_kem::CtSharedSecret::from_bytes([0xDDu8; 32]);
 
-    let class = if rng.next_u32() % 2 == 0 {
+    let class = if rng.next_u32().is_multiple_of(2) {
         Class::Left
     } else {
         Class::Right

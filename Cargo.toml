@@ -11,7 +11,7 @@ documentation = "https://docs.rs/saorsa-pqc"
 keywords = ["cryptography", "post-quantum", "ml-kem", "ml-dsa", "quic"]
 categories = ["cryptography", "network-programming"]
 readme = "README.md"
-rust-version = "1.85.0"
+rust-version = "1.88.0"
 exclude = ["tests/nist_vectors/*", "*.profraw", "scripts/*"]
 
 [lib]
@@ -188,7 +188,7 @@ ignore = []
 
 # Clippy settings for ultra-quality standards
 [package.metadata.clippy]
-msrv = "1.85.0"
+msrv = "1.88.0"
 
 # Test coverage configuration
 [package.metadata.tarpaulin]

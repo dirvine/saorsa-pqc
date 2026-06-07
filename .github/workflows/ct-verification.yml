@@ -146,7 +146,8 @@ jobs:
   ct-extended:
     name: Extended CT Analysis
     runs-on: ubuntu-latest
-    timeout-minutes: 60
+    # 17 benchmarks * 5 minutes plus build/upload margin.
+    timeout-minutes: 120
     if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
 
     steps:
