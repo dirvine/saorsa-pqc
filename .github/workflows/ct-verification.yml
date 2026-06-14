@@ -151,6 +151,36 @@ jobs:
     if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
 
     steps:
+    - name: Free disk space (github runners ship with ~30GB free, the
+            1h14m extended CT build + 17 5-minute benchmark logs has
+            been OOMing the runner — see
+            https://github.com/saorsa-labs/saorsa-pqc/actions/runs/27484255939)
+      run: |
+        echo "::group::disk before"
+        df -h
+        echo "::endgroup::"
+        # Remove preinstalled toolchains the CT job does not need. The
+        # paths are the documented safe set on the ubuntu-latest GitHub
+        # Actions runner image; they exist on every runner and are
+        # non-critical for cargo + rustc.
+        sudo rm -rf \
+          /usr/share/dotnet \
+          /usr/local/lib/android \
+          /opt/ghc \
+          /opt/hostedtoolcache/CodeQL \
+          /opt/hostedtoolcache/PyPy \
+          /opt/hostedtoolcache/go \
+          /usr/lib/google-cloud-sdk \
+          /usr/local/lib/node_modules \
+          /opt/microsoft/msodbcsql18 \
+          /opt/microsoft/powershell \
+          2>/dev/null || true
+        sudo apt-get clean >/dev/null 2>&1 || true
+        sudo rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/* 2>/dev/null || true
+        echo "::group::disk after"
+        df -h
+        echo "::endgroup::"
+
     - name: Checkout code
       uses: actions/checkout@v4
 
