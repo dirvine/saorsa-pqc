@@ -112,8 +112,6 @@ serde_json = "1.0"
 lazy_static = "1.4"
 tempfile = "3.8"
 
-# For performance profiling
-
 # Additional test dependencies
 slh-dsa = "0.0.3"  # Alternative SLH-DSA implementation for cross-validation
 
@@ -123,9 +121,11 @@ libfuzzer-sys = "0.4"
 arbitrary = { version = "1.3", features = ["derive"] }
 mutants = "0.0.3"
 
-[target.'cfg(not(target_os = "windows"))'.dev-dependencies]
-honggfuzz = "0.5"
-pprof = { version = "0.15", features = ["flamegraph"] }
+# honggfuzz and pprof were declared here but referenced by no source file, no
+# bench, and no CI job. They were the only path to quick-xml 0.26
+# (RUSTSEC-2026-0194, RUSTSEC-2026-0195), memmap2 (RUSTSEC-2026-0186) and the
+# yanked spin 0.10.0. Reintroduce them alongside an actual profiling or
+# fuzzing target, not before.
 
 
 # Test configuration for specific test suites
